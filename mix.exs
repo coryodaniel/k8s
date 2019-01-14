@@ -4,10 +4,25 @@ defmodule K8s.MixProject do
   def project do
     [
       app: :k8s,
-      version: "0.1.0",
+      description: "An experimental k8s client.",
+      version: "0.1.3",
       elixir: "~> 1.7",
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      test_coverage: [tool: ExCoveralls],
+      preferred_cli_env: [
+        coveralls: :test,
+        "coveralls.detail": :test,
+        "coveralls.post": :test,
+        "coveralls.html": :test,
+        "coveralls.travis": :test
+      ],
+      docs: [
+        extras: ["README.md"],
+        main: "readme"
+      ],
+      package: package(),
+      elixirc_paths: elixirc_paths(Mix.env())
     ]
   end
 
@@ -18,8 +33,31 @@ defmodule K8s.MixProject do
     ]
   end
 
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_), do: ["lib"]
+
   # Run "mix help deps" to learn about dependencies.
   defp deps do
-    []
+    [
+      {:k8s_client, "~> 0.1.3"},
+      {:k8s_conf, "~> 0.1.3"},
+
+      {:mix_test_watch, "~> 0.8", only: :dev, runtime: false},
+      {:credo, "~> 1.0.0", only: [:dev, :test], runtime: false},
+      {:dialyxir, "~> 1.0.0-rc.4", only: [:dev], runtime: false},
+      {:ex_doc, "~> 0.19", only: :dev},
+      {:excoveralls, "~> 0.10", only: :test}
+    ]
+  end
+
+  defp package do
+    [
+      name: :k8s,
+      maintainers: ["Cory O'Daniel"],
+      licenses: ["MIT"],
+      links: %{
+        "GitHub" => "https://github.com/coryodaniel/k8s_conf"
+      }
+    ]
   end
 end
