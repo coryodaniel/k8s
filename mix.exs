@@ -4,9 +4,9 @@ defmodule K8s.MixProject do
   def project do
     [
       app: :k8s,
-      description: "An experimental k8s client.",
+      description: "An elixir kubernetes client.",
       version: "0.1.3",
-      elixir: "~> 1.7",
+      elixir: "~> 1.6",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       test_coverage: [tool: ExCoveralls],
@@ -22,14 +22,19 @@ defmodule K8s.MixProject do
         main: "readme"
       ],
       package: package(),
-      elixirc_paths: elixirc_paths(Mix.env())
+      elixirc_paths: elixirc_paths(Mix.env()),
+      dialyzer: [
+        plt_add_apps: [:mix],
+        ignore_warnings: ".dialyzer_ignore.exs"
+      ]
     ]
   end
 
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [:logger]
+      extra_applications: [:logger],
+      mod: {K8s.Application, []}
     ]
   end
 
@@ -39,14 +44,18 @@ defmodule K8s.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:k8s_client, "~> 0.1.3"},
-      {:k8s_conf, "~> 0.1.3"},
+      {:yaml_elixir, "~> 2.1"},
+      {:httpoison, "~> 1.0"},
+      {:jason, "~> 1.0"},
 
-      {:mix_test_watch, "~> 0.8", only: :dev, runtime: false},
+      # dev/test deps
+      {:bypass, "~> 1.0", only: :test},
       {:credo, "~> 1.0.0", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.0.0-rc.4", only: [:dev], runtime: false},
       {:ex_doc, "~> 0.19", only: :dev},
-      {:excoveralls, "~> 0.10", only: :test}
+      {:excoveralls, "~> 0.10", only: :test},
+      {:mix_test_watch, "~> 0.8", only: :dev, runtime: false},
+      {:stream_data, "~> 0.4", only: :test}
     ]
   end
 
@@ -56,7 +65,7 @@ defmodule K8s.MixProject do
       maintainers: ["Cory O'Daniel"],
       licenses: ["MIT"],
       links: %{
-        "GitHub" => "https://github.com/coryodaniel/k8s_conf"
+        "GitHub" => "https://github.com/coryodaniel/k8s"
       }
     ]
   end

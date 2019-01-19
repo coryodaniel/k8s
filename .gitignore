@@ -20,7 +20,7 @@ erl_crash.dump
 *.ez
 
 # Ignore package tarball (built via "mix hex.build").
-k8s_conf-*.tar
+k8s-*.tar
 
 .elixir_ls
 
