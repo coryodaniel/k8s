@@ -120,11 +120,16 @@ defmodule K8s.Client do
 
   """
   @spec list(binary, binary, options | nil) :: Operation.t()
+  def list(api_version, kind, opts \\ [])
+
   def list(api_version, kind, namespace: :all),
     do: Operation.build(:list_all_namespaces, api_version, kind, [])
 
-  def list(api_version, kind, namespace: namespace),
-    do: Operation.build(:list, api_version, kind, namespace: namespace)
+  def list(api_version, kind, opts),
+    do: Operation.build(:list, api_version, kind, opts)
+
+  # def list(api_version, kind, namespace: namespace),
+  #   do: Operation.build(:list, api_version, kind, namespace: namespace)
 
   @doc """
   Returns a `POST` operation to create the given resource.

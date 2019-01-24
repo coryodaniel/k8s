@@ -6,27 +6,27 @@ defmodule K8s.Client.Runner.Base do
   @allow_http_body [:put, :patch, :post]
   @type result :: :ok | {:ok, map()} | {:error, binary()}
 
+  alias K8s.Cluster
+  alias K8s.Conf.RequestOptions
   alias K8s.Operation
-  alias K8s.Conf
-  alias K8s.Router
 
   @doc """
   Runs a `K8s.Operation`.
 
   ## Examples
 
+  *Note:* Examples assume a cluster was registered named "test-cluster", see `K8s.Cluster.register/3`.
+
   Running a list pods operation:
 
   ```elixir
-  conf = K8s.Conf.from_file "~/.kube/config"
   operation = K8s.Client.list("v1", "Pod", namespace: :all)
-  {:ok, %{"items" => pods}} = K8s.Client.run(operation, conf)
+  {:ok, %{"items" => pods}} = K8s.Client.run(operation, "test-cluster")
   ```
 
   Running a dry-run of a create deployment operation:
 
   ```elixir
-  conf = K8s.Conf.from_file "~/.kube/config"
   deployment = %{
     "apiVersion" => "apps/v1",
     "kind" => "Deployment",
@@ -59,57 +59,58 @@ defmodule K8s.Client.Runner.Base do
       }
     }
   }
+
   operation = K8s.Client.create(deployment)
 
   # opts is passed to HTTPoison as opts.
   opts = [params: %{"dryRun" => "all"}]
-  :ok = K8s.Client.Runner.Base.run(operation, conf, opts)
+  :ok = K8s.Client.Runner.Base.run(operation, "test-cluster", opts)
   ```
   """
-  @spec run(Operation.t(), Conf.t()) :: result
-  def run(operation = %{}, config = %{}), do: run(operation, config, [])
+  @spec run(Operation.t(), binary) :: result
+  def run(operation = %{}, cluster_name), do: run(operation, cluster_name, [])
 
   @doc """
   See `run/2`
   """
-  @spec run(Operation.t(), Conf.t(), keyword()) :: result
-  def run(operation = %{}, config = %{}, opts) when is_list(opts) do
+  @spec run(Operation.t(), binary, keyword()) :: result
+  def run(operation = %{}, cluster_name, opts) when is_list(opts) do
     operation
-    |> build_http_req(config, operation.resource, opts)
+    |> build_http_req(cluster_name, operation.resource, opts)
     |> handle_response
   end
 
   @doc """
   See `run/2`
   """
-  @spec run(Operation.t(), Conf.t(), map(), keyword() | nil) :: result
-  def run(operation = %{}, config = %{}, body = %{}, opts \\ []) do
+  @spec run(Operation.t(), binary, map(), keyword() | nil) :: result
+  def run(operation = %{}, cluster_name, body = %{}, opts \\ []) do
     operation
-    |> build_http_req(config, body, opts)
+    |> build_http_req(cluster_name, body, opts)
     |> handle_response
   end
 
-  @spec build_http_req(Operation.t(), Conf.t(), map(), keyword()) ::
+  @spec build_http_req(Operation.t(), binary, map(), keyword()) ::
           {:ok, HTTPoison.Response.t() | HTTPoison.AsyncResponse.t()}
           | {:error, HTTPoison.Error.t()}
-  defp build_http_req(operation, config, body, opts) do
-    request_options = Conf.RequestOptions.generate(config)
+  defp build_http_req(operation, cluster_name, body, opts) do
+    case Cluster.url_for(operation, cluster_name) do
+      nil ->
+        {:error, :path_not_found}
 
-    # TODO: since router encapsulates config, this should be the URL, and all this
-    # config shit at the Base should go away
-    path = Router.path_for(operation)
+      url ->
+        conf = Cluster.conf(cluster_name)
+        request_options = RequestOptions.generate(conf)
+        http_headers = headers(request_options)
+        http_opts = Keyword.merge([ssl: request_options.ssl_options], opts)
 
-    url = Path.join(config.url, path)
+        case encode(body, operation.method) do
+          {:ok, http_body} ->
+            HTTPoison.request(operation.method, url, http_body, http_headers, http_opts)
 
-    http_headers = headers(request_options)
-    http_opts = Keyword.merge([ssl: request_options.ssl_options], opts)
-
-    case encode(body, operation.method) do
-      {:ok, http_body} ->
-        HTTPoison.request(operation.method, url, http_body, http_headers, http_opts)
-
-      error ->
-        error
+          error ->
+            error
+        end
     end
   end
 
@@ -151,7 +152,7 @@ defmodule K8s.Client.Runner.Base do
     end
   end
 
-  defp headers(ro = %Conf.RequestOptions{}) do
+  defp headers(ro = %RequestOptions{}) do
     ro.headers ++ [{"Accept", "application/json"}, {"Content-Type", "application/json"}]
   end
 end

@@ -6,13 +6,10 @@ defmodule K8s.Application do
   use Application
 
   def start(_type, _args) do
-    # List all child processes to be supervised
-    children = [
-      {DynamicSupervisor, strategy: :one_for_one, name: K8s.ClusterSupervisor}
-    ]
+    children = []
 
-    # See https://hexdocs.pm/elixir/Supervisor.html
-    # for other strategies and supported options
+    K8s.init()
+
     opts = [strategy: :one_for_one, name: K8s.Supervisor]
     Supervisor.start_link(children, opts)
   end

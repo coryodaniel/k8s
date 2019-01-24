@@ -21,22 +21,6 @@ defmodule K8s.Conf do
 
   defstruct [:cluster_name, :user_name, :url, :insecure_skip_tls_verify, :ca_cert, :auth]
 
-  @doc "Alias of `from_service_account/0`"
-  @spec load() :: K8s.Conf.t()
-  def load(), do: from_service_account()
-
-  @doc """
-  Loads a configuration from a config file or k8s service account token path
-  """
-  @spec load(binary, keyword | nil) :: K8s.Conf.t()
-  def load(path, opts \\ []) when is_binary(path) do
-    cond do
-      String.match?(path, ~r/(yaml|yml)$/i) -> from_file(path, opts)
-      true -> from_service_account(path)
-    end
-  end
-
-
   @doc """
   Reads configuration details from a kubernetes config file.
 

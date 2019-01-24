@@ -4,7 +4,7 @@
 
 [![Build Status](https://travis-ci.org/coryodaniel/k8s.svg?branch=master)](https://travis-ci.org/coryodaniel/k8s)
 [![Coverage Status](https://coveralls.io/repos/github/coryodaniel/k8s/badge.svg?branch=master)](https://coveralls.io/github/coryodaniel/k8s?branch=master)
-[![Hex.pm](http://img.shields.io/hexpm/v/k8s.svg?style=flat)](https://hex.pm/packages/k8s) 
+[![Hex.pm](http://img.shields.io/hexpm/v/k8s.svg?style=flat)](https://hex.pm/packages/k8s)
 [![Documentation](https://img.shields.io/badge/documentation-on%20hexdocs-green.svg)](https://hexdocs.pm/k8s/)
 ![Hex.pm](https://img.shields.io/hexpm/l/k8s.svg?style=flat)
 
@@ -23,9 +23,9 @@ end
 
 ## TODO
 
-Terminology should be "cluster" not router when specificying target
+k8s config: clusters: %{name: {conf,opts}, spec}
 merge other library issues + Readme/moduledocs
-
+Support for :default cluster ... Create a cluster named :default and not pass cluster name to cluster funcs
 Create a dry run runner
 Create a when runner that dispatch is a function when a condition is met
   Spawns task, runs `until` and when true | error, dispatches function

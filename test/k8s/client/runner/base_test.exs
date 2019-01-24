@@ -7,10 +7,14 @@ defmodule K8s.Client.Runner.BaseTest do
 
   setup do
     bypass = Bypass.open()
+
     conf = K8s.Conf.from_file("test/support/kube-config.yaml")
     conf = %{conf | url: "http://localhost:#{bypass.port}/"}
+    routes = K8s.Router.generate_routes("./test/support/swagger/namespaces.json")
 
-    {:ok, bypass: bypass, conf: conf}
+    cluster = K8s.Cluster.register("base-test", routes, conf)
+
+    {:ok, bypass: bypass, cluster: cluster}
   end
 
   def namespace_manifest() do
@@ -24,7 +28,7 @@ defmodule K8s.Client.Runner.BaseTest do
   def noop(), do: Jason.encode!(%{})
 
   describe "run/3" do
-    test "running an operation without an HTTP body", %{conf: conf, bypass: bypass} do
+    test "running an operation without an HTTP body", %{cluster: cluster, bypass: bypass} do
       Bypass.expect_once(bypass, fn conn ->
         assert conn.method == "GET"
         assert conn.request_path == "/api/v1/namespaces/test"
@@ -32,10 +36,10 @@ defmodule K8s.Client.Runner.BaseTest do
       end)
 
       operation = Client.get(namespace_manifest())
-      assert {:ok, _} = Base.run(operation, conf)
+      assert {:ok, _} = Base.run(operation, cluster)
     end
 
-    test "running an operation with an HTTP body", %{conf: conf, bypass: bypass} do
+    test "running an operation with an HTTP body", %{cluster: cluster, bypass: bypass} do
       Bypass.expect_once(bypass, fn conn ->
         assert conn.method == "POST"
         assert conn.request_path == "/api/v1/namespaces"
@@ -43,10 +47,10 @@ defmodule K8s.Client.Runner.BaseTest do
       end)
 
       operation = Client.create(namespace_manifest())
-      assert {:ok, _} = Base.run(operation, conf)
+      assert {:ok, _} = Base.run(operation, cluster)
     end
 
-    test "running an operation with options", %{conf: conf, bypass: bypass} do
+    test "running an operation with options", %{cluster: cluster, bypass: bypass} do
       Bypass.expect_once(bypass, fn conn ->
         assert conn.method == "GET"
         assert conn.request_path == "/api/v1/namespaces/test"
@@ -56,12 +60,12 @@ defmodule K8s.Client.Runner.BaseTest do
 
       operation = Client.get(namespace_manifest())
       opts = [params: %{"watch" => "true"}]
-      assert {:ok, _} = Base.run(operation, conf, opts)
+      assert {:ok, _} = Base.run(operation, cluster, opts)
     end
   end
 
   describe "run/4" do
-    test "running an operation with a custom HTTP body", %{conf: conf, bypass: bypass} do
+    test "running an operation with a custom HTTP body", %{cluster: cluster, bypass: bypass} do
       Bypass.expect_once(bypass, fn conn ->
         assert conn.method == "POST"
         assert conn.request_path == "/api/v1/namespaces"
@@ -77,10 +81,13 @@ defmodule K8s.Client.Runner.BaseTest do
       labels = %{"env" => "test"}
       body = put_in(namespace_manifest(), ["metadata", "labels"], labels)
 
-      assert {:ok, _} = Base.run(operation, conf, body)
+      assert {:ok, _} = Base.run(operation, cluster, body)
     end
 
-    test "running an operation with a custom HTTP body and options", %{conf: conf, bypass: bypass} do
+    test "running an operation with a custom HTTP body and options", %{
+      cluster: cluster,
+      bypass: bypass
+    } do
       Bypass.expect_once(bypass, fn conn ->
         assert conn.method == "POST"
         assert conn.request_path == "/api/v1/namespaces"
@@ -97,36 +104,36 @@ defmodule K8s.Client.Runner.BaseTest do
       labels = %{"env" => "test"}
       body = put_in(namespace_manifest(), ["metadata", "labels"], labels)
       opts = [params: %{"watch" => "true"}]
-      assert {:ok, _} = Base.run(operation, conf, body, opts)
+      assert {:ok, _} = Base.run(operation, cluster, body, opts)
     end
   end
 
   describe "run" do
-    test "request with HTTP 2xx response with no body", %{conf: conf, bypass: bypass} do
+    test "request with HTTP 2xx response with no body", %{cluster: cluster, bypass: bypass} do
       Bypass.expect(bypass, fn conn ->
         Plug.Conn.resp(conn, 201, "")
       end)
 
-      operation = Client.list("v1", "Pod", namespace: :all)
-      assert {:ok, nil} = Base.run(operation, conf)
+      operation = Client.list("v1", "Namespace", [])
+      assert {:ok, nil} = Base.run(operation, cluster)
     end
 
-    test "request with HTTP 404 response", %{conf: conf, bypass: bypass} do
+    test "request with HTTP 404 response", %{cluster: cluster, bypass: bypass} do
       Bypass.expect(bypass, fn conn ->
         Plug.Conn.resp(conn, 404, "File not found.")
       end)
 
-      operation = Client.list("v1", "Pod", namespace: :all)
-      assert {:error, :not_found} = Base.run(operation, conf)
+      operation = Client.list("v1", "Namespace", [])
+      assert {:error, :not_found} = Base.run(operation, cluster)
     end
 
-    test "request with HTTP 401 response", %{conf: conf, bypass: bypass} do
+    test "request with HTTP 401 response", %{cluster: cluster, bypass: bypass} do
       Bypass.expect(bypass, fn conn ->
         Plug.Conn.resp(conn, 401, "Unauthorized.")
       end)
 
-      operation = Client.list("v1", "Pod", namespace: :all)
-      assert {:error, :unauthorized} = Base.run(operation, conf)
+      operation = Client.list("v1", "Namespace", [])
+      assert {:error, :unauthorized} = Base.run(operation, cluster)
     end
   end
 end
