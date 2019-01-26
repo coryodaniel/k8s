@@ -2,4 +2,11 @@
 # and its dependencies with the aid of the Mix.Config module.
 use Mix.Config
 
-config :k8s, auth_providers: []
+config :k8s,
+  auth_providers: [],
+  clusters: %{
+    test: %{
+      api_version: "1.13",
+      conf: "~/.kube/config"
+    }
+  }

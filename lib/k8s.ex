@@ -9,6 +9,7 @@ defmodule K8s do
   def init do
     make_table(K8s.Conf)
     make_table(K8s.Router)
+    K8s.Cluster.register_clusters()
   end
 
   defp make_table(name), do: :ets.new(name, [:set, :public, :named_table])

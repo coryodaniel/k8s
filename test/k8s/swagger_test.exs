@@ -20,7 +20,7 @@ defmodule K8s.SwaggerTest do
 
   describe "build/1" do
     test "parses a swagger spec into operation metadata" do
-      metadata = Swagger.build("./priv/custom/simple.json")
+      metadata = Swagger.build("./test/support/swagger/simple.json")
       operation = metadata["createAppsV1NamespacedDeployment"]
 
       assert operation["action"] == "post"

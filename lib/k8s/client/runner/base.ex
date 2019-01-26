@@ -68,13 +68,14 @@ defmodule K8s.Client.Runner.Base do
   ```
   """
   @spec run(Operation.t(), binary) :: result
-  def run(operation = %{}, cluster_name), do: run(operation, cluster_name, [])
+  def run(operation = %Operation{}, cluster_name \\ :default),
+    do: run(operation, cluster_name, [])
 
   @doc """
   See `run/2`
   """
   @spec run(Operation.t(), binary, keyword()) :: result
-  def run(operation = %{}, cluster_name, opts) when is_list(opts) do
+  def run(operation = %Operation{}, cluster_name, opts) when is_list(opts) do
     operation
     |> build_http_req(cluster_name, operation.resource, opts)
     |> handle_response
@@ -84,7 +85,7 @@ defmodule K8s.Client.Runner.Base do
   See `run/2`
   """
   @spec run(Operation.t(), binary, map(), keyword() | nil) :: result
-  def run(operation = %{}, cluster_name, body = %{}, opts \\ []) do
+  def run(operation = %Operation{}, cluster_name, body = %{}, opts \\ []) do
     operation
     |> build_http_req(cluster_name, body, opts)
     |> handle_response
@@ -93,7 +94,7 @@ defmodule K8s.Client.Runner.Base do
   @spec build_http_req(Operation.t(), binary, map(), keyword()) ::
           {:ok, HTTPoison.Response.t() | HTTPoison.AsyncResponse.t()}
           | {:error, HTTPoison.Error.t()}
-  defp build_http_req(operation, cluster_name, body, opts) do
+  defp build_http_req(operation = %Operation{}, cluster_name, body, opts) do
     case Cluster.url_for(operation, cluster_name) do
       nil ->
         {:error, :path_not_found}
@@ -132,11 +133,14 @@ defmodule K8s.Client.Runner.Base do
   @spec handle_response(
           {:ok, HTTPoison.Response.t() | HTTPoison.AsyncResponse.t()}
           | {:error, HTTPoison.Error.t()}
-        ) :: {:ok, map()} | {:error, binary()}
+        ) :: {:ok, map()} | {:ok, reference()} | {:error, binary()}
   defp handle_response(resp) do
     case resp do
       {:ok, %HTTPoison.Response{status_code: code, body: body}} when code in 200..299 ->
         {:ok, decode(body)}
+
+      {:ok, %HTTPoison.AsyncResponse{id: ref}} ->
+        {:ok, ref}
 
       {:ok, %HTTPoison.Response{status_code: 401}} ->
         {:error, :unauthorized}

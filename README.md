@@ -1,6 +1,6 @@
 # K8s
 
-[K8s](https://hexdocs.pm/k8s/readme.html) - Kubernetes elixir client
+[K8s](https://hexdocs.pm/k8s/readme.html) - A Kubernetes client for Elixir
 
 [![Build Status](https://travis-ci.org/coryodaniel/k8s.svg?branch=master)](https://travis-ci.org/coryodaniel/k8s)
 [![Coverage Status](https://coveralls.io/repos/github/coryodaniel/k8s/badge.svg?branch=master)](https://coveralls.io/github/coryodaniel/k8s?branch=master)
@@ -16,69 +16,69 @@ by adding `k8s` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:k8s, "~> 0.1"}
+    {:k8s, "~> 0.2"}
   ]
 end
 ```
 
-## TODO
-
-k8s config: clusters: %{name: {conf,opts}, spec}
-merge other library issues + Readme/moduledocs
-Support for :default cluster ... Create a cluster named :default and not pass cluster name to cluster funcs
-Create a dry run runner
-Create a when runner that dispatch is a function when a condition is met
-  Spawns task, runs `until` and when true | error, dispatches function
-Create a watch runner
-bring your own resource
-
 ## Features
 
-* K8s.Conf parsing and auth signing
-  * Custom auth providers
-  * Multiple configurations
-* K8s.Resource
-* K8s.Version
-* K8s.Client, async batch, wait, when, watch
-* K8s.Router -> K8s.Cluster
-  * supports multiple kubernets APIs
-  * supports custom swagger specs and CRDs
-* Fast compile & fast startup
-* API for humans
-* Tested against elixir versions (), otp (), and k8s( 1.10, 1.11, 1.12, 1.13, master)
+* Client supports standard HTTP calls, async batches, wait on status, and watchers
+* Supports multiple clusters
+* Supports multiple authentication credentials
+* Supports multiple kubernetes API
+* A client API for humans
+* CRD support
+* Tested against kubernetes versions: 1.10, 1.11, 1.12, 1.13, and master
+* Kubernetes resource and version helper functions
+* Macro free; fast compile & fast startup
+* Pluggable auth providers
+* Kube config file parsing
+* Certificate and service account based auth
+* mix task for fetching kubernetes API specs
 
-## Non-features
-* Not assuming "default" namespaces. *Note:* Always provide namespace when using K8s.Client functions
-* Deprecated Watch API
-* Connect URIs
-* ... rest of exclusions list
+### Non-features
 
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at [https://hexdocs.pm/k8s](https://hexdocs.pm/k8s).
+* Modules for every resource. The client always return string-keyed maps.
+* K8s.Client does *not* assuming "default" namespaces. Always provide a namespace when a namespace is applicable.
+* Will not support the deprecated Watch API
+* Connect URLs aren't currently supported
+* Finalize, binding, scale, and approval subresources aren't currently supported
 
-# K8s.Conf
-## Usage
+## Registering Clusters
+
+Clusters can be registered via `config.exs` or directly with `K8s.Cluster.register/3`.
+
+Clusters are referenced by name (`:default` below) when using a `K8s.Client`. Multiple clusters can be registered via config.
+
+This library ships with Kubernetes specs 1.10, 1.11, 1.12, and 1.13.
+
+### Registering clusters via config
+
+Adding a cluster named `:default` using `~/.kube/config`
 
 ```elixir
-# Defaults to 'current-context', optionally set cluster, context, or user
-# opts = [
-#   user: "alt-user",
-#   cluster: "alt-cluster",
-#   context: "alt-context"
-# ]
-
-opts = []
-config = K8s.Conf.from_file("~/.kube/config", opts)
-
-# Optionally load from a service account
-# config = K8s.Conf.from_service_account()
-
-http_request_options = K8s.Conf.RequestOptions.generate(config)
-[header: headers, ssl_options: ssl_options] = http_request_options
-
-# Add headers and SSL options to HTTP library of choice
+config :k8s,
+  clusters: %{
+    default: %{
+      conf: "~/.kube/config",
+      api_version: "1.13"
+    }
+  }
 ```
+
+### Registering clusters directly
+
+The below will register a cluster named `"1.13"` using `~/.kube.config` to connect. There are many options for loading a config, this will load the user and cluster from the `current-context`.
+
+```elixir
+conf = K8s.Conf.from_file("~/.kube/config")
+routes = K8s.Router.generate_routes("./priv/swagger/1.13.json")
+
+K8s.Cluster.register("1.13", routes, conf)
+```
+
+*Note:* Kubernetes API specs can be downloaded using `mix k8s.swagger --version 1.13`.
 
 ### Adding authorization providers
 
@@ -91,3 +91,7 @@ Providers are checked in order, the first to return an authorization struct wins
 Custom providers are processed before default providers.
 
 See [Certicate](lib/k8s/conf/auth/certificate.ex) and [Token](lib/k8s/conf/auth/token.ex) for protocol and behavior implementations.
+
+Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
+and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
+be found at [https://hexdocs.pm/k8s](https://hexdocs.pm/k8s).

@@ -15,13 +15,15 @@ defmodule K8s.Client do
   "ServiceAccount", "serviceaccount", :ServiceAccount, :serviceaccount
   "HorizontalPodAutoscaler", "horizontalpodautoscaler", :HorizontalPodAutoscaler, :horizontalpodautoscaler
   ```
+
+  `opts` to `K8s.Client.Runner` modules are HTTPoison HTTP option overrides.
   """
 
   @type option :: {:name, String.t()} | {:namespace, binary() | :all}
   @type options :: [option]
 
   alias K8s.Operation
-  alias K8s.Client.Runner.{Async, Base, Wait}
+  alias K8s.Client.Runner.{Async, Base, Wait, Watch}
 
   @doc "Alias of `create/1`"
   defdelegate post(resource), to: __MODULE__, as: :create
@@ -33,19 +35,22 @@ defmodule K8s.Client do
   defdelegate put(resource), to: __MODULE__, as: :replace
 
   @doc "alias of `K8s.Client.Runner.Base.run/2"
-  defdelegate run(operation, conf), to: Base
+  defdelegate run(operation, cluster_name), to: Base
 
   @doc "alias of `K8s.Client.Runner.Base.run/3"
-  defdelegate run(operation, conf, opts), to: Base
+  defdelegate run(operation, cluster_name, opts), to: Base
 
   @doc "alias of `K8s.Client.Runner.Base.run/4"
-  defdelegate run(operation, conf, resource, opts), to: Base
+  defdelegate run(operation, cluster_name, resource, opts), to: Base
 
   @doc "alias of `K8s.Client.Runner.Async.run/2"
-  defdelegate async(operations, conf), to: Async, as: :run
+  defdelegate async(operations, cluster_name), to: Async, as: :run
 
   @doc "alias of `K8s.Client.Runner.Wait.run/3"
-  defdelegate wait_until(operation, conf, opts), to: Wait, as: :run
+  defdelegate wait_until(operation, cluster_name, opts), to: Wait, as: :run
+
+  @doc "alias of `K8s.Client.Runner.Watch.run/3"
+  defdelegate watch(operation, cluster_name, opts), to: Watch, as: :run
 
   @doc """
   Returns a `GET` operation for a resource given a manifest. May be a partial manifest as long as it contains:

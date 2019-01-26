@@ -27,6 +27,29 @@ defmodule K8s.Cluster do
   end
 
   @doc """
+  List registered cluster names
+  """
+  @spec list() :: list(binary | atom)
+  def list() do
+    K8s.Conf
+    |> :ets.tab2list()
+    |> Keyword.keys()
+  end
+
+  @doc false
+  def register_clusters do
+    clusters = Application.get_env(:k8s, :clusters)
+
+    Enum.each(clusters, fn {name, details} ->
+      spec_path = Path.join(:code.priv_dir(:k8s), "swagger/#{details.api_version}.json")
+      routes = K8s.Router.generate_routes(spec_path)
+      conf = K8s.Conf.from_file(details.conf)
+
+      K8s.Cluster.register(name, routes, conf)
+    end)
+  end
+
+  @doc """
   Retrieve a cluster's connection configuration.
 
   ## Example
@@ -119,5 +142,5 @@ defmodule K8s.Cluster do
     end
   end
 
-  defp cluster_route_key(cluster_name, key), do: cluster_name <> "/" <> key
+  defp cluster_route_key(cluster_name, key), do: "#{cluster_name}/#{key}"
 end

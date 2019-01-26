@@ -13,18 +13,18 @@ defmodule K8s.Client.Runner.WaitTest do
 
   describe "run/3" do
     test "returns an error when `:find` is not provided" do
-      {:error, msg} = Wait.run(operation(), %{}, eval: 1)
+      {:error, msg} = Wait.run(operation(), "foo-cluster", eval: 1)
       assert msg == ":find is required"
     end
 
     test "returns an error when `:eval` is not provided" do
-      {:error, msg} = Wait.run(operation(), %{}, find: ["foo"])
+      {:error, msg} = Wait.run(operation(), "foo-cluster", find: ["foo"])
       assert msg == ":eval is required"
     end
 
     test "returns an error the operation is not a GET" do
       operation = operation(:post)
-      {:error, msg} = Wait.run(operation, %{}, find: ["foo"])
+      {:error, msg} = Wait.run(operation, "foo-cluster", find: ["foo"])
       assert Regex.match?(~r/Only HTTP GET operations are supported/, msg)
     end
 
@@ -32,7 +32,7 @@ defmodule K8s.Client.Runner.WaitTest do
       processor = fn _, _ -> {:ok, %{"foo" => "bar"}} end
       opts = [find: ["foo"], eval: "bar", processor: processor]
 
-      assert {:ok, _} = Wait.run(operation(), %{}, opts)
+      assert {:ok, _} = Wait.run(operation(), "foo-cluster", opts)
     end
 
     test "returns :ok when evaluating with a function" do
@@ -40,7 +40,7 @@ defmodule K8s.Client.Runner.WaitTest do
       eval = fn val -> val == "bar" end
       opts = [find: ["foo"], eval: eval, processor: processor]
 
-      assert {:ok, _} = Wait.run(operation(), %{}, opts)
+      assert {:ok, _} = Wait.run(operation(), "foo-cluster", opts)
     end
 
     test "returns :ok when finding with a function" do
@@ -48,7 +48,7 @@ defmodule K8s.Client.Runner.WaitTest do
       find = fn result -> result["foo"] end
       opts = [find: find, eval: "bar", processor: processor]
 
-      assert {:ok, _} = Wait.run(operation(), %{}, opts)
+      assert {:ok, _} = Wait.run(operation(), "foo-cluster", opts)
     end
 
     test "timeouting out" do
@@ -59,7 +59,7 @@ defmodule K8s.Client.Runner.WaitTest do
 
       opts = [find: ["foo"], eval: "bar", processor: processor, timeout: 1]
 
-      assert {:ok, _} = Wait.run(operation(), %{}, opts)
+      assert {:ok, _} = Wait.run(operation(), "foo-cluster", opts)
     end
   end
 end

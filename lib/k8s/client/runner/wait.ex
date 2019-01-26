@@ -28,22 +28,20 @@ defmodule K8s.Client.Runner.Wait do
 
   ```elixir
   op = K8s.Client.get("batch/v1", :job, namespace: "default", name: "sleep")
-  conf = K8s.Conf.from_file("~/.kube/config")
-
   opts = [find: ["status", "succeeded"], eval: 1, timeout: 60]
-  resp = K8s.Client.Runner.Wait.run(op, conf, opts)
+  resp = K8s.Client.Runner.Wait.run(op, cluster_name, opts)
   ```
   """
-  @spec run(Operation.t(), map(), keyword(atom())) ::
+  @spec run(Operation.t(), binary, keyword(atom())) ::
           {:ok, map()} | {:error, binary()}
-  def run(op = %Operation{method: :get}, conf, opts) do
+  def run(op = %Operation{method: :get}, cluster_name, opts) do
     conditions =
       Wait
       |> struct(opts)
       |> process_opts()
 
     case conditions do
-      {:ok, opts} -> run_operation(op, conf, opts)
+      {:ok, opts} -> run_operation(op, cluster_name, opts)
       error -> error
     end
   end
@@ -70,25 +68,25 @@ defmodule K8s.Client.Runner.Wait do
     {:ok, processed}
   end
 
-  defp run_operation(op, conf, opts = %Wait{timeout_after: timeout_after}) do
+  defp run_operation(op, cluster_name, opts = %Wait{timeout_after: timeout_after}) do
     case timed_out?(timeout_after) do
       true -> {:error, :timeout}
-      false -> evaluate_operation(op, conf, opts)
+      false -> evaluate_operation(op, cluster_name, opts)
     end
   end
 
   defp evaluate_operation(
          op,
-         conf,
+         cluster_name,
          opts = %Wait{processor: processor, sleep: sleep, eval: eval, find: find}
        ) do
-    with {:ok, resp} <- processor.(op, conf),
+    with {:ok, resp} <- processor.(op, cluster_name),
          true <- satisfied?(resp, find, eval) do
       {:ok, resp}
     else
       _not_satisfied ->
         Process.sleep(sleep)
-        run_operation(op, conf, opts)
+        run_operation(op, cluster_name, opts)
     end
   end
 
