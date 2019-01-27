@@ -45,7 +45,6 @@ defmodule K8s.Swagger do
 
   @spec do_gen_action_name(map(), binary()) :: binary()
   defp do_gen_action_name(%{"all_namespaces" => true}, name), do: "#{name}_all_namespaces"
-  defp do_gen_action_name(_, "deletecollection"), do: "delete_collection"
   defp do_gen_action_name(_, name), do: name
 
   @doc """

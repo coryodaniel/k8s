@@ -13,7 +13,7 @@ defmodule K8s.Router do
 
       iex> K8s.Router.generate_routes("./test/support/swagger/simple.json")
       %{
-        "delete_collection/apps/v1/deployment/namespace" => "/apis/apps/v1/namespaces/{namespace}/deployments",
+        "deletecollection/apps/v1/deployment/namespace" => "/apis/apps/v1/namespaces/{namespace}/deployments",
         "list/apps/v1/deployment/namespace" => "/apis/apps/v1/namespaces/{namespace}/deployments",
         "post/apps/v1/deployment/namespace" => "/apis/apps/v1/namespaces/{namespace}/deployments",
         "delete/apps/v1/deployment/name/namespace" => "/apis/apps/v1/namespaces/{namespace}/deployments/{name}",

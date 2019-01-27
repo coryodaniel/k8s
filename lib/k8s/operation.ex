@@ -17,7 +17,7 @@ defmodule K8s.Operation do
     list: :get,
     patch_status: :patch,
     get_status: :get,
-    delete_collection: :delete,
+    deletecollection: :delete,
     get_log: :get,
     put_status: :put
   }

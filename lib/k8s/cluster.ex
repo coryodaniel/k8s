@@ -26,6 +26,66 @@ defmodule K8s.Cluster do
     cluster_name
   end
 
+  def path_for2(cluster_name, group_version, kind, verb) do
+    # Note: verb is kubernetes verb (action, elsewhere in code), not HTTP verb (method)
+    # TODO: consider adding a cache here
+    case :ets.lookup(K8s.Group, "#{cluster_name}/#{group_version}") do
+      [] -> {:error, :unsupported_group_version, group_version}
+      [{_, group_version, url, resources}] ->
+        IO.puts "GV: #{inspect(group_version)}, #{url}"
+        resources
+        |> find_resource_supporting_verb(kind, verb)
+        |> to_path(verb)
+    end
+  end
+
+  def to_path({:error, _, _} = err, verb), do: err
+  def to_path(%{"namespaced" => true} = res, "create"), do: "namespaced create"
+  def to_path(%{"namespaced" => true} = res, verb), do: "namespaced other"
+  def to_path(%{"namespaced" => false} = res, "create"), do: "clustered create"
+  def to_path(%{"namespaced" => false} = res, verb), do: "clustered other"
+
+  def find_resource_supporting_verb(resources, kind, verb) do
+    with {:ok, resource} <- find_resource_by_name(resources, kind),
+         true <- resource_supports_verb?(resource, verb) do
+      resource
+    else
+      false -> {:error, :unsupported_verb, verb}
+      error -> error
+    end
+  end
+
+  def resource_supports_verb?(%{"verbs" => verbs}, verb), do: Enum.member?(verbs, verb)
+
+  def find_resource_by_name(resources, kind) do
+    resource = Enum.find(resources, &match_resource_by_name(&1, kind))
+
+    case resource do
+      nil -> {:error, :unsupported_kind, kind}
+      resource -> {:ok, resource}
+    end
+  end
+
+  @spec match_resource_by_name(map, atom | binary) :: bool
+  def match_resource_by_name(resource, kind) when is_atom(kind),
+    do: match_resource_by_name(resource, Atom.to_string(kind))
+
+  def match_resource_by_name(%{"kind" => kind}, kind), do: true
+  def match_resource_by_name(%{"name" => name}, name), do: true
+  def match_resource_by_name(%{"kind" => kind}, name), do: String.downcase(kind) == name
+
+  def register2(cluster_name, conf) do
+    :ets.insert(K8s.Conf, {cluster_name, conf})
+    groups = K8s.API.groups(cluster_name)
+
+    Enum.each(groups, fn %{"groupVersion" => gv, "resources" => rs, "url" => url} ->
+      cluster_group_version_key = "#{cluster_name}/#{gv}"
+      :ets.insert(K8s.Group, {cluster_group_version_key, gv, url, rs})
+    end)
+
+    cluster_name
+  end
+
   @doc """
   List registered cluster names
   """
@@ -80,7 +140,7 @@ defmodule K8s.Cluster do
       ...> K8s.Cluster.routes("test-cluster")
       %{
         "delete/apps/v1/deployment/name/namespace" => ["/apis/apps/v1/namespaces/{namespace}/deployments/{name}"],
-        "delete_collection/apps/v1/deployment/namespace" => ["/apis/apps/v1/namespaces/{namespace}/deployments"],
+        "deletecollection/apps/v1/deployment/namespace" => ["/apis/apps/v1/namespaces/{namespace}/deployments"],
         "get/apps/v1/deployment/name/namespace" => ["/apis/apps/v1/namespaces/{namespace}/deployments/{name}"],
         "list/apps/v1/deployment/namespace" => ["/apis/apps/v1/namespaces/{namespace}/deployments"],
         "patch/apps/v1/deployment/name/namespace" => ["/apis/apps/v1/namespaces/{namespace}/deployments/{name}"],

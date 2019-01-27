@@ -480,19 +480,19 @@ defmodule K8s.Client do
       %K8s.Operation{
         method: :delete,
         path_params: [],
-        id: "delete_collection/extensions/v1beta1/podsecuritypolicy"
+        id: "deletecollection/extensions/v1beta1/podsecuritypolicy"
       }
 
       iex> K8s.Client.delete_all("storage.k8s.io/v1", "StorageClass")
       %K8s.Operation{
         method: :delete,
         path_params: [],
-        id: "delete_collection/storage.k8s.io/v1/storageclass"
+        id: "deletecollection/storage.k8s.io/v1/storageclass"
       }
   """
   @spec delete_all(binary(), binary()) :: Operation.t()
   def delete_all(api_version, kind) do
-    Operation.build(:delete_collection, api_version, kind, [])
+    Operation.build(:deletecollection, api_version, kind, [])
   end
 
   @doc """
@@ -504,19 +504,19 @@ defmodule K8s.Client do
       %K8s.Operation{
         method: :delete,
         path_params: [namespace: "default"],
-        id: "delete_collection/apps/v1beta1/controllerrevision/namespace"
+        id: "deletecollection/apps/v1beta1/controllerrevision/namespace"
       }
 
       iex> K8s.Client.delete_all("apps/v1", "Deployment", namespace: "staging")
       %K8s.Operation{
         method: :delete,
         path_params: [namespace: "staging"],
-        id: "delete_collection/apps/v1/deployment/namespace"
+        id: "deletecollection/apps/v1/deployment/namespace"
       }
   """
   @spec delete_all(binary(), binary(), namespace: binary()) :: Operation.t()
   def delete_all(api_version, kind, namespace: namespace) do
-    Operation.build(:delete_collection, api_version, kind, namespace: namespace)
+    Operation.build(:deletecollection, api_version, kind, namespace: namespace)
   end
 
   @doc """
