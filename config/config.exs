@@ -4,9 +4,6 @@ use Mix.Config
 
 config :k8s,
   auth_providers: [],
-  clusters: %{
-    test: %{
-      group_version: "1.13",
-      conf: "~/.kube/config"
-    }
-  }
+  clusters: %{}
+
+import_config "#{Mix.env()}.exs"

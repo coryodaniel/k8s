@@ -73,10 +73,9 @@ config :k8s,
 The below will register a cluster named `"1.13"` using `~/.kube.config` to connect. There are many options for loading a config, this will load the user and cluster from the `current-context`.
 
 ```elixir
+name = "1.13"
 conf = K8s.Conf.from_file("~/.kube/config")
-routes = K8s.Router.generate_routes("./priv/swagger/1.13.json")
-
-K8s.Cluster.register("1.13", routes, conf)
+K8s.Cluster.register(name, conf)
 ```
 
 *Note:* Kubernetes API specs can be downloaded using `mix k8s.swagger --version 1.13`.

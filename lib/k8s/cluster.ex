@@ -2,65 +2,98 @@ defmodule K8s.Cluster do
   @moduledoc """
   Cluster configuration and API route store for `K8s.Client`
   """
+  @path_params [:name, :namespace, :path, :logpath]
+  @api_provider Application.get_env(:k8s, :api_provider, K8s.API)
 
   @doc """
   Register a new cluster to use with `K8s.Client`
 
   ## Examples
 
-      iex> routes = K8s.Router.generate_routes("./test/support/swagger/simple.json")
-      ...> conf = K8s.Conf.from_file("./test/support/kube-config.yaml")
-      ...> K8s.Cluster.register("test-cluster", routes, conf)
+      iex> conf = K8s.Conf.from_file("./test/support/kube-config.yaml")
+      ...> K8s.Cluster.register("test-cluster", conf)
       "test-cluster"
 
   """
-  @spec register(binary, map, K8s.Conf.t()) :: binary
-  def register(cluster_name, routes, conf) do
+  @spec register(binary, K8s.Conf.t()) :: binary
+  def register(cluster_name, conf) do
     :ets.insert(K8s.Conf, {cluster_name, conf})
+    groups = @api_provider.groups(cluster_name)
 
-    Enum.each(routes, fn {key, path} ->
-      cluster_route_key = cluster_route_key(cluster_name, key)
-      :ets.insert(K8s.Router, {cluster_route_key, path, cluster_name, key})
+    Enum.each(groups, fn %{"groupVersion" => gv, "resources" => rs} ->
+      cluster_group_key = cluster_group_key(cluster_name, gv)
+      :ets.insert(K8s.Group, {cluster_group_key, gv, rs})
     end)
 
     cluster_name
   end
 
-  def path_for2(cluster_name, group_version, kind, verb) do
-    # Note: verb is kubernetes verb (action, elsewhere in code), not HTTP verb (method)
-    # TODO: consider adding a cache here
-    case :ets.lookup(K8s.Group, "#{cluster_name}/#{group_version}") do
-      [] -> {:error, :unsupported_group_version, group_version}
-      [{_, group_version, url, resources}] ->
+  @doc """
+  Retrieve the URL for a `K8s.Operation`
+
+  ## Examples
+
+      iex> conf = K8s.Conf.from_file("./test/support/kube-config.yaml")
+      ...> K8s.Cluster.register("test-cluster", conf)
+      ...> operation = K8s.Operation.build(:get, "apps/v1", :deployment, [namespace: "default", name: "nginx"])
+      ...> K8s.Cluster.url_for(operation, "test-cluster")
+      "https://localhost:6443/apis/apps/v1/namespaces/default/deployments/nginx"
+  """
+  @spec url_for(K8s.Operation.t(), binary()) :: binary | nil
+  def url_for(operation = %K8s.Operation{}, cluster_name) do
+    %{group_version: group_version, kind: kind, verb: verb} = operation
+    key = cluster_group_key(cluster_name, group_version)
+    conf = K8s.Cluster.conf(cluster_name)
+    case :ets.lookup(K8s.Group, key) do
+      [] ->
+        {:error, :unsupported_group_version, group_version}
+
+      [{_, group_version, resources}] ->
         case find_resource_supporting_verb(resources, kind, verb) do
-          {:error, type, details} -> {:error, type, details}
-          resource -> Path.join(url, to_path(resource, verb))
+          {:error, type, details} ->
+            {:error, type, details}
+
+          resource ->
+            path_template = to_path(group_version, resource, verb)
+            required_params = find_params(path_template)
+            provided_params = Keyword.keys(operation.path_params)
+
+            case required_params -- provided_params do
+              [] ->
+                path = K8s.Cluster.replace_path_vars(path_template, operation.path_params)
+                Path.join(conf.url, path)
+              missing_params ->
+                {:error, :missing_required_param, missing_params}
+            end
         end
     end
   end
 
-  def to_path({:error, _, _} = err, verb), do: err
-
-  def to_path(%{"namespaced" => ns, "name" => name}, verb) do
+  @spec to_path(binary, map, atom) :: binary
+  defp to_path(group_version, %{"namespaced" => ns, "name" => name}, verb) do
     [resource_name | subresource_name] = String.split(name, "/")
 
-    path_components = [
-      namespace_param(ns, verb),
-      name_param(resource_name, verb),
-      subresource_name
-    ]
+    prefix = case String.contains?(group_version, "/") do
+      true -> "/apis/#{group_version}"
+      false -> "/api/#{group_version}"
+    end
 
-    Enum.join(path_components, "/")
+    suffix = "#{name_param(resource_name, verb)}/#{subresource_name}"
+
+    build_path(prefix, suffix, ns, verb)
   end
 
-  def namespace_param(true, "list_all"), do: ""
-  def namespace_param(true, _), do: "namespaces/{namespace}"
-  def namespace_param(false, _), do: ""
+  @spec build_path(binary, binary, boolean, atom) :: binary
+  defp build_path(prefix, suffix, true, :list_all_namespaces), do: "#{prefix}/#{suffix}"
+  defp build_path(prefix, suffix, true, _), do: "#{prefix}/namespaces/{namespace}/#{suffix}"
+  defp build_path(prefix, suffix, false, _), do: "#{prefix}/#{suffix}"
 
-  def name_param(resource_name, "list"), do: resource_name
-  def name_param(resource_name, "list_all"), do: resource_name
-  def name_param(resource_name, "create"), do: resource_name
-  def name_param(resource_name, _), do: "#{resource_name}/{name}"
+  @spec name_param(binary, atom) :: binary
+  defp name_param(resource_name, :create), do: resource_name
+  defp name_param(resource_name, :list_all_namespaces), do: resource_name
+  defp name_param(resource_name, :list), do: resource_name
+  defp name_param(resource_name, :create), do: resource_name
+  defp name_param(resource_name, _), do: "#{resource_name}/{name}"
 
   def find_resource_supporting_verb(resources, kind, verb) do
     with {:ok, resource} <- find_resource_by_name(resources, kind),
@@ -72,9 +105,11 @@ defmodule K8s.Cluster do
     end
   end
 
-  def resource_supports_verb?(_, "watch"), do: false
-  def resource_supports_verb?(%{"verbs" => verbs}, "list_all"), do: Enum.member?(verbs, "list")
-  def resource_supports_verb?(%{"verbs" => verbs}, verb), do: Enum.member?(verbs, verb)
+  def resource_supports_verb?(_, :watch), do: false
+  def resource_supports_verb?(%{"verbs" => verbs}, :list_all_namespace),
+    do: Enum.member?(verbs, "list")
+
+  def resource_supports_verb?(%{"verbs" => verbs}, verb), do: Enum.member?(verbs, Atom.to_string(verb))
 
   def find_resource_by_name(resources, kind) do
     resource = Enum.find(resources, &match_resource_by_name(&1, kind))
@@ -93,18 +128,6 @@ defmodule K8s.Cluster do
   def match_resource_by_name(%{"name" => name}, name), do: true
   def match_resource_by_name(%{"kind" => kind}, name), do: String.downcase(kind) == name
 
-  def register2(cluster_name, conf) do
-    :ets.insert(K8s.Conf, {cluster_name, conf})
-    groups = K8s.API.groups(cluster_name)
-
-    Enum.each(groups, fn %{"groupVersion" => gv, "resources" => rs, "url" => url} ->
-      cluster_group_version_key = "#{cluster_name}/#{gv}"
-      :ets.insert(K8s.Group, {cluster_group_version_key, gv, url, rs})
-    end)
-
-    cluster_name
-  end
-
   @doc """
   List registered cluster names
   """
@@ -120,11 +143,8 @@ defmodule K8s.Cluster do
     clusters = Application.get_env(:k8s, :clusters)
 
     Enum.each(clusters, fn {name, details} ->
-      spec_path = Path.join(:code.priv_dir(:k8s), "swagger/#{details.group_version}.json")
-      routes = K8s.Router.generate_routes(spec_path)
       conf = K8s.Conf.from_file(details.conf)
-
-      K8s.Cluster.register(name, routes, conf)
+      K8s.Cluster.register(name, conf)
     end)
   end
 
@@ -133,9 +153,8 @@ defmodule K8s.Cluster do
 
   ## Example
 
-      iex> routes = K8s.Router.generate_routes("./test/support/swagger/simple.json")
-      ...> conf = K8s.Conf.from_file("./test/support/kube-config.yaml")
-      ...> K8s.Cluster.register("test-cluster", routes, conf)
+      iex> conf = K8s.Conf.from_file("./test/support/kube-config.yaml")
+      ...> K8s.Cluster.register("test-cluster", conf)
       ...> K8s.Cluster.conf("test-cluster")
       #Conf<%{cluster: "docker-for-desktop-cluster", user: "docker-for-desktop"}>
 
@@ -148,78 +167,46 @@ defmodule K8s.Cluster do
     end
   end
 
-  @doc """
-  Retrieve a cluster's routes
+  defp cluster_group_key(cluster_name, group_version), do: "#{cluster_name}/#{group_version}"
 
-  ## Example
-
-      iex> routes = K8s.Router.generate_routes("./test/support/swagger/simple.json")
-      ...> conf = K8s.Conf.from_file("./test/support/kube-config.yaml")
-      ...> K8s.Cluster.register("test-cluster", routes, conf)
-      ...> K8s.Cluster.routes("test-cluster")
-      %{
-        "delete/apps/v1/deployment/name/namespace" => ["/apis/apps/v1/namespaces/{namespace}/deployments/{name}"],
-        "deletecollection/apps/v1/deployment/namespace" => ["/apis/apps/v1/namespaces/{namespace}/deployments"],
-        "get/apps/v1/deployment/name/namespace" => ["/apis/apps/v1/namespaces/{namespace}/deployments/{name}"],
-        "list/apps/v1/deployment/namespace" => ["/apis/apps/v1/namespaces/{namespace}/deployments"],
-        "patch/apps/v1/deployment/name/namespace" => ["/apis/apps/v1/namespaces/{namespace}/deployments/{name}"],
-        "post/apps/v1/deployment/namespace" => ["/apis/apps/v1/namespaces/{namespace}/deployments"],
-        "put/apps/v1/deployment/name/namespace" => ["/apis/apps/v1/namespaces/{namespace}/deployments/{name}"]
-      }
-
-  """
-  def routes(cluster_name) do
-    K8s.Router
-    |> :ets.match({:_, :"$2", cluster_name, :"$1"})
-    |> Enum.reduce(%{}, fn [key | path], agg -> Map.put(agg, key, path) end)
-  end
+  @doc false
+  def path_params, do: @path_params
 
   @doc """
-  Retrieve the URL for a `K8s.Operation`
+  Replaces path variables with options.
 
   ## Examples
 
-      iex> routes = K8s.Router.generate_routes("./test/support/swagger/simple.json")
-      ...> conf = K8s.Conf.from_file("./test/support/kube-config.yaml")
-      ...> K8s.Cluster.register("test-cluster", routes, conf)
-      ...> operation = K8s.Operation.build(:get, "apps/v1", :deployment, [namespace: "default", name: "nginx"])
-      ...> K8s.Cluster.url_for(operation, "test-cluster")
-      "https://localhost:6443/apis/apps/v1/namespaces/default/deployments/nginx"
+      iex> K8s.Cluster.replace_path_vars("/foo/{name}", name: "bar")
+      "/foo/bar"
+
   """
-  @spec url_for(K8s.Operation.t(), binary()) :: binary | nil
-  def url_for(operation, cluster_name) do
-    conf = conf(cluster_name)
-
-    case path_for(cluster_name, operation.id) do
-      nil ->
-        nil
-
-      path_template ->
-        path = K8s.Router.replace_path_vars(path_template, operation.path_params)
-        Path.join(conf.url, path)
-    end
+  @spec replace_path_vars(binary(), keyword(atom())) :: binary()
+  def replace_path_vars(path_template, opts) do
+    Regex.replace(~r/\{(\w+?)\}/, path_template, fn _, var ->
+      opts[String.to_existing_atom(var)]
+    end)
   end
 
   @doc """
-  Retrieve the path template for a given cluster and `K8s.Operation` id
+  Find valid path params in a URL path.
 
   ## Examples
 
-      iex> routes = K8s.Router.generate_routes("./test/support/swagger/simple.json")
-      ...> conf = K8s.Conf.from_file("./test/support/kube-config.yaml")
-      ...> K8s.Cluster.register("test-cluster", routes, conf)
-      ...> K8s.Cluster.path_for("test-cluster", "patch/apps/v1/deployment/name/namespace")
-      "/apis/apps/v1/namespaces/{namespace}/deployments/{name}"
+      iex> K8s.Cluster.find_params("/foo/{name}")
+      [:name]
+
+      iex> K8s.Cluster.find_params("/foo/{namespace}/bar/{name}")
+      [:namespace, :name]
+
+      iex> K8s.Cluster.find_params("/foo/bar")
+      []
+
   """
-  @spec path_for(binary, binary) :: binary | nil
-  def path_for(cluster_name, key) do
-    cluster_route_key = cluster_route_key(cluster_name, key)
-
-    case :ets.lookup(K8s.Router, cluster_route_key) do
-      [] -> nil
-      [{_, path, _, _}] -> path
-    end
+  @spec find_params(binary()) :: list(atom())
+  def find_params(path_with_args) do
+    ~r/{([a-z]+)}/
+    |> Regex.scan(path_with_args)
+    |> Enum.map(fn match -> match |> List.last() |> String.to_existing_atom() end)
   end
-
-  defp cluster_route_key(cluster_name, key), do: "#{cluster_name}/#{key}"
 end

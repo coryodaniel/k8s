@@ -35,12 +35,12 @@ defmodule K8s.Client.Runner.Watch do
   def run(op, _, _), do: {:error, "Only HTTP GET operations are supported. #{inspect(op)}"}
 
   # stream_to, recv_timeout
-  def run(operation = %Operation{method: :get, id: "list" <> _rest}, cluster_name, rv, opts) do
+  def run(operation = %Operation{method: :get, verb: "list" <> _rest}, cluster_name, rv, opts) do
     opts_w_watch_params = add_watch_params_to_opts(opts, rv)
     Base.run(operation, cluster_name, opts_w_watch_params)
   end
 
-  def run(operation = %Operation{method: :get, id: "get" <> _rest}, cluster_name, rv, opts) do
+  def run(operation = %Operation{method: :get, verb: "get" <> _rest}, cluster_name, rv, opts) do
     # This can' be a transform, needs to be an alternate func for run to execute
     # Convert a get operation to a list w/ fieldSelector
     # https://localhost:6443/api/v1/namespaces/docker/pods?fieldSelector=metadata.name%3Dcompose-api-76c5fcdc46-7kwg4&resourceVersion=0&watch=true

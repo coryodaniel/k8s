@@ -30,19 +30,6 @@ defmodule K8s.API do
     |> List.flatten()
   end
 
-  @doc """
-  Invert `group/2` and return a resource list with group data for each resource
-  """
-  def resources(cluster_name, opts \\ []) do
-    cluster_name
-    |> groups(opts)
-    |> Enum.map(fn group = %{"resources" => rs} ->
-      group_details = Map.delete(group, "resources")
-      Enum.map(rs, &Map.merge(group_details, &1))
-    end)
-    |> List.flatten()
-  end
-
   @doc false
   def api(cluster_name, opts \\ []) do
     conf = Cluster.conf(cluster_name)
@@ -78,7 +65,7 @@ defmodule K8s.API do
       url = Path.join(url, version)
 
       case do_run(url, conf, opts) do
-        {:ok, spec} -> Map.put(spec, "url", url)
+        {:ok, spec} -> spec
         error -> []
       end
     end)

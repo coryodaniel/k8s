@@ -10,9 +10,7 @@ defmodule K8s.Client.Runner.BaseTest do
 
     conf = K8s.Conf.from_file("test/support/kube-config.yaml")
     conf = %{conf | url: "http://localhost:#{bypass.port}/"}
-    routes = K8s.Router.generate_routes("./test/support/swagger/namespaces.json")
-
-    cluster = K8s.Cluster.register("base-test", routes, conf)
+    cluster = K8s.Cluster.register("base-test", conf)
 
     {:ok, bypass: bypass, cluster: cluster}
   end

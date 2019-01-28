@@ -28,11 +28,11 @@ defmodule K8s.Client do
   @doc "Alias of `create/1`"
   defdelegate post(resource), to: __MODULE__, as: :create
 
-  @doc "Alias of `replace/1`"
-  defdelegate update(resource), to: __MODULE__, as: :replace
+  @doc "Alias of `update/1`"
+  defdelegate replace(resource), to: __MODULE__, as: :update
 
-  @doc "Alias of `replace/1`"
-  defdelegate put(resource), to: __MODULE__, as: :replace
+  @doc "Alias of `update/1`"
+  defdelegate put(resource), to: __MODULE__, as: :update
 
   @doc "alias of `K8s.Client.Runner.Base.run/2"
   defdelegate run(operation, cluster_name), to: Base
@@ -73,7 +73,13 @@ defmodule K8s.Client do
       ...>   "spec" => %{"containers" => %{"image" => "nginx"}}
       ...> }
       ...> K8s.Client.get(pod)
-      %K8s.Operation{method: :get, id: "get/v1/pod/name/namespace", path_params: [namespace: "test", name: "nginx-pod"], resource: nil}
+      %K8s.Operation{
+        method: :get,
+        verb: :get,
+        group_version: "v1",
+        kind: "Pod",
+        path_params: [namespace: "test", name: "nginx-pod"],
+      }
   """
   @spec get(map()) :: Operation.t()
   def get(resource = %{}), do: Operation.build(:get, resource)
@@ -88,10 +94,21 @@ defmodule K8s.Client do
   ## Examples
 
       iex> K8s.Client.get("apps/v1", "Deployment", namespace: "test", name: "nginx")
-      %K8s.Operation{method: :get, resource: nil, id: "get/apps/v1/deployment/name/namespace", path_params: [namespace: "test", name: "nginx"]}
+      %K8s.Operation{
+        method: :get,
+        verb: :get,
+        group_version: "apps/v1",
+        kind: "Deployment",
+        path_params: [namespace: "test", name: "nginx"]
+      }
 
       iex> K8s.Client.get("apps/v1", :deployment, namespace: "test", name: "nginx")
-      %K8s.Operation{method: :get, resource: nil, id: "get/apps/v1/deployment/name/namespace", path_params: [namespace: "test", name: "nginx"]}
+      %K8s.Operation{
+        method: :get,
+        verb: :get,
+        group_version: "apps/v1",
+        kind: :deployment,
+        path_params: [namespace: "test", name: "nginx"]}
 
   """
   @spec get(binary, binary, options | nil) :: Operation.t()
@@ -112,15 +129,19 @@ defmodule K8s.Client do
       iex> K8s.Client.list("v1", "Pod", namespace: "default")
       %K8s.Operation{
         method: :get,
-        path_params: [namespace: "default"],
-        id: "list/v1/pod/namespace"
+        verb: :list,
+        group_version: "v1",
+        kind: "Pod",
+        path_params: [namespace: "default"]
       }
 
       iex> K8s.Client.list("apps/v1", "Deployment", namespace: :all)
       %K8s.Operation{
         method: :get,
-        path_params: [],
-        id: "list_all_namespaces/apps/v1/deployment"
+        verb: :list_all_namespaces,
+        group_version: "apps/v1",
+        kind: "Deployment",
+        path_params: []
       }
 
   """
@@ -177,7 +198,9 @@ defmodule K8s.Client do
       %K8s.Operation{
         method: :post,
         path_params: [namespace: "test"],
-        id: "post/apps/v1/deployment/namespace",
+        verb: :create,
+        group_version: "apps/v1",
+        kind: "Deployment",
         resource: %{
           "apiVersion" => "apps/v1",
           "kind" => "Deployment",
@@ -220,14 +243,14 @@ defmodule K8s.Client do
           "metadata" => %{"namespace" => ns}
         }
       ) do
-    Operation.build(:post, group_version, kind, [namespace: ns], resource)
+    Operation.build(:create, group_version, kind, [namespace: ns], resource)
   end
 
   # Support for creating resources that aren't namespaced... like a Namespace or other cluster-scoped resources.
   def create(
         resource = %{"apiVersion" => group_version, "kind" => kind, "metadata" => %{"name" => _}}
       ) do
-    Operation.build(:post, group_version, kind, [], resource)
+    Operation.build(:create, group_version, kind, [], resource)
   end
 
   @doc """
@@ -275,8 +298,10 @@ defmodule K8s.Client do
       ...> K8s.Client.patch(deployment)
       %K8s.Operation{
         method: :patch,
+        verb: :patch,
+        group_version: "apps/v1",
+        kind: "Deployment",
         path_params: [namespace: "test", name: "nginx"],
-        id: "patch/apps/v1/deployment/name/namespace",
         resource: %{
           "apiVersion" => "apps/v1",
           "kind" => "Deployment",
@@ -356,11 +381,13 @@ defmodule K8s.Client do
       ...>      }
       ...>    }
       ...>  }
-      ...> K8s.Client.replace(deployment)
+      ...> K8s.Client.update(deployment)
       %K8s.Operation{
         method: :put,
+        verb: :update,
+        group_version: "apps/v1",
+        kind: "Deployment",
         path_params: [namespace: "test", name: "nginx"],
-        id: "put/apps/v1/deployment/name/namespace",
         resource: %{
           "apiVersion" => "apps/v1",
           "kind" => "Deployment",
@@ -395,8 +422,8 @@ defmodule K8s.Client do
         }
       }
   """
-  @spec replace(map()) :: Operation.t()
-  def replace(resource = %{}), do: Operation.build(:put, resource)
+  @spec update(map()) :: Operation.t()
+  def update(resource = %{}), do: Operation.build(:update, resource)
 
   @doc """
   Returns a `DELETE` operation for a resource by manifest. May be a partial manifest as long as it contains:
@@ -447,8 +474,10 @@ defmodule K8s.Client do
       ...> K8s.Client.delete(deployment)
       %K8s.Operation{
         method: :delete,
-        path_params: [namespace: "test", name: "nginx"],
-        id: "delete/apps/v1/deployment/name/namespace"
+        verb: :delete,
+        group_version: "apps/v1",
+        kind: "Deployment",
+        path_params: [namespace: "test", name: "nginx"]
       }
 
   """
@@ -463,8 +492,10 @@ defmodule K8s.Client do
       iex> K8s.Client.delete("apps/v1", "Deployment", namespace: "test", name: "nginx")
       %K8s.Operation{
         method: :delete,
-        path_params: [namespace: "test", name: "nginx"],
-        id: "delete/apps/v1/deployment/name/namespace"
+        verb: :delete,
+        group_version: "apps/v1",
+        kind: "Deployment",
+        path_params: [namespace: "test", name: "nginx"]
       }
 
   """
@@ -479,15 +510,19 @@ defmodule K8s.Client do
       iex> K8s.Client.delete_all("extensions/v1beta1", "PodSecurityPolicy")
       %K8s.Operation{
         method: :delete,
-        path_params: [],
-        id: "deletecollection/extensions/v1beta1/podsecuritypolicy"
+        verb: :deletecollection,
+        group_version: "extensions/v1beta1",
+        kind: "PodSecurityPolicy",
+        path_params: []
       }
 
       iex> K8s.Client.delete_all("storage.k8s.io/v1", "StorageClass")
       %K8s.Operation{
         method: :delete,
-        path_params: [],
-        id: "deletecollection/storage.k8s.io/v1/storageclass"
+        verb: :deletecollection,
+        group_version: "storage.k8s.io/v1",
+        kind: "StorageClass",
+        path_params: []
       }
   """
   @spec delete_all(binary(), binary()) :: Operation.t()
@@ -503,15 +538,19 @@ defmodule K8s.Client do
       iex> K8s.Client.delete_all("apps/v1beta1", "ControllerRevision", namespace: "default")
       %K8s.Operation{
         method: :delete,
-        path_params: [namespace: "default"],
-        id: "deletecollection/apps/v1beta1/controllerrevision/namespace"
+        verb: :deletecollection,
+        group_version: "apps/v1beta1",
+        kind: "ControllerRevision",
+        path_params: [namespace: "default"]
       }
 
       iex> K8s.Client.delete_all("apps/v1", "Deployment", namespace: "staging")
       %K8s.Operation{
         method: :delete,
-        path_params: [namespace: "staging"],
-        id: "deletecollection/apps/v1/deployment/namespace"
+        verb: :deletecollection,
+        group_version: "apps/v1",
+        kind: "Deployment",
+        path_params: [namespace: "staging"]
       }
   """
   @spec delete_all(binary(), binary(), namespace: binary()) :: Operation.t()
@@ -519,180 +558,176 @@ defmodule K8s.Client do
     Operation.build(:deletecollection, group_version, kind, namespace: namespace)
   end
 
-  @doc """
-  Returns a `GET` operation for a pod's logs given a manifest. May be a partial manifest as long as it contains:
+  # @doc """
+  # Returns a `GET` operation for a pod's logs given a manifest. May be a partial manifest as long as it contains:
 
-    * apiVersion
-    * kind
-    * metadata.name
-    * metadata.namespace
+  #   * apiVersion
+  #   * kind
+  #   * metadata.name
+  #   * metadata.namespace
 
-  ## Examples
+  # ## Examples
 
-      iex> pod = %{
-      ...>   "apiVersion" => "v1",
-      ...>   "kind" => "Pod",
-      ...>   "metadata" => %{"name" => "nginx-pod", "namespace" => "test"},
-      ...>   "spec" => %{"containers" => %{"image" => "nginx"}}
-      ...> }
-      ...> K8s.Client.get_log(pod)
-      %K8s.Operation{
-        method: :get,
-        path_params: [namespace: "test", name: "nginx-pod"],
-        id: "get_log/v1/pod/name/namespace"
-      }
-  """
-  @spec get_log(map()) :: Operation.t()
-  def get_log(resource = %{}), do: Operation.build(:get_log, resource)
+  #     iex> pod = %{
+  #     ...>   "apiVersion" => "v1",
+  #     ...>   "kind" => "Pod",
+  #     ...>   "metadata" => %{"name" => "nginx-pod", "namespace" => "test"},
+  #     ...>   "spec" => %{"containers" => %{"image" => "nginx"}}
+  #     ...> }
+  #     ...> K8s.Client.get_log(pod)
+  #     %K8s.Operation{
+  #       method: :get,
+  #       verb: :deletecollection,
+  #       group_version: "v1",
+  #       kind: "Pod",
+  #       path_params: [namespace: "test", name: "nginx-pod"]
+  #     }
+  # """
+  # @spec get_log(map()) :: Operation.t()
+  # def get_log(resource = %{}), do: Operation.build(:get_log, resource)
 
-  @doc """
-  Returns a `GET` operation for a pod's logs given a namespace and a pod name.
+  # @doc """
+  # Returns a `GET` operation for a pod's logs given a namespace and a pod name.
 
-  ## Examples
+  # ## Examples
 
-      iex> K8s.Client.get_log("v1", "Pod", namespace: "test", name: "nginx-pod")
-      %K8s.Operation{
-        method: :get,
-        path_params: [namespace: "test", name: "nginx-pod"],
-        id: "get_log/v1/pod/name/namespace"
-      }
-  """
-  @spec get_log(binary, binary, options) :: Operation.t()
-  def get_log(group_version, kind, opts), do: Operation.build(:get_log, group_version, kind, opts)
+  #     iex> K8s.Client.get_log("v1", "Pod", namespace: "test", name: "nginx-pod")
+  #     %K8s.Operation{
+  #       method: :get,
+  #       verb: :get
+  #       path_params: [namespace: "test", name: "nginx-pod"]
+  #     }
+  # """
+  # @spec get_log(binary, binary, options) :: Operation.t()
+  # def get_log(group_version, kind, opts), do: Operation.build(:get, group_version, kind, opts)
 
-  @doc """
-  Returns a `GET` operation for a resource's status given a manifest. May be a partial manifest as long as it contains:
+  # @doc """
+  # Returns a `GET` operation for a resource's status given a manifest. May be a partial manifest as long as it contains:
 
-    * apiVersion
-    * kind
-    * metadata.name
-    * metadata.namespace (if applicable)
+  #   * apiVersion
+  #   * kind
+  #   * metadata.name
+  #   * metadata.namespace (if applicable)
 
-  ## Examples
+  # ## Examples
 
-      iex> pod = %{
-      ...>   "apiVersion" => "v1",
-      ...>   "kind" => "Pod",
-      ...>   "metadata" => %{"name" => "nginx-pod", "namespace" => "test"},
-      ...>   "spec" => %{"containers" => %{"image" => "nginx"}}
-      ...> }
-      ...> K8s.Client.get_status(pod)
-      %K8s.Operation{
-        method: :get,
-        path_params: [namespace: "test", name: "nginx-pod"],
-        id: "get_status/v1/pod/name/namespace"
-      }
-  """
-  @spec get_status(map()) :: Operation.t()
-  def get_status(resource = %{}), do: Operation.build(:get_status, resource)
+  #     iex> pod = %{
+  #     ...>   "apiVersion" => "v1",
+  #     ...>   "kind" => "Pod",
+  #     ...>   "metadata" => %{"name" => "nginx-pod", "namespace" => "test"},
+  #     ...>   "spec" => %{"containers" => %{"image" => "nginx"}}
+  #     ...> }
+  #     ...> K8s.Client.get_status(pod)
+  #     %K8s.Operation{
+  #       method: :get,
+  #       path_params: [namespace: "test", name: "nginx-pod"]
+  #     }
+  # """
+  # @spec get_status(map()) :: Operation.t()
+  # def get_status(resource = %{}), do: Operation.build(:get_status, resource)
 
-  @doc """
-  Returns a `GET` operation for a resource's status by version, kind, name, and optionally namespace.
+  # @doc """
+  # Returns a `GET` operation for a resource's status by version, kind, name, and optionally namespace.
 
-  ## Examples
+  # ## Examples
 
-      iex> K8s.Client.get_status("apps/v1", "Deployment", namespace: "test", name: "nginx")
-      %K8s.Operation{
-        method: :get,
-        path_params: [namespace: "test", name: "nginx"],
-        id: "get_status/apps/v1/deployment/name/namespace"
-      }
+  #     iex> K8s.Client.get_status("apps/v1", "Deployment", namespace: "test", name: "nginx")
+  #     %K8s.Operation{
+  #       method: :get,
+  #       path_params: [namespace: "test", name: "nginx"]
+  #     }
 
-  """
-  @spec get_status(binary, binary, options | nil) :: Operation.t()
-  def get_status(group_version, kind, opts \\ []),
-    do: Operation.build(:get_status, group_version, kind, opts)
+  # """
+  # @spec get_status(binary, binary, options | nil) :: Operation.t()
+  # def get_status(group_version, kind, opts \\ []),
+  #   do: Operation.build(:get_status, group_version, kind, opts)
 
-  @doc """
-  Returns a `PATCH` operation for a resource's status given a manifest. May be a partial manifest as long as it contains:
+  # @doc """
+  # Returns a `PATCH` operation for a resource's status given a manifest. May be a partial manifest as long as it contains:
 
-    * apiVersion
-    * kind
-    * metadata.name
-    * metadata.namespace (if applicable)
+  #   * apiVersion
+  #   * kind
+  #   * metadata.name
+  #   * metadata.namespace (if applicable)
 
-  ## Examples
+  # ## Examples
 
-      iex> pod = %{
-      ...>   "apiVersion" => "v1",
-      ...>   "kind" => "Pod",
-      ...>   "metadata" => %{"name" => "nginx-pod", "namespace" => "test"},
-      ...>   "spec" => %{"containers" => %{"image" => "nginx"}}
-      ...> }
-      ...> K8s.Client.patch_status(pod)
-      %K8s.Operation{
-        method: :patch,
-        resource: %{"apiVersion" => "v1", "kind" => "Pod", "metadata" => %{"name" => "nginx-pod", "namespace" => "test"}, "spec" => %{"containers" => %{"image" => "nginx"}}},
-        id: "patch_status/v1/pod/name/namespace",
-        path_params: [namespace: "test", name: "nginx-pod"]
-      }
-  """
-  @spec patch_status(map()) :: Operation.t()
-  def patch_status(resource = %{}), do: Operation.build(:patch_status, resource)
+  #     iex> pod = %{
+  #     ...>   "apiVersion" => "v1",
+  #     ...>   "kind" => "Pod",
+  #     ...>   "metadata" => %{"name" => "nginx-pod", "namespace" => "test"},
+  #     ...>   "spec" => %{"containers" => %{"image" => "nginx"}}
+  #     ...> }
+  #     ...> K8s.Client.patch_status(pod)
+  #     %K8s.Operation{
+  #       method: :patch,
+  #       resource: %{"apiVersion" => "v1", "kind" => "Pod", "metadata" => %{"name" => "nginx-pod", "namespace" => "test"}, "spec" => %{"containers" => %{"image" => "nginx"}}},
+  #       path_params: [namespace: "test", name: "nginx-pod"]
+  #     }
+  # """
+  # @spec patch_status(map()) :: Operation.t()
+  # def patch_status(resource = %{}), do: Operation.build(:patch_status, resource)
 
-  @doc """
-  Returns a `PATCH` operation for a resource's status by version, kind, name, and optionally namespace.
+  # @doc """
+  # Returns a `PATCH` operation for a resource's status by version, kind, name, and optionally namespace.
 
-  ## Examples
-      iex> K8s.Client.patch_status("apps/v1", "Deployment", namespace: "test", name: "nginx")
-      %K8s.Operation{
-        method: :patch,
-        resource: nil,
-        id: "patch_status/apps/v1/deployment/name/namespace",
-        path_params: [namespace: "test", name: "nginx"]
-      }
+  # ## Examples
+  #     iex> K8s.Client.patch_status("apps/v1", "Deployment", namespace: "test", name: "nginx")
+  #     %K8s.Operation{
+  #       method: :patch,
+  #       resource: nil,
+  #       path_params: [namespace: "test", name: "nginx"]
+  #     }
 
-  """
-  @spec patch_status(binary, binary, options | nil) :: Operation.t()
-  def patch_status(group_version, kind, opts \\ []),
-    do: Operation.build(:patch_status, group_version, kind, opts)
+  # """
+  # @spec patch_status(binary, binary, options | nil) :: Operation.t()
+  # def patch_status(group_version, kind, opts \\ []),
+  #   do: Operation.build(:patch_status, group_version, kind, opts)
 
-  @doc """
-  Returns a `PUT` operation for a resource's status given a manifest. May be a partial manifest as long as it contains:
+  # @doc """
+  # Returns a `PUT` operation for a resource's status given a manifest. May be a partial manifest as long as it contains:
 
-    * apiVersion
-    * kind
-    * metadata.name
-    * metadata.namespace (if applicable)
+  #   * apiVersion
+  #   * kind
+  #   * metadata.name
+  #   * metadata.namespace (if applicable)
 
-  ## Examples
+  # ## Examples
 
-      iex> pod = %{
-      ...>   "apiVersion" => "v1",
-      ...>   "kind" => "Pod",
-      ...>   "metadata" => %{"name" => "nginx-pod", "namespace" => "test"},
-      ...>   "spec" => %{"containers" => %{"image" => "nginx"}}
-      ...> }
-      ...> K8s.Client.put_status(pod)
-      %K8s.Operation{
-        method: :put,
-        id: "put_status/v1/pod/name/namespace",
-        path_params: [namespace: "test", name: "nginx-pod"],
-        resource: %{
-          "apiVersion" => "v1",
-          "kind" => "Pod",
-          "metadata" => %{"name" => "nginx-pod", "namespace" => "test"},
-          "spec" => %{"containers" => %{"image" => "nginx"}}
-        }
-      }
-  """
-  @spec put_status(map()) :: Operation.t()
-  def put_status(resource = %{}), do: Operation.build(:put_status, resource)
+  #     iex> pod = %{
+  #     ...>   "apiVersion" => "v1",
+  #     ...>   "kind" => "Pod",
+  #     ...>   "metadata" => %{"name" => "nginx-pod", "namespace" => "test"},
+  #     ...>   "spec" => %{"containers" => %{"image" => "nginx"}}
+  #     ...> }
+  #     ...> K8s.Client.put_status(pod)
+  #     %K8s.Operation{
+  #       method: :put,
+  #       path_params: [namespace: "test", name: "nginx-pod"],
+  #       resource: %{
+  #         "apiVersion" => "v1",
+  #         "kind" => "Pod",
+  #         "metadata" => %{"name" => "nginx-pod", "namespace" => "test"},
+  #         "spec" => %{"containers" => %{"image" => "nginx"}}
+  #       }
+  #     }
+  # """
+  # @spec put_status(map()) :: Operation.t()
+  # def put_status(resource = %{}), do: Operation.build(:put_status, resource)
 
-  @doc """
-  Returns a `PUT` operation for a resource's status by version, kind, name, and optionally namespace.
+  # @doc """
+  # Returns a `PUT` operation for a resource's status by version, kind, name, and optionally namespace.
 
-  ## Examples
-      iex> K8s.Client.put_status("apps/v1", "Deployment", namespace: "test", name: "nginx")
-      %K8s.Operation{
-        resource: nil,
-        id: "put_status/apps/v1/deployment/name/namespace",
-        method: :put,
-        path_params: [namespace: "test", name: "nginx"]
-      }
+  # ## Examples
+  #     iex> K8s.Client.put_status("apps/v1", "Deployment", namespace: "test", name: "nginx")
+  #     %K8s.Operation{
+  #       resource: nil,
+  #       method: :put,
+  #       path_params: [namespace: "test", name: "nginx"]
+  #     }
 
-  """
-  @spec put_status(binary, binary, options | nil) :: Operation.t()
-  def put_status(group_version, kind, opts \\ []),
-    do: Operation.build(:put_status, group_version, kind, opts)
+  # """
+  # @spec put_status(binary, binary, options | nil) :: Operation.t()
+  # def put_status(group_version, kind, opts \\ []),
+  #   do: Operation.build(:put_status, group_version, kind, opts)
 end

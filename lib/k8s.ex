@@ -4,11 +4,10 @@ defmodule K8s do
   """
 
   @doc """
-  Initialize `K8s.Conf` and `K8s.Router` ETS tables
+  Initialize `K8s.Conf` and `K8s.Group` ETS tables
   """
   def init do
     make_table(K8s.Conf)
-    make_table(K8s.Router)
     make_table(K8s.Group)
     K8s.Cluster.register_clusters()
   end
