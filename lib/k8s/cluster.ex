@@ -42,15 +42,15 @@ defmodule K8s.Cluster do
   @spec url_for(K8s.Operation.t(), binary()) :: binary | nil
   def url_for(operation = %K8s.Operation{}, cluster_name) do
     %{group_version: group_version, kind: kind, verb: verb} = operation
-    key = cluster_group_key(cluster_name, group_version)
     conf = K8s.Cluster.conf(cluster_name)
 
-    case :ets.lookup(K8s.Group, key) do
+    cluster_group_key = cluster_group_key(cluster_name, group_version)
+    case :ets.lookup(K8s.Group, cluster_group_key) do
       [] ->
         {:error, :unsupported_group_version, group_version}
 
       [{_, group_version, resources}] ->
-        case find_resource_supporting_verb(resources, kind, verb) do
+        case K8s.Group.find_resource_supporting_verb(resources, kind, verb) do
           {:error, type, details} ->
             {:error, type, details}
 
@@ -92,46 +92,6 @@ defmodule K8s.Cluster do
     end
   end
 
-  @spec find_resource_supporting_verb(list(map), binary, atom) ::
-          map | {:error, :unsupported_verb, binary}
-  defp find_resource_supporting_verb(resources, kind, verb) do
-    with {:ok, resource} <- find_resource_by_name(resources, kind),
-         true <- resource_supports_verb?(resource, verb) do
-      resource
-    else
-      false ->
-        {:error, :unsupported_verb, verb}
-
-      error ->
-        error
-    end
-  end
-
-  def resource_supports_verb?(_, :watch), do: false
-
-  def resource_supports_verb?(%{"verbs" => verbs}, :list_all_namespaces),
-    do: Enum.member?(verbs, "list")
-
-  def resource_supports_verb?(%{"verbs" => verbs}, verb),
-    do: Enum.member?(verbs, Atom.to_string(verb))
-
-  def find_resource_by_name(resources, kind) do
-    resource = Enum.find(resources, &match_resource_by_name(&1, kind))
-
-    case resource do
-      nil -> {:error, :unsupported_kind, kind}
-      resource -> {:ok, resource}
-    end
-  end
-
-  @spec match_resource_by_name(map, atom | binary) :: bool
-  def match_resource_by_name(resource, kind) when is_atom(kind),
-    do: match_resource_by_name(resource, Atom.to_string(kind))
-
-  def match_resource_by_name(%{"kind" => kind}, kind), do: true
-  def match_resource_by_name(%{"name" => name}, name), do: true
-  def match_resource_by_name(%{"kind" => kind}, name), do: String.downcase(kind) == name
-
   @doc """
   List registered cluster names
   """
@@ -142,5 +102,6 @@ defmodule K8s.Cluster do
     |> Keyword.keys()
   end
 
+  @spec cluster_group_key(binary, binary) :: binary
   defp cluster_group_key(cluster_name, group_version), do: "#{cluster_name}/#{group_version}"
 end
