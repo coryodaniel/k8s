@@ -25,7 +25,7 @@ defmodule K8s.SwaggerTest do
 
       assert operation["action"] == "post"
       assert operation["all_namespaces"] == false
-      assert operation["api_version"] == "apps/v1"
+      assert operation["group_version"] == "apps/v1"
       assert operation["desc"] == "create a Deployment"
       assert operation["id"] == "createAppsV1NamespacedDeployment"
       assert operation["kind"] == "Deployment"

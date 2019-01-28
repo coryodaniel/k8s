@@ -32,6 +32,8 @@ defmodule K8s.Client.Runner.Watch do
     end
   end
 
+  def run(op, _, _), do: {:error, "Only HTTP GET operations are supported. #{inspect(op)}"}
+
   # stream_to, recv_timeout
   def run(operation = %Operation{method: :get, id: "list" <> _rest}, cluster_name, rv, opts) do
     opts_w_watch_params = add_watch_params_to_opts(opts, rv)
@@ -44,7 +46,6 @@ defmodule K8s.Client.Runner.Watch do
     # https://localhost:6443/api/v1/namespaces/docker/pods?fieldSelector=metadata.name%3Dcompose-api-76c5fcdc46-7kwg4&resourceVersion=0&watch=true
   end
 
-  def run(op, _, _), do: {:error, "Only HTTP GET operations are supported. #{inspect(op)}"}
   def run(op, _, _, _), do: {:error, "Only HTTP GET operations are supported. #{inspect(op)}"}
 
   defp get_resource_version(operation = %Operation{}, cluster_name) do

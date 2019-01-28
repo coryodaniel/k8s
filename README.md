@@ -23,6 +23,7 @@ end
 
 ## Features
 
+* Kubernetes resources, groups, and CRDs are autodiscovered at boot time. No swagger file to include or override.
 * Client supports standard HTTP calls, async batches, wait on status, and watchers
 * Supports multiple clusters
 * Supports multiple authentication credentials
@@ -62,7 +63,7 @@ config :k8s,
   clusters: %{
     default: %{
       conf: "~/.kube/config",
-      api_version: "1.13"
+      group_version: "1.13"
     }
   }
 ```

@@ -64,9 +64,9 @@ defmodule K8s.ClusterTest do
     end)
   end
 
-  def api_version(nil, version), do: version
-  def api_version("", version), do: version
-  def api_version(group, version), do: "#{group}/#{version}"
+  def group_version(nil, version), do: version
+  def group_version("", version), do: version
+  def group_version(group, version), do: "#{group}/#{version}"
 
   def fn_to_test(:list, op) do
     case Regex.match?(~r/AllNamespaces/, op["operationId"]) do
@@ -97,10 +97,10 @@ defmodule K8s.ClusterTest do
       %{"version" => version, "group" => group, "kind" => kind} =
         op["x-kubernetes-group-version-kind"]
 
-      api_version = api_version(group, version)
+      group_version = group_version(group, version)
       opts = path_opts(params)
 
-      operation = Operation.build(operation_prefix, api_version, kind, opts)
+      operation = Operation.build(operation_prefix, group_version, kind, opts)
       actual = K8s.Cluster.url_for(operation, "routing-tests")
       assert String.ends_with?(actual, expected)
     end

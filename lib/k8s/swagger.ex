@@ -70,8 +70,8 @@ defmodule K8s.Swagger do
   end
 
   # Create apiVersion from group and version
-  defp api_version("", version), do: version
-  defp api_version(group, version), do: "#{group}/#{version}"
+  defp group_version("", version), do: version
+  defp group_version(group, version), do: "#{group}/#{version}"
 
   # Build our metadata
   defp metadata(operation, method, path) do
@@ -93,7 +93,7 @@ defmodule K8s.Swagger do
       "path_params" => path_params,
       "id" => id,
       "desc" => operation["description"],
-      "api_version" => api_version(group, version),
+      "group_version" => group_version(group, version),
       "kind" => gvk["kind"],
       "method" => method,
       "path" => path,

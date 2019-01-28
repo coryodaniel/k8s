@@ -32,18 +32,35 @@ defmodule K8s.Cluster do
     case :ets.lookup(K8s.Group, "#{cluster_name}/#{group_version}") do
       [] -> {:error, :unsupported_group_version, group_version}
       [{_, group_version, url, resources}] ->
-        IO.puts "GV: #{inspect(group_version)}, #{url}"
-        resources
-        |> find_resource_supporting_verb(kind, verb)
-        |> to_path(verb)
+        case find_resource_supporting_verb(resources, kind, verb) do
+          {:error, type, details} -> {:error, type, details}
+          resource -> Path.join(url, to_path(resource, verb))
+        end
     end
   end
 
   def to_path({:error, _, _} = err, verb), do: err
-  def to_path(%{"namespaced" => true} = res, "create"), do: "namespaced create"
-  def to_path(%{"namespaced" => true} = res, verb), do: "namespaced other"
-  def to_path(%{"namespaced" => false} = res, "create"), do: "clustered create"
-  def to_path(%{"namespaced" => false} = res, verb), do: "clustered other"
+
+  def to_path(%{"namespaced" => ns, "name" => name}, verb) do
+    [resource_name | subresource_name] = String.split(name, "/")
+
+    path_components = [
+      namespace_param(ns, verb),
+      name_param(resource_name, verb),
+      subresource_name
+    ]
+
+    Enum.join(path_components, "/")
+  end
+
+  def namespace_param(true, "list_all"), do: ""
+  def namespace_param(true, _), do: "namespaces/{namespace}"
+  def namespace_param(false, _), do: ""
+
+  def name_param(resource_name, "list"), do: resource_name
+  def name_param(resource_name, "list_all"), do: resource_name
+  def name_param(resource_name, "create"), do: resource_name
+  def name_param(resource_name, _), do: "#{resource_name}/{name}"
 
   def find_resource_supporting_verb(resources, kind, verb) do
     with {:ok, resource} <- find_resource_by_name(resources, kind),
@@ -55,6 +72,8 @@ defmodule K8s.Cluster do
     end
   end
 
+  def resource_supports_verb?(_, "watch"), do: false
+  def resource_supports_verb?(%{"verbs" => verbs}, "list_all"), do: Enum.member?(verbs, "list")
   def resource_supports_verb?(%{"verbs" => verbs}, verb), do: Enum.member?(verbs, verb)
 
   def find_resource_by_name(resources, kind) do
@@ -101,7 +120,7 @@ defmodule K8s.Cluster do
     clusters = Application.get_env(:k8s, :clusters)
 
     Enum.each(clusters, fn {name, details} ->
-      spec_path = Path.join(:code.priv_dir(:k8s), "swagger/#{details.api_version}.json")
+      spec_path = Path.join(:code.priv_dir(:k8s), "swagger/#{details.group_version}.json")
       routes = K8s.Router.generate_routes(spec_path)
       conf = K8s.Conf.from_file(details.conf)
 

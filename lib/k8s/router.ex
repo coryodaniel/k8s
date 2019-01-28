@@ -31,11 +31,11 @@ defmodule K8s.Router do
       path_with_args = metadata["path"]
 
       action_name = Swagger.gen_action_name(metadata)
-      api_version = metadata["api_version"]
+      group_version = metadata["group_version"]
       kind = metadata["kind"]
       arg_names = Swagger.find_params(path_with_args)
 
-      key = Operation.id(action_name, api_version, kind, arg_names)
+      key = Operation.id(action_name, group_version, kind, arg_names)
       Map.put(agg, key, path_with_args)
     end)
   end

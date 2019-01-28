@@ -6,7 +6,7 @@ config :k8s,
   auth_providers: [],
   clusters: %{
     test: %{
-      api_version: "1.13",
+      group_version: "1.13",
       conf: "~/.kube/config"
     }
   }

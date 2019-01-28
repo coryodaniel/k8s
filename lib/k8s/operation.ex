@@ -82,7 +82,7 @@ defmodule K8s.Operation do
       }
   """
   @spec build(atom, binary, atom | binary, keyword(atom), map()) :: __MODULE__.t()
-  def build(action, api_version, kind, path_params, resource \\ nil) do
+  def build(action, group_version, kind, path_params, resource \\ nil) do
     http_method = @action_map[action] || action
 
     operation_resource =
@@ -94,7 +94,7 @@ defmodule K8s.Operation do
     %__MODULE__{
       method: http_method,
       resource: operation_resource,
-      id: id(action, api_version, kind, Keyword.keys(path_params)),
+      id: id(action, group_version, kind, Keyword.keys(path_params)),
       path_params: path_params
     }
   end
@@ -117,9 +117,9 @@ defmodule K8s.Operation do
 
   """
   @spec id(binary, binary, binary, list(atom)) :: binary
-  def id(action_name, api_version, kind, arg_names) do
+  def id(action_name, group_version, kind, arg_names) do
     formatted_kind = String.downcase("#{kind}")
-    key_list = [action_name, api_version, formatted_kind] ++ Enum.sort(arg_names)
+    key_list = [action_name, group_version, formatted_kind] ++ Enum.sort(arg_names)
     Enum.join(key_list, "/")
   end
 end
