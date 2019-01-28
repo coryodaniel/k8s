@@ -26,7 +26,8 @@
 				"namespaced": false,
 				"singularName": "",
 				"verbs": [
-					"update"
+          "update",
+          "get"
 				]
 			}
 		],
@@ -59,7 +60,8 @@
 				"namespaced": false,
 				"singularName": "",
 				"verbs": [
-					"update"
+          "update",
+          "get"
 				]
 			}
 		],
@@ -1149,7 +1151,9 @@
 				"namespaced": false,
 				"singularName": "",
 				"verbs": [
-					"update"
+          "update",
+          "get",
+          "patch"
 				]
 			}
 		],
@@ -1524,7 +1528,8 @@
 				"namespaced": false,
 				"singularName": "",
 				"verbs": [
-					"update"
+          "update",
+          "get"
 				]
 			}
 		],

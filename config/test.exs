@@ -1,4 +1,5 @@
 use Mix.Config
+
 config :k8s,
   api_provider: Mock.API,
   clusters: %{

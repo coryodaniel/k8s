@@ -3,7 +3,8 @@ defmodule K8s.ClusterTest do
   use ExUnitProperties
   doctest K8s.Cluster
 
-  alias K8s.{Operation, Swagger}
+  alias K8s.{Operation}
+  require Logger
 
   @k8s_spec System.get_env("K8S_SPEC") || "priv/swagger/1.13.json"
   @swagger @k8s_spec |> File.read!() |> Jason.decode!()
@@ -17,7 +18,10 @@ defmodule K8s.ClusterTest do
                               Map.has_key?(op, "x-kubernetes-group-version-kind") &&
                               op["x-kubernetes-action"] != "connect" &&
                               !Regex.match?(~r/\/watch\//, path) &&
-                              !Regex.match?(~r/\/(finalize|bindings|approval|scale)$/, path)
+                              !Regex.match?(
+                                ~r/\/(eviction|finalize|bindings|binding|approval|scale)$/,
+                                path
+                              )
                           end)
                           |> Enum.map(fn {method, op} ->
                             path_params = @paths[path]["parameters"] || []
@@ -46,20 +50,16 @@ defmodule K8s.ClusterTest do
     |> String.replace("{logpath}", "qux")
   end
 
-  def path_opts(params) when not is_list(params), do: []
-
-  def path_opts(params) when is_list(params) do
+  def path_opts(path_with_args) do
     values = [namespace: "foo", name: "bar", path: "pax", logpath: "qux"]
 
-    Enum.reduce(params, [], fn param, agg ->
-      case param["in"] do
-        "path" ->
-          name = String.to_existing_atom(param["name"])
-          agg ++ [{name, values[name]}]
+    required_params =
+      ~r/{([a-z]+)}/
+      |> Regex.scan(path_with_args)
+      |> Enum.map(fn match -> match |> List.last() |> String.to_existing_atom() end)
 
-        _ ->
-          agg
-      end
+    Enum.reduce(required_params, [], fn param, agg ->
+      agg ++ [{param, values[param]}]
     end)
   end
 
@@ -74,34 +74,129 @@ defmodule K8s.ClusterTest do
     end
   end
 
-  def fn_to_test(:deletecollection, _), do: :delete_collection
-  def fn_to_test(action, _), do: action
+  def fn_to_test(verb, _), do: verb
+
+  def action_to_verb(action, op) do
+    action = String.to_atom(action)
+
+    mapping = %{
+      put: :update,
+      post: :create
+    }
+
+    mapping
+    |> Map.get(action, action)
+    |> fn_to_test(op)
+  end
 
   property "generates valid paths" do
     check all op <- member_of(@swagger_operations) do
       path = op["path"]
-      route_function = op["x-kubernetes-action"]
-      params = op["parameters"]
-
       expected = expected_path(path)
 
-      swagger_operation_action =
-        case Swagger.subaction(path) do
-          nil -> String.to_atom(route_function)
-          subaction -> String.to_atom("#{route_function}_#{subaction}")
-        end
+      opts = path_opts(path)
+      verb = action_to_verb(op["x-kubernetes-action"], op)
+      operation = build_operation(path, verb, opts)
 
-      operation_prefix = apply(__MODULE__, :fn_to_test, [swagger_operation_action, op])
-
-      %{"version" => version, "group" => group, "kind" => kind} =
-        op["x-kubernetes-group-version-kind"]
-
-      group_version = group_version(group, version)
-      opts = path_opts(params)
-
-      operation = Operation.build(operation_prefix, group_version, kind, opts)
       actual = K8s.Cluster.url_for(operation, "routing-tests")
-      assert String.ends_with?(actual, expected)
+
+      case actual do
+        {:error, problem, details} ->
+          Logger.warn(
+            "Found #{problem}: #{details}; Operation: #{inspect(operation)}; Expected: #{expected}"
+          )
+
+        actual ->
+          assert String.ends_with?(actual, expected)
+      end
     end
+  end
+
+  def build_operation(path, verb, opts) do
+    [_ | components] = String.split(path, "/")
+    {group_version, pluralized_kind_with_subaction} = components_to_operation(components)
+
+    Operation.build(verb, group_version, pluralized_kind_with_subaction, opts)
+  end
+
+  # /apis cluster scoped
+  def components_to_operation(["apis", group, version, plural_kind]) do
+    {group_version(group, version), plural_kind}
+  end
+
+  def components_to_operation(["apis", group, version, plural_kind, "{name}"]) do
+    {group_version(group, version), plural_kind}
+  end
+
+  def components_to_operation(["apis", group, version, plural_kind, "{name}", subaction]) do
+    {group_version(group, version), "#{plural_kind}/#{subaction}"}
+  end
+
+  # /apis Namespace scoped
+  def components_to_operation(["apis", group, version, "namespaces", "{namespace}", plural_kind]) do
+    {group_version(group, version), plural_kind}
+  end
+
+  def components_to_operation([
+        "apis",
+        group,
+        version,
+        "namespaces",
+        "{namespace}",
+        plural_kind,
+        "{name}"
+      ]) do
+    {group_version(group, version), plural_kind}
+  end
+
+  def components_to_operation([
+        "apis",
+        group,
+        version,
+        "namespaces",
+        "{namespace}",
+        plural_kind,
+        "{name}",
+        subaction
+      ]) do
+    {group_version(group, version), "#{plural_kind}/#{subaction}"}
+  end
+
+  # /api Cluster scoped
+  def components_to_operation(["api", version, plural_kind]) do
+    {group_version(nil, version), plural_kind}
+  end
+
+  def components_to_operation(["api", version, plural_kind, "{name}"]) do
+    {group_version(nil, version), plural_kind}
+  end
+
+  def components_to_operation(["api", version, plural_kind, "{name}", subaction]) do
+    {group_version(nil, version), "#{plural_kind}/#{subaction}"}
+  end
+
+  # /api Namespace scoped
+  def components_to_operation(["api", version, "namespaces", "{namespace}", plural_kind]) do
+    {group_version(nil, version), plural_kind}
+  end
+
+  def components_to_operation(["api", version, "namespaces", "{namespace}", plural_kind, "{name}"]) do
+    {group_version(nil, version), plural_kind}
+  end
+
+  def components_to_operation([
+        "api",
+        version,
+        "namespaces",
+        "{namespace}",
+        plural_kind,
+        "{name}",
+        subaction
+      ]) do
+    {group_version(nil, version), "#{plural_kind}/#{subaction}"}
+  end
+
+  def components_to_operation(list) do
+    {:error, list}
   end
 end
