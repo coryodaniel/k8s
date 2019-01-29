@@ -85,7 +85,7 @@ defmodule K8s.Operation do
         kind: :deployment
       }
   """
-  @spec build(atom, binary, atom | binary, keyword(atom), map()) :: __MODULE__.t()
+  @spec build(atom, binary, atom | binary, keyword(), map() | nil) :: __MODULE__.t()
   def build(verb, group_version, kind, path_params, resource \\ nil) do
     http_method = @verb_map[verb] || verb
 

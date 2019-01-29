@@ -11,7 +11,7 @@ defmodule K8s.Path do
   @doc """
   Generates the API path for a given group/version and resource.
 
-  *Note:* This is intended to be called by `K8s.Cluster` using the `resources` returned by `K8s.API.groups/1`.
+  *Note:* This is intended to be called by `K8s.Cluster` using the `resources` returned by `K8s.Discovery.groups/1`.
 
   ## Examples
 
@@ -39,18 +39,26 @@ defmodule K8s.Path do
 
   """
   @spec build(binary, map, atom, keyword(atom)) ::
-          binary | {:error, :missing_required_param, list(atom)}
+          binary
+          | {:error, :missing_required_param, list(atom)}
+          | {:error, :unsupported_verb, atom}
   def build(group_version, resource, verb, params) do
-    path_template = to_path(group_version, resource, verb)
-    required_params = K8s.Path.find_params(path_template)
-    provided_params = Keyword.keys(params)
+    case resource_supports_verb?(resource, verb) do
+      true ->
+        path_template = to_path(group_version, resource, verb)
+        required_params = K8s.Path.find_params(path_template)
+        provided_params = Keyword.keys(params)
 
-    case required_params -- provided_params do
-      [] ->
-        replace_path_vars(path_template, params)
+        case required_params -- provided_params do
+          [] ->
+            replace_path_vars(path_template, params)
 
-      missing_params ->
-        {:error, :missing_required_param, missing_params}
+          missing_params ->
+            {:error, :missing_required_param, missing_params}
+        end
+
+      false ->
+        {:error, :unsupported_verb, verb}
     end
   end
 
@@ -120,7 +128,7 @@ defmodule K8s.Path do
   defp name_param(resource_name, :deletecollection), do: resource_name
   defp name_param(resource_name, _), do: "#{resource_name}/{name}"
 
-  @spec name_param(binary, atom) :: binary
+  @spec name_with_subaction_param(binary, binary, atom) :: binary
   defp name_with_subaction_param(resource_name, subaction, _),
     do: "#{resource_name}/{name}/#{subaction}"
 
@@ -128,4 +136,13 @@ defmodule K8s.Path do
   defp build_path(prefix, suffix, true, :list_all_namespaces), do: "#{prefix}/#{suffix}"
   defp build_path(prefix, suffix, true, _), do: "#{prefix}/namespaces/{namespace}/#{suffix}"
   defp build_path(prefix, suffix, false, _), do: "#{prefix}/#{suffix}"
+
+  @spec resource_supports_verb?(map, atom) :: boolean
+  defp resource_supports_verb?(_, :watch), do: false
+
+  defp resource_supports_verb?(%{"verbs" => verbs}, :list_all_namespaces),
+    do: Enum.member?(verbs, "list")
+
+  defp resource_supports_verb?(%{"verbs" => verbs}, verb),
+    do: Enum.member?(verbs, Atom.to_string(verb))
 end

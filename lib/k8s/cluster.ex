@@ -2,7 +2,7 @@ defmodule K8s.Cluster do
   @moduledoc """
   Cluster configuration and API route store for `K8s.Client`
   """
-  @api_provider Application.get_env(:k8s, :api_provider, K8s.API)
+  @discovery Application.get_env(:k8s, :discovery_provider, K8s.Discovery)
 
   @doc """
   Register a new cluster to use with `K8s.Client`
@@ -17,10 +17,10 @@ defmodule K8s.Cluster do
   @spec register(binary, K8s.Conf.t()) :: binary
   def register(cluster_name, conf) do
     :ets.insert(K8s.Conf, {cluster_name, conf})
-    groups = @api_provider.groups(cluster_name)
+    groups = @discovery.groups(cluster_name)
 
     Enum.each(groups, fn %{"groupVersion" => gv, "resources" => rs} ->
-      cluster_group_key = cluster_group_key(cluster_name, gv)
+      cluster_group_key = K8s.Group.cluster_key(cluster_name, gv)
       :ets.insert(K8s.Group, {cluster_group_key, gv, rs})
     end)
 
@@ -44,19 +44,14 @@ defmodule K8s.Cluster do
     %{group_version: group_version, kind: kind, verb: verb} = operation
     conf = K8s.Cluster.conf(cluster_name)
 
-    cluster_group_key = cluster_group_key(cluster_name, group_version)
-    case :ets.lookup(K8s.Group, cluster_group_key) do
-      [] ->
-        {:error, :unsupported_group_version, group_version}
+    case K8s.Group.find_resource(cluster_name, group_version, kind) do
+      {:error, problem, details} ->
+        {:error, problem, details}
 
-      [{_, group_version, resources}] ->
-        case K8s.Group.find_resource_supporting_verb(resources, kind, verb) do
-          {:error, type, details} ->
-            {:error, type, details}
-
-          resource ->
-            path = K8s.Path.build(group_version, resource, verb, operation.path_params)
-            Path.join(conf.url, path)
+      {:ok, resource} ->
+        case K8s.Path.build(group_version, resource, verb, operation.path_params) do
+          {:error, problem, details} -> {:error, problem, details}
+          path -> Path.join(conf.url, path)
         end
     end
   end
@@ -101,7 +96,4 @@ defmodule K8s.Cluster do
     |> :ets.tab2list()
     |> Keyword.keys()
   end
-
-  @spec cluster_group_key(binary, binary) :: binary
-  defp cluster_group_key(cluster_name, group_version), do: "#{cluster_name}/#{group_version}"
 end
