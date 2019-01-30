@@ -82,7 +82,7 @@ defmodule K8s.Discovery do
     headers = headers(request_options)
     opts = Keyword.merge([ssl: request_options.ssl_options], opts)
 
-    response = HTTPoison.get(url, headers, opts)
+    response = HTTPoison.request(:get, url, "", headers, opts)
     handle_response(response)
   end
 
