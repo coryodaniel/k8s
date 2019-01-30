@@ -7,23 +7,11 @@ defmodule K8s.Discovery do
   alias K8s.Conf.RequestOptions
 
   @doc """
-  List all versions supported by cluster
-
-  ## Examples
-
-      iex> K8s.Discovery.versions(:test)
-      ["v1", "apiregistration.k8s.io/v1", "apiregistration.k8s.io/v1beta1", "extensions/v1beta1", "apps/v1", "apps/v1beta2", "apps/v1beta1", "events.k8s.io/v1beta1", "authentication.k8s.io/v1", "authentication.k8s.io/v1beta1", "authorization.k8s.io/v1", "authorization.k8s.io/v1beta1", "autoscaling/v1", "autoscaling/v2beta1", "batch/v1", "batch/v1beta1", "certificates.k8s.io/v1beta1", "networking.k8s.io/v1", "policy/v1beta1", "rbac.authorization.k8s.io/v1", "rbac.authorization.k8s.io/v1beta1", "storage.k8s.io/v1", "storage.k8s.io/v1beta1", "admissionregistration.k8s.io/v1beta1", "apiextensions.k8s.io/v1beta1", "hello-operator.example.com/v1", "compose.docker.com/v1beta2", "compose.docker.com/v1beta1"]
-
-  """
-  def versions(cluster_name, opts \\ []) do
-    cluster_name
-    |> list_async(opts)
-    |> Enum.map(fn {_, versions} -> versions end)
-    |> List.flatten()
-  end
-
-  @doc """
   List all groups with resources types supported by cluster
+
+  ```elixir
+  K8s.Discovery.groups(:test)
+  ```
   """
   def groups(cluster_name, opts \\ []) do
     conf = Cluster.conf(cluster_name)
@@ -58,7 +46,8 @@ defmodule K8s.Discovery do
     url = Path.join(conf.url, "/apis")
 
     case do_run(url, conf, opts) do
-      {:ok, %{"groups" => groups}} -> {url, group_versions(groups)}
+      {:ok, %{"groups" => groups}} ->
+        {url, group_versions(groups)}
       error -> error
     end
   end

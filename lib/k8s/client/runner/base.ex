@@ -15,7 +15,7 @@ defmodule K8s.Client.Runner.Base do
 
   ## Examples
 
-  *Note:* Examples assume a cluster was registered named "test-cluster", see `K8s.Cluster.register/3`.
+  *Note:* Examples assume a cluster was registered named "test-cluster", see `K8s.Cluster.register/2`.
 
   Running a list pods operation:
 

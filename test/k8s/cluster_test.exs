@@ -6,7 +6,7 @@ defmodule K8s.ClusterTest do
   alias K8s.{Operation}
   require Logger
 
-  @k8s_spec System.get_env("K8S_SPEC") || "priv/swagger/1.13.json"
+  @k8s_spec System.get_env("K8S_SPEC") || "test/support/swagger/1.13.json"
   @swagger @k8s_spec |> File.read!() |> Jason.decode!()
   @paths @swagger["paths"]
   @swagger_operations @paths
@@ -102,14 +102,32 @@ defmodule K8s.ClusterTest do
 
       case actual do
         {:error, problem, details} ->
-          Logger.warn(
-            "Found #{problem}: #{details}; Operation: #{inspect(operation)}; Expected: #{expected}"
-          )
+          log_missing_test_case(problem, details, operation)
 
         actual ->
           assert String.ends_with?(actual, expected)
       end
     end
+  end
+
+  def log_missing_test_case(problem, details, operation) do
+    Logger.warn("Found #{problem}: #{details}; Operation: #{inspect(operation)}")
+
+    path = "./missing.json"
+    File.touch(path)
+    file = File.read!(path)
+
+    data =
+      case Jason.decode(file) do
+        {:error, _} -> %{}
+        {:ok, data = %{}} -> data
+        {:ok, _} -> %{}
+      end
+
+    key = "#{problem}/#{details}"
+    out = Map.put(data, key, operation)
+
+    File.write!(path, Jason.encode!(out, pretty: true))
   end
 
   def build_operation(path, verb, opts) do

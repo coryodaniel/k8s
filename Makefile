@@ -1,7 +1,7 @@
 .PHONY: test/all test lint analyze cov tdd all help
 
 DEFAULT_VERSION=1.13
-SWAGGER_SPECS = $(wildcard ./priv/swagger/*.json)
+SWAGGER_SPECS = $(wildcard ./test/support/swagger/*.json)
 
 help: ## Show this help
 help:
@@ -19,15 +19,11 @@ tdd: ## Run fast test on k8s last stable in a loop
 cov: ## Generate coverage HTML
 	mix coveralls.html
 
-priv/swagger/%.json: ## Download a k8s swagger file
-	mix k8s.swagger -v $*
-
 test/all: ## Run full test suite agains all supported k8s versions
 	$(foreach SPEC, $(SWAGGER_SPECS), $(MAKE) test/$(basename $(notdir $(SPEC))))
 
 test/%: ## Run full test suite against a specific k8s version
-	$(MAKE) priv/swagger/$*.json
-	K8S_SPEC=priv/swagger/$*.json mix test
+	K8S_SPEC=test/support/swagger/$*.json mix test
 
 lint: ## Format and run credo
 	mix format

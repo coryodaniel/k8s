@@ -23,20 +23,19 @@ end
 
 ## Features
 
+* A client API for humans
 * Kubernetes resources, groups, and CRDs are autodiscovered at boot time. No swagger file to include or override.
 * Client supports standard HTTP calls, async batches, wait on status, and watchers
 * Supports multiple clusters
 * Supports multiple authentication credentials
 * Supports multiple kubernetes API
-* A client API for humans
+* Tested against kubernetes swagger specs: 1.10, 1.11, 1.12, 1.13, and master
 * CRD support
-* Tested against kubernetes versions: 1.10, 1.11, 1.12, 1.13, and master
 * Kubernetes resource and version helper functions
-* Macro free; fast compile & fast startup
-* Pluggable auth providers
 * Kube config file parsing
 * Certificate and service account based auth
-* mix task for fetching kubernetes API specs
+* Pluggable auth providers
+* Macro free; fast compile & fast startup
 
 ### Non-features
 
@@ -48,7 +47,7 @@ end
 
 ## Registering Clusters
 
-Clusters can be registered via `config.exs` or directly with `K8s.Cluster.register/3`.
+Clusters can be registered via `config.exs` or directly with `K8s.Cluster.register/2`.
 
 Clusters are referenced by name (`:default` below) when using a `K8s.Client`. Multiple clusters can be registered via config.
 

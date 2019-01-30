@@ -34,22 +34,22 @@ defmodule K8s.Client do
   @doc "Alias of `update/1`"
   defdelegate put(resource), to: __MODULE__, as: :update
 
-  @doc "alias of `K8s.Client.Runner.Base.run/2"
+  @doc "alias of `K8s.Client.Runner.Base.run/2`"
   defdelegate run(operation, cluster_name), to: Base
 
-  @doc "alias of `K8s.Client.Runner.Base.run/3"
+  @doc "alias of `K8s.Client.Runner.Base.run/3`"
   defdelegate run(operation, cluster_name, opts), to: Base
 
-  @doc "alias of `K8s.Client.Runner.Base.run/4"
+  @doc "alias of `K8s.Client.Runner.Base.run/4`"
   defdelegate run(operation, cluster_name, resource, opts), to: Base
 
-  @doc "alias of `K8s.Client.Runner.Async.run/2"
+  @doc "alias of `K8s.Client.Runner.Async.run/2`"
   defdelegate async(operations, cluster_name), to: Async, as: :run
 
-  @doc "alias of `K8s.Client.Runner.Wait.run/3"
+  @doc "alias of `K8s.Client.Runner.Wait.run/3`"
   defdelegate wait_until(operation, cluster_name, opts), to: Wait, as: :run
 
-  @doc "alias of `K8s.Client.Runner.Watch.run/3"
+  @doc "alias of `K8s.Client.Runner.Watch.run/3`"
   defdelegate watch(operation, cluster_name, opts), to: Watch, as: :run
 
   @doc """

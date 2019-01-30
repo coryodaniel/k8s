@@ -3,6 +3,7 @@ defmodule K8s.Operation do
   Encapsulates a k8s swagger operations
   """
 
+  @derive {Jason.Encoder, except: [:path_params]}
   @type t :: %__MODULE__{
           method: atom(),
           verb: atom(),

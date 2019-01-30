@@ -15,27 +15,84 @@ defmodule K8s.Path do
 
   ## Examples
 
+  Generate a path for a cluster scoped resource:
+
       iex> resource = %{
       ...>   "kind" => "CertificateSigningRequest",
       ...>   "name" => "certificatesigningrequests",
       ...>   "namespaced" => false,
-      ...>   "shortNames" => [
-      ...>     "csr"
-      ...>   ],
-      ...>   "singularName" => "",
-      ...>   "verbs" => [
-      ...>     "create",
-      ...>     "delete",
-      ...>     "deletecollection",
-      ...>     "get",
-      ...>     "list",
-      ...>     "patch",
-      ...>     "update",
-      ...>     "watch"
-      ...>   ]
+      ...>   "verbs" => ["update"]
       ...> }
       ...> K8s.Path.build("apps/v1", resource, :update, [name: "foo"])
       "/apis/apps/v1/certificatesigningrequests/foo"
+
+  Generate a path for a namespace scoped resource:
+
+      iex> resource = %{
+      ...>   "kind" => "Pod",
+      ...>   "name" => "pods",
+      ...>   "namespaced" => true,
+      ...>   "verbs" => ["update"]
+      ...> }
+      ...> K8s.Path.build("v1", resource, :update, [namespace: "default", name: "foo"])
+      "/api/v1/namespaces/default/pods/foo"
+
+  Generate a path for a namespace scoped resource on the collection: (ie create, list)
+
+      iex> resource = %{
+      ...>   "kind" => "Pod",
+      ...>   "name" => "pods",
+      ...>   "namespaced" => true,
+      ...>   "verbs" => ["create"]
+      ...> }
+      ...> K8s.Path.build("v1", resource, :create, [namespace: "default"])
+      "/api/v1/namespaces/default/pods"
+
+  Generating a listing path for a namespace:
+
+      iex> resource = %{
+      ...>   "kind" => "Pod",
+      ...>   "name" => "pods",
+      ...>   "namespaced" => true,
+      ...>   "verbs" => ["list"]
+      ...> }
+      ...> K8s.Path.build("v1", resource, :list, [namespace: "default"])
+      "/api/v1/namespaces/default/pods"
+
+  Generating a listing path for a all namespaces:
+
+      iex> resource = %{
+      ...>   "kind" => "Pod",
+      ...>   "name" => "pods",
+      ...>   "namespaced" => true,
+      ...>   "verbs" => ["list"]
+      ...> }
+      ...> K8s.Path.build("v1", resource, :list_all_namespaces, [])
+      "/api/v1/pods"
+
+  Generating a path for a subresource:
+
+      iex> resource = %{
+      ...>   "kind" => "Pod",
+      ...>   "name" => "pods/status",
+      ...>   "namespaced" => true,
+      ...>   "verbs" => ["get"]
+      ...> }
+      ...> K8s.Path.build("v1", resource, :get, [namespace: "default", name: "foo"])
+      "/api/v1/namespaces/default/pods/foo/status"
+
+  Deleting a collection:
+
+      iex> resource = %{
+      ...>   "kind" => "Pod",
+      ...>   "name" => "pods",
+      ...>   "namespaced" => true,
+      ...>   "verbs" => [
+      ...>     "deletecollection"
+      ...>   ]
+      ...> }
+      ...> K8s.Path.build("v1", resource, :deletecollection, [namespace: "default"])
+      "/api/v1/namespaces/default/pods"
 
   """
   @spec build(binary, map, atom, keyword(atom)) ::

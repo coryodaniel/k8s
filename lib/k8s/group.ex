@@ -1,15 +1,24 @@
 defmodule K8s.Group do
+  @moduledoc """
+  Kubernetes API Groups
+  """
+
+  @doc """
+  Finds a resource definition by group version and kind
+  """
+  @spec find_resource(binary | atom, binary, binary | atom) ::
+          map | {:error, :unsupported_group_version, binary}
   def find_resource(cluster_name, group_version, kind) do
     case :ets.lookup(K8s.Group, cluster_key(cluster_name, group_version)) do
       [] ->
         {:error, :unsupported_group_version, group_version}
 
-      [{_, group_version, resources}] ->
+      [{_, _group_version, resources}] ->
         find_resource_by_name(resources, kind)
     end
   end
 
-  # TODO: add tests for this function
+  @doc false
   @spec find_resource_by_name(list(map), binary()) ::
           {:ok, map} | {:error, :unsupported_kind, binary()}
   def find_resource_by_name(resources, kind) do
