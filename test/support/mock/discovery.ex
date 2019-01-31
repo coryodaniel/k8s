@@ -3,11 +3,10 @@ defmodule Mock.Discovery do
   Mock of `K8s.Discovery`
   """
 
-  def versions(_, _opts \\ []) do
-    ["fuck"]
-  end
+  @behaviour K8s.Behaviours.DiscoveryProvider
 
-  def groups(_) do
+  @impl true
+  def resource_definitions_by_group(_cluster_name, _opts \\ []) do
     "test/support/mock/data/groups.json"
     |> File.read!()
     |> Jason.decode!()

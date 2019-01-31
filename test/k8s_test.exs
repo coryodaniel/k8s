@@ -5,4 +5,5 @@ defmodule K8sTest do
   doctest K8s.Operation
   doctest K8s.Resource
   doctest K8s.Version
+  doctest K8s.Client.HTTPProvider
 end

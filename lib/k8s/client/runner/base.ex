@@ -3,8 +3,7 @@ defmodule K8s.Client.Runner.Base do
   Base HTTP processor for `K8s.Client`
   """
 
-  @allow_http_body [:put, :patch, :post]
-  @type result :: :ok | {:ok, map()} | {:error, binary()}
+  @type result :: {:ok, map()} | {:error, binary() | atom} | {:error, atom, binary}
 
   alias K8s.Cluster
   alias K8s.Conf.RequestOptions
@@ -78,7 +77,7 @@ defmodule K8s.Client.Runner.Base do
   def run(operation = %Operation{}, cluster_name, opts) when is_list(opts) do
     operation
     |> build_http_req(cluster_name, operation.resource, opts)
-    |> handle_response
+    |> K8s.http_provider().handle_response
   end
 
   @doc """
@@ -88,7 +87,14 @@ defmodule K8s.Client.Runner.Base do
   def run(operation = %Operation{}, cluster_name, body = %{}, opts \\ []) do
     operation
     |> build_http_req(cluster_name, body, opts)
-    |> handle_response
+    |> K8s.http_provider().handle_response
+  end
+
+  @spec encode(any(), atom()) :: {:ok, binary} | {:error, binary}
+  def encode(body, _) when not is_map(body), do: {:ok, ""}
+
+  def encode(body = %{}, http_method) when http_method in [:put, :patch, :post] do
+    Jason.encode(body)
   end
 
   @spec build_http_req(Operation.t(), binary, map(), keyword()) ::
@@ -96,67 +102,25 @@ defmodule K8s.Client.Runner.Base do
           | {:error, HTTPoison.Error.t()}
   defp build_http_req(operation = %Operation{}, cluster_name, body, opts) do
     case Cluster.url_for(operation, cluster_name) do
+      {:error, type, details} ->
+        {:error, type, details}
+
       nil ->
         {:error, :path_not_found}
 
       url ->
         conf = Cluster.conf(cluster_name)
         request_options = RequestOptions.generate(conf)
-        http_headers = headers(request_options)
+        http_headers = K8s.http_provider().headers(request_options)
         http_opts = Keyword.merge([ssl: request_options.ssl_options], opts)
 
         case encode(body, operation.method) do
           {:ok, http_body} ->
-            HTTPoison.request(operation.method, url, http_body, http_headers, http_opts)
+            K8s.http_provider().request(operation.method, url, http_body, http_headers, http_opts)
 
           error ->
             error
         end
     end
-  end
-
-  @spec encode(any(), atom()) :: {:ok, binary} | {:error, binary}
-  defp encode(body, _) when not is_map(body), do: {:ok, ""}
-
-  defp encode(body = %{}, http_method) when http_method in @allow_http_body do
-    Jason.encode(body)
-  end
-
-  @spec decode(binary()) :: list | map | nil
-  defp decode(body) do
-    case Jason.decode(body) do
-      {:ok, data} -> data
-      {:error, _} -> nil
-    end
-  end
-
-  @spec handle_response(
-          {:ok, HTTPoison.Response.t() | HTTPoison.AsyncResponse.t()}
-          | {:error, HTTPoison.Error.t()}
-        ) :: {:ok, map()} | {:ok, reference()} | {:error, binary()}
-  defp handle_response(resp) do
-    case resp do
-      {:ok, %HTTPoison.Response{status_code: code, body: body}} when code in 200..299 ->
-        {:ok, decode(body)}
-
-      {:ok, %HTTPoison.AsyncResponse{id: ref}} ->
-        {:ok, ref}
-
-      {:ok, %HTTPoison.Response{status_code: 401}} ->
-        {:error, :unauthorized}
-
-      {:ok, %HTTPoison.Response{status_code: 404}} ->
-        {:error, :not_found}
-
-      {:ok, %HTTPoison.Response{status_code: code, body: body}} when code in 400..499 ->
-        {:error, "HTTP Error: #{code}; #{body}"}
-
-      {:error, %HTTPoison.Error{reason: reason}} ->
-        {:error, "HTTP Client Error: #{reason}"}
-    end
-  end
-
-  defp headers(ro = %RequestOptions{}) do
-    ro.headers ++ [{"Accept", "application/json"}, {"Content-Type", "application/json"}]
   end
 end

@@ -9,20 +9,21 @@ defmodule K8s.Client.Runner.Watch do
   alias K8s.Operation
 
   @doc """
-  Performs a watch request and streams response back to another process.
+  Watch a resource or list of resources. Provide the `stream_to` option or results will be stream to `self()`.
 
-  `K8s.Client.Runner.Watch` will accept `K8s.Client.get/N` and `K8s.Client.list/N` operations. `*Get* operations will be converted to a *list* operation with `fieldSelector` set the the `metadata.name`.
+  Note: Current resource version will be looked up automatically.
 
   ## Examples
 
-  op = K8s.Client.get("apps/v1", "Deployment", namespace: "docker", name: "compose")
-  op = K8s.Client.list("v1", "pod", namespace: :all)
-  op = K8s.Client.list("v1", "pod", namespace: "default")
+  ```elixir
+  operation = K8s.Client.list("v1", "Namespace")
+  {:ok, reference} = Watch.run(operation, :test, stream_to: self())
+  ```
 
-  K8s.Client.watch(op, :test, stream_to: self())
-
-  resource_version = 0
-  K8s.Client.watch(op, :test, resource_version, stream_to: self())
+  ```elixir
+  operation = K8s.Client.get("v1", "Namespace", [name: "test"])
+  {:ok, reference} = Watch.run(operation, :test, stream_to: self())
+  ```
   """
   @spec run(Operation.t(), binary, keyword(atom)) :: no_return
   def run(operation = %Operation{method: :get}, cluster_name, opts) do
@@ -32,27 +33,47 @@ defmodule K8s.Client.Runner.Watch do
     end
   end
 
-  def run(op, _, _), do: {:error, "Only HTTP GET operations are supported. #{inspect(op)}"}
+  def run(op, _, _),
+    do: {:error, "Only HTTP GET operations (list, get) are supported. #{inspect(op)}"}
 
-  # stream_to, recv_timeout
-  def run(operation = %Operation{method: :get, verb: "list" <> _rest}, cluster_name, rv, opts) do
+  @doc """
+  Watch a resource or list of resources from a specific resource version. Provide the `stream_to` option or results will be stream to `self()`.
+
+  ## Examples
+
+  ```elixir
+  operation = K8s.Client.list("v1", "Namespace")
+  resource_version = 3003
+  {:ok, reference} = Watch.run(operation, :test, resource_version, stream_to: self())
+  ```
+
+  ```elixir
+  operation = K8s.Client.get("v1", "Namespace", [name: "test"])
+  resource_version = 3003
+  {:ok, reference} = Watch.run(operation, :test, resource_version, stream_to: self())
+  ```
+  """
+  def run(operation = %Operation{method: :get, verb: verb}, cluster_name, rv, opts)
+      when verb in [:list, :list_all_namespaces] do
     opts_w_watch_params = add_watch_params_to_opts(opts, rv)
     Base.run(operation, cluster_name, opts_w_watch_params)
   end
 
-  def run(operation = %Operation{method: :get, verb: "get" <> _rest}, cluster_name, rv, opts) do
-    # This can' be a transform, needs to be an alternate func for run to execute
-    # Convert a get operation to a list w/ fieldSelector
-    # https://localhost:6443/api/v1/namespaces/docker/pods?fieldSelector=metadata.name%3Dcompose-api-76c5fcdc46-7kwg4&resourceVersion=0&watch=true
+  def run(operation = %Operation{method: :get, verb: :get}, cluster_name, rv, opts) do
+    {list_op, field_selector_param} = get_to_list(operation)
+
+    params = Map.merge(opts[:params] || %{}, field_selector_param)
+    opts = Keyword.put(opts, :params, params)
+    run(list_op, cluster_name, rv, opts)
   end
 
-  def run(op, _, _, _), do: {:error, "Only HTTP GET operations are supported. #{inspect(op)}"}
+  def run(op, _, _, _),
+    do: {:error, "Only HTTP GET operations (list, get) are supported. #{inspect(op)}"}
 
   defp get_resource_version(operation = %Operation{}, cluster_name) do
     case Base.run(operation, cluster_name) do
       {:ok, payload} ->
         rv = parse_resource_version(payload)
-        IO.puts("Getting resource version: #{inspect(payload)}; #{rv}")
         {:ok, rv}
 
       error ->
@@ -69,4 +90,11 @@ defmodule K8s.Client.Runner.Watch do
     do: get_in(payload, @resource_version_json_path) || 0
 
   defp parse_resource_version(_), do: 0
+
+  defp get_to_list(get_op) do
+    list_op = %{get_op | verb: :list, path_params: []}
+    name = get_op.path_params[:name]
+    params = %{"fieldSelector" => "metadata.name%3D#{name}"}
+    {list_op, params}
+  end
 end

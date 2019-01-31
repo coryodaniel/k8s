@@ -2,6 +2,7 @@ defmodule K8s.Cluster do
   @moduledoc """
   Cluster configuration and API route store for `K8s.Client`
   """
+
   @discovery Application.get_env(:k8s, :discovery_provider, K8s.Discovery)
 
   @doc """
@@ -17,7 +18,7 @@ defmodule K8s.Cluster do
   @spec register(binary, K8s.Conf.t()) :: binary
   def register(cluster_name, conf) do
     :ets.insert(K8s.Conf, {cluster_name, conf})
-    groups = @discovery.groups(cluster_name)
+    groups = @discovery.resource_definitions_by_group(cluster_name)
 
     Enum.each(groups, fn %{"groupVersion" => gv, "resources" => rs} ->
       cluster_group_key = K8s.Group.cluster_key(cluster_name, gv)
@@ -63,7 +64,8 @@ defmodule K8s.Cluster do
     clusters = Application.get_env(:k8s, :clusters)
 
     Enum.each(clusters, fn {name, details} ->
-      conf = K8s.Conf.from_file(details.conf)
+      opts = details[:conf_opts] || []
+      conf = K8s.Conf.from_file(details.conf, opts)
       K8s.Cluster.register(name, conf)
     end)
   end

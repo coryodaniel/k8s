@@ -4,6 +4,7 @@ config :k8s,
   auth_providers: [],
   clusters: %{
     dev: %{
-      conf: "test/support/kube-config.yaml"
+      conf: "~/.kube/config",
+      conf_opts: [context: "docker-for-desktop"]
     }
   }

@@ -55,14 +55,37 @@ This library ships with Kubernetes specs 1.10, 1.11, 1.12, and 1.13.
 
 ### Registering clusters via config
 
-Adding a cluster named `:default` using `~/.kube/config`
+Adding a cluster named `:default` using `~/.kube/config`. Defaults to `current-context`.
 
 ```elixir
 config :k8s,
   clusters: %{
     default: %{
-      conf: "~/.kube/config",
-      group_version: "1.13"
+      conf: "~/.kube/config"
+    }
+  }
+```
+
+Using an alternate context:
+
+```elixir
+config :k8s,
+  clusters: %{
+    default: %{
+      conf: "~/.kube/config"
+      conf_opts: [context: "other-context"]
+    }
+  }
+```
+
+Setting cluster and user explicitly:
+
+```elixir
+config :k8s,
+  clusters: %{
+    default: %{
+      conf: "~/.kube/config"
+      conf_opts: [user: "some-user", cluster: "prod-cluster"]
     }
   }
 ```
