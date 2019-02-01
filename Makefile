@@ -1,4 +1,4 @@
-.PHONY: test/all test lint analyze cov tdd all help
+.PHONY: clean test/all test lint analyze cov tdd all help build
 
 DEFAULT_VERSION=1.13
 SWAGGER_SPECS = $(wildcard ./test/support/swagger/*.json)
@@ -7,8 +7,18 @@ help: ## Show this help
 help:
 	@grep -E '^[\/a-zA-Z0-9._%-]+:.*?## .*$$' Makefile | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
+clean:
+	rm -rf _build
+	rm -rf cover
+	rm -rf deps
+	rm -rf doc
+
+build:
+	mix deps.get
+	mix compile
+
 all: ## Run format, credo, dialyzer, and test all supported k8s versions
-all: lint analyze test/all
+all: build lint test/all analyze
 
 test: ## Run fast tests on k8s latest stable
 	mix test --exclude external:true

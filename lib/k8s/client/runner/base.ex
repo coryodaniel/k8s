@@ -3,7 +3,7 @@ defmodule K8s.Client.Runner.Base do
   Base HTTP processor for `K8s.Client`
   """
 
-  @type result :: {:ok, map()} | {:error, binary() | atom} | {:error, atom, binary}
+  @type result :: {:ok, map() | reference()} | {:error, binary() | atom}
 
   alias K8s.Cluster
   alias K8s.Conf.RequestOptions
@@ -66,49 +66,33 @@ defmodule K8s.Client.Runner.Base do
   :ok = K8s.Client.Runner.Base.run(operation, "test-cluster", opts)
   ```
   """
-  @spec run(Operation.t(), binary) :: result
-  def run(operation = %Operation{}, cluster_name \\ :default),
+  @spec run(Operation.t(), nil | binary | atom) :: result
+  def run(operation = %Operation{}, cluster_name \\ "default"),
     do: run(operation, cluster_name, [])
 
   @doc """
+  Run an operation and pass `opts` to HTTPoison.
+
   See `run/2`
   """
-  @spec run(Operation.t(), binary, keyword()) :: result
+  @spec run(Operation.t(), binary | atom, keyword()) :: result
   def run(operation = %Operation{}, cluster_name, opts) when is_list(opts) do
-    operation
-    |> build_http_req(cluster_name, operation.resource, opts)
-    |> K8s.http_provider().handle_response
+    build_http_req(operation, cluster_name, operation.resource, opts)
   end
 
   @doc """
+  Run an operation with an alternative HTTP Body (map) and pass `opts` to HTTPoison.
   See `run/2`
   """
-  @spec run(Operation.t(), binary, map(), keyword() | nil) :: result
+  @spec run(Operation.t(), binary | atom, map(), keyword() | nil) :: result
   def run(operation = %Operation{}, cluster_name, body = %{}, opts \\ []) do
-    operation
-    |> build_http_req(cluster_name, body, opts)
-    |> K8s.http_provider().handle_response
+    build_http_req(operation, cluster_name, body, opts)
   end
 
-  @spec encode(any(), atom()) :: {:ok, binary} | {:error, binary}
-  def encode(body, _) when not is_map(body), do: {:ok, ""}
-
-  def encode(body = %{}, http_method) when http_method in [:put, :patch, :post] do
-    Jason.encode(body)
-  end
-
-  @spec build_http_req(Operation.t(), binary, map(), keyword()) ::
-          {:ok, HTTPoison.Response.t() | HTTPoison.AsyncResponse.t()}
-          | {:error, HTTPoison.Error.t()}
+  @spec build_http_req(Operation.t(), binary | atom, map(), keyword()) :: result
   defp build_http_req(operation = %Operation{}, cluster_name, body, opts) do
     case Cluster.url_for(operation, cluster_name) do
-      {:error, type, details} ->
-        {:error, type, details}
-
-      nil ->
-        {:error, :path_not_found}
-
-      url ->
+      url when is_binary(url) ->
         conf = Cluster.conf(cluster_name)
         request_options = RequestOptions.generate(conf)
         http_headers = K8s.http_provider().headers(request_options)
@@ -118,9 +102,22 @@ defmodule K8s.Client.Runner.Base do
           {:ok, http_body} ->
             K8s.http_provider().request(operation.method, url, http_body, http_headers, http_opts)
 
-          error ->
-            error
+          {:error, error} ->
+            {:error, error}
         end
+
+      {:error, type, details} ->
+        {:error, "#{type}; #{details}"}
+
+      _ ->
+        {:error, :path_not_found}
     end
   end
+
+  @spec encode(any(), atom()) :: {:ok, binary} | {:error, binary}
+  def encode(body, http_method) when http_method in [:put, :patch, :post] do
+    Jason.encode(body)
+  end
+
+  def encode(_, _), do: {:ok, ""}
 end

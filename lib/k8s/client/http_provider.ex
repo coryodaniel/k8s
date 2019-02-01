@@ -6,7 +6,9 @@ defmodule K8s.Client.HTTPProvider do
   alias K8s.Conf.RequestOptions
 
   @impl true
-  defdelegate request(method, url, body, headers, opts), to: HTTPoison
+  def request(method, url, body, headers, opts) do
+    handle_response(HTTPoison.request(method, url, body, headers, opts))
+  end
 
   @doc """
   Handle HTTPoison responses and errors

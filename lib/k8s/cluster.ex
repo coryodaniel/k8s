@@ -40,20 +40,16 @@ defmodule K8s.Cluster do
       "https://localhost:6443/apis/apps/v1/namespaces/default/deployments/nginx"
 
   """
-  @spec url_for(K8s.Operation.t(), binary()) :: binary | nil
+  @spec url_for(K8s.Operation.t(), binary()) :: binary | {:error, atom, binary}
   def url_for(operation = %K8s.Operation{}, cluster_name) do
     %{group_version: group_version, kind: kind, verb: verb} = operation
     conf = K8s.Cluster.conf(cluster_name)
 
-    case K8s.Group.find_resource(cluster_name, group_version, kind) do
-      {:error, problem, details} ->
-        {:error, problem, details}
-
-      {:ok, resource} ->
-        case K8s.Path.build(group_version, resource, verb, operation.path_params) do
-          {:error, problem, details} -> {:error, problem, details}
-          path -> Path.join(conf.url, path)
-        end
+    with {:ok, resource} <- K8s.Group.find_resource(cluster_name, group_version, kind),
+         {:ok, path} <- K8s.Path.build(group_version, resource, verb, operation.path_params) do
+      Path.join(conf.url, path)
+    else
+      error -> error
     end
   end
 

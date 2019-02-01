@@ -11,15 +11,20 @@ defmodule K8s.Conf do
   @typep auth_t :: nil | struct
 
   @type t :: %__MODULE__{
-          cluster_name: String.t(),
-          user_name: String.t(),
+          cluster_name: String.t() | nil,
+          user_name: String.t() | nil,
           url: String.t(),
           insecure_skip_tls_verify: boolean(),
           ca_cert: String.t() | nil,
           auth: auth_t
         }
 
-  defstruct [:cluster_name, :user_name, :url, :insecure_skip_tls_verify, :ca_cert, :auth]
+  defstruct cluster_name: nil,
+            user_name: nil,
+            url: "",
+            insecure_skip_tls_verify: false,
+            ca_cert: nil,
+            auth: nil
 
   @doc """
   Reads configuration details from a kubernetes config file.
@@ -69,7 +74,7 @@ defmodule K8s.Conf do
   def from_service_account(),
     do: from_service_account("/var/run/secrets/kubernetes.io/serviceaccount")
 
-  @spec from_service_account(binary()) :: K8s.Conf.t()
+  @spec from_service_account(String.t()) :: K8s.Conf.t()
   def from_service_account(root_sa_path) do
     host = System.get_env("KUBERNETES_SERVICE_HOST")
     port = System.get_env("KUBERNETES_SERVICE_PORT")

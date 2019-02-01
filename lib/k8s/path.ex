@@ -24,7 +24,7 @@ defmodule K8s.Path do
       ...>   "verbs" => ["update"]
       ...> }
       ...> K8s.Path.build("apps/v1", resource, :update, [name: "foo"])
-      "/apis/apps/v1/certificatesigningrequests/foo"
+      {:ok, "/apis/apps/v1/certificatesigningrequests/foo"}
 
   Generate a path for a namespace scoped resource:
 
@@ -35,7 +35,7 @@ defmodule K8s.Path do
       ...>   "verbs" => ["update"]
       ...> }
       ...> K8s.Path.build("v1", resource, :update, [namespace: "default", name: "foo"])
-      "/api/v1/namespaces/default/pods/foo"
+      {:ok, "/api/v1/namespaces/default/pods/foo"}
 
   Generate a path for a namespace scoped resource on the collection: (ie create, list)
 
@@ -46,7 +46,7 @@ defmodule K8s.Path do
       ...>   "verbs" => ["create"]
       ...> }
       ...> K8s.Path.build("v1", resource, :create, [namespace: "default"])
-      "/api/v1/namespaces/default/pods"
+      {:ok, "/api/v1/namespaces/default/pods"}
 
   Generating a listing path for a namespace:
 
@@ -57,7 +57,7 @@ defmodule K8s.Path do
       ...>   "verbs" => ["list"]
       ...> }
       ...> K8s.Path.build("v1", resource, :list, [namespace: "default"])
-      "/api/v1/namespaces/default/pods"
+      {:ok, "/api/v1/namespaces/default/pods"}
 
   Generating a listing path for a all namespaces:
 
@@ -68,7 +68,7 @@ defmodule K8s.Path do
       ...>   "verbs" => ["list"]
       ...> }
       ...> K8s.Path.build("v1", resource, :list_all_namespaces, [])
-      "/api/v1/pods"
+      {:ok, "/api/v1/pods"}
 
   Generating a path for a subresource:
 
@@ -79,7 +79,7 @@ defmodule K8s.Path do
       ...>   "verbs" => ["get"]
       ...> }
       ...> K8s.Path.build("v1", resource, :get, [namespace: "default", name: "foo"])
-      "/api/v1/namespaces/default/pods/foo/status"
+      {:ok, "/api/v1/namespaces/default/pods/foo/status"}
 
   Deleting a collection:
 
@@ -92,11 +92,11 @@ defmodule K8s.Path do
       ...>   ]
       ...> }
       ...> K8s.Path.build("v1", resource, :deletecollection, [namespace: "default"])
-      "/api/v1/namespaces/default/pods"
+      {:ok, "/api/v1/namespaces/default/pods"}
 
   """
   @spec build(binary, map, atom, keyword(atom)) ::
-          binary
+          {:ok, binary}
           | {:error, :missing_required_param, list(atom)}
           | {:error, :unsupported_verb, atom}
   def build(group_version, resource, verb, params) do
@@ -108,7 +108,7 @@ defmodule K8s.Path do
 
         case required_params -- provided_params do
           [] ->
-            replace_path_vars(path_template, params)
+            {:ok, replace_path_vars(path_template, params)}
 
           missing_params ->
             {:error, :missing_required_param, missing_params}

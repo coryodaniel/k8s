@@ -7,7 +7,7 @@ defmodule K8s.Group do
   Finds a resource definition by group version and kind
   """
   @spec find_resource(binary | atom, binary, binary | atom) ::
-          map | {:error, :unsupported_group_version, binary}
+          {:ok, map} | {:error, atom, binary}
   def find_resource(cluster_name, group_version, kind) do
     case :ets.lookup(K8s.Group, cluster_key(cluster_name, group_version)) do
       [] ->
@@ -20,7 +20,7 @@ defmodule K8s.Group do
 
   @doc false
   @spec find_resource_by_name(list(map), binary()) ::
-          {:ok, map} | {:error, :unsupported_kind, binary()}
+          {:ok, map} | {:error, atom, binary()}
   def find_resource_by_name(resources, kind) do
     resource = Enum.find(resources, &match_resource_by_name(&1, kind))
 

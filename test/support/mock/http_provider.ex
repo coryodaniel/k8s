@@ -129,7 +129,7 @@ defmodule Mock.HTTPProvider do
 
   def render_ok(data) do
     body = Jason.encode!(data)
-    {:ok, %HTTPoison.Response{status_code: 200, body: body}}
+    handle_response({:ok, %HTTPoison.Response{status_code: 200, body: body}})
   end
 
   defp stream_namespace_watcher_results(pid) do

@@ -78,7 +78,6 @@ defmodule K8s.Discovery do
     headers = K8s.http_provider().headers(request_options)
     opts = Keyword.merge([ssl: request_options.ssl_options], opts)
 
-    response = K8s.http_provider().request(:get, url, "", headers, opts)
-    K8s.http_provider().handle_response(response)
+    K8s.http_provider().request(:get, url, "", headers, opts)
   end
 end

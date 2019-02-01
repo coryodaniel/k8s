@@ -70,14 +70,15 @@ defmodule K8s.Client.Runner.Watch do
   def run(op, _, _, _),
     do: {:error, "Only HTTP GET operations (list, get) are supported. #{inspect(op)}"}
 
+  @spec get_resource_version(Operation.t(), binary) :: {:ok, binary} | {:error, binary}
   defp get_resource_version(operation = %Operation{}, cluster_name) do
     case Base.run(operation, cluster_name) do
       {:ok, payload} ->
         rv = parse_resource_version(payload)
         {:ok, rv}
 
-      error ->
-        error
+      {:error, error} ->
+        {:error, error}
     end
   end
 
@@ -86,10 +87,11 @@ defmodule K8s.Client.Runner.Watch do
     Keyword.put(opts, :params, params)
   end
 
+  @spec parse_resource_version(any) :: binary
   defp parse_resource_version(payload = %{}),
-    do: get_in(payload, @resource_version_json_path) || 0
+    do: get_in(payload, @resource_version_json_path) || "0"
 
-  defp parse_resource_version(_), do: 0
+  defp parse_resource_version(_), do: "0"
 
   defp get_to_list(get_op) do
     list_op = %{get_op | verb: :list, path_params: []}
