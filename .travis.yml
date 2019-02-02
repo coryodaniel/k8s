@@ -2,11 +2,22 @@ language: elixir
 sudo: false
 elixir:
   - 1.7
+  - 1.8
 otp_release:
   - 20.3
+  - 18.2.1
 before_script:
   - mix deps.get --only test
-script: mix coveralls.travis
 notifications:
   recipients:
     - travis@coryodaniel.com
+jobs:
+  include:
+    - stage: lint
+      script: mix credo
+    - stage: test
+      script: make test/all
+    - stage: analyze
+      script: mix dialyzer
+    - stage: coverage
+      script: mix coveralls.travis
