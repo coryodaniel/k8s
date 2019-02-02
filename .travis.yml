@@ -8,6 +8,7 @@ otp_release:
   - 18.2.1
 before_script:
   - mix deps.get --only test
+script: mix coveralls.travis
 env:
   - MIX_ENV=test
 notifications:
@@ -27,5 +28,3 @@ jobs:
       script: make test/1.13
     - stage: test master
       script: make test/master
-    - stage: coverage
-      script: mix coveralls.travis
