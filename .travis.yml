@@ -6,12 +6,26 @@ elixir:
 otp_release:
   - 20.3
   - 18.2.1
+before_script:
+  - mix deps.get --only test
+env:
+  - MIX_ENV=test
 notifications:
   recipients:
     - travis@coryodaniel.com
 jobs:
   include:
-    - stage: test
-      script: make test/all
+    - stage: test 1.10
+      script: make test/1.10
+    - stage: test 1.11
+      script: make test/1.11
+    - stage: test 1.12
+      script: make test/1.12
+    - stage: test 1.12
+      script: make test/1.12
+    - stage: test 1.13
+      script: make test/1.13
+    - stage: test master
+      script: make test/master
     - stage: coverage
       script: mix coveralls.travis
