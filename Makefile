@@ -1,4 +1,4 @@
-.PHONY: clean test/all test lint analyze cov tdd all help deps
+.PHONY: ci clean test/all test lint analyze cov tdd all help deps
 
 DEFAULT_VERSION=1.13
 SWAGGER_SPECS = $(wildcard ./test/support/swagger/*.json)
@@ -15,6 +15,8 @@ clean:
 
 deps:
 	mix deps.get
+
+ci: test/all analyze cov
 
 all: ## Run format, credo, dialyzer, and test all supported k8s versions
 all: deps lint test/all analyze
