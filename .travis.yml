@@ -6,18 +6,12 @@ elixir:
 otp_release:
   - 20.3
   - 18.2.1
-before_script:
-  - mix deps.get --only test
 notifications:
   recipients:
     - travis@coryodaniel.com
 jobs:
   include:
-    - stage: lint
-      script: mix credo
     - stage: test
       script: make test/all
-    - stage: analyze
-      script: mix dialyzer
     - stage: coverage
       script: mix coveralls.travis
