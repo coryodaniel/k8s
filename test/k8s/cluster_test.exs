@@ -98,13 +98,13 @@ defmodule K8s.ClusterTest do
       verb = action_to_verb(op["x-kubernetes-action"], op)
       operation = build_operation(path, verb, opts)
 
-      {:ok, actual} = K8s.Cluster.url_for(operation, "routing-tests")
+      result = K8s.Cluster.url_for(operation, "routing-tests")
 
-      case actual do
+      case result do
         {:error, problem} ->
           Logger.warn("Found #{problem}: Operation: #{inspect(operation)}")
 
-        actual ->
+        {:ok, actual} ->
           assert String.ends_with?(actual, expected)
       end
     end
