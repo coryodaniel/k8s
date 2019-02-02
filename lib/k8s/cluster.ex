@@ -37,17 +37,17 @@ defmodule K8s.Cluster do
       ...> K8s.Cluster.register("test-cluster", conf)
       ...> operation = K8s.Operation.build(:get, "apps/v1", :deployment, [namespace: "default", name: "nginx"])
       ...> K8s.Cluster.url_for(operation, "test-cluster")
-      "https://localhost:6443/apis/apps/v1/namespaces/default/deployments/nginx"
+      {:ok, "https://localhost:6443/apis/apps/v1/namespaces/default/deployments/nginx"}
 
   """
-  @spec url_for(K8s.Operation.t(), binary()) :: binary | {:error, atom, binary}
+  @spec url_for(K8s.Operation.t(), binary()) :: {:ok, binary} | {:error, atom} | {:error, binary}
   def url_for(operation = %K8s.Operation{}, cluster_name) do
     %{group_version: group_version, kind: kind, verb: verb} = operation
     conf = K8s.Cluster.conf(cluster_name)
 
     with {:ok, resource} <- K8s.Group.find_resource(cluster_name, group_version, kind),
          {:ok, path} <- K8s.Path.build(group_version, resource, verb, operation.path_params) do
-      Path.join(conf.url, path)
+      {:ok, Path.join(conf.url, path)}
     else
       error -> error
     end

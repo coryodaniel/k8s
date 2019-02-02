@@ -8,7 +8,6 @@ otp_release:
   - 18.2.1
 before_script:
   - mix deps.get --only test
-# script: mix coveralls.travis
 notifications:
   recipients:
     - travis@coryodaniel.com
@@ -16,9 +15,9 @@ jobs:
   include:
     - stage: lint
       script: mix credo
-    - stage: analyze
-      script: mix dialyzer
     - stage: test
       script: make test/all
+    - stage: analyze
+      script: mix dialyzer
     - stage: coverage
       script: mix coveralls.travis

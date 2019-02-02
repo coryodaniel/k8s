@@ -98,36 +98,16 @@ defmodule K8s.ClusterTest do
       verb = action_to_verb(op["x-kubernetes-action"], op)
       operation = build_operation(path, verb, opts)
 
-      actual = K8s.Cluster.url_for(operation, "routing-tests")
+      {:ok, actual} = K8s.Cluster.url_for(operation, "routing-tests")
 
       case actual do
-        {:error, problem, details} ->
-          log_missing_test_case(problem, details, operation)
+        {:error, problem} ->
+          Logger.warn("Found #{problem}: Operation: #{inspect(operation)}")
 
         actual ->
           assert String.ends_with?(actual, expected)
       end
     end
-  end
-
-  def log_missing_test_case(problem, details, operation) do
-    Logger.warn("Found #{problem}: #{details}; Operation: #{inspect(operation)}")
-
-    path = "./missing.json"
-    File.touch(path)
-    file = File.read!(path)
-
-    data =
-      case Jason.decode(file) do
-        {:error, _} -> %{}
-        {:ok, data = %{}} -> data
-        {:ok, _} -> %{}
-      end
-
-    key = "#{problem}/#{details}"
-    out = Map.put(data, key, operation)
-
-    File.write!(path, Jason.encode!(out, pretty: true))
   end
 
   def build_operation(path, verb, opts) do

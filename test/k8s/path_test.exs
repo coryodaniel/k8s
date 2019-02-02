@@ -20,10 +20,10 @@ defmodule K8s.PathTest do
     }
   end
 
-  describe "/binary/4" do
+  describe "build/4" do
     test "when a required param is missing, returns an error tuple" do
-      K8s.Path.build("v1", resource_definition(), :update, namespace: "default")
-      {:error, :missing_required_param, [:name]}
+      res = K8s.Path.build("v1", resource_definition(), :update, namespace: "default")
+      assert {:error, "Missing required params: name"} = res
     end
   end
 end

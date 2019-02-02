@@ -97,8 +97,7 @@ defmodule K8s.Path do
   """
   @spec build(binary, map, atom, keyword(atom)) ::
           {:ok, binary}
-          | {:error, :missing_required_param, list(atom)}
-          | {:error, :unsupported_verb, atom}
+          | {:error, :unsupported_verb | binary}
   def build(group_version, resource, verb, params) do
     case resource_supports_verb?(resource, verb) do
       true ->
@@ -111,11 +110,12 @@ defmodule K8s.Path do
             {:ok, replace_path_vars(path_template, params)}
 
           missing_params ->
-            {:error, :missing_required_param, missing_params}
+            msg = Enum.join(missing_params, ", ")
+            {:error, "Missing required params: #{msg}"}
         end
 
       false ->
-        {:error, :unsupported_verb, verb}
+        {:error, :unsupported_verb}
     end
   end
 

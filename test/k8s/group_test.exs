@@ -45,7 +45,7 @@ defmodule K8s.GroupTest do
     end
 
     test "returns an error when the resource is not supported" do
-      {:error, :unsupported_kind, "Foo"} = K8s.Group.find_resource_by_name(resources(), "Foo")
+      {:error, :unsupported_kind} = K8s.Group.find_resource_by_name(resources(), "Foo")
     end
   end
 end
