@@ -11,8 +11,6 @@ defmodule K8s.Path do
   @doc """
   Generates the API path for a given group/version and resource.
 
-  *Note:* This is intended to be called by `K8s.Cluster` using the `resources` returned by `K8s.Discovery.resource_definition_by_group/1`.
-
   ## Examples
 
   Generate a path for a cluster scoped resource:
