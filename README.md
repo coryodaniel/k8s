@@ -39,11 +39,10 @@ end
 
 ### Non-features
 
-* Modules for every resource. The client always return string-keyed maps.
+* Modules for every kubernetes resource.
 * K8s.Client does *not* assuming "default" namespaces. Always provide a namespace when a namespace is applicable.
-* Will not support the deprecated Watch API
-* Connect URLs aren't currently supported
-* Finalize, binding, scale, and approval subresources aren't currently supported
+* No support the deprecated Watch API.
+* Connect URLs aren't supported.
 
 ## Registering Clusters
 
@@ -97,6 +96,8 @@ The below will register a cluster named `"1.13"` using `~/.kube.config` to conne
 ```elixir
 name = "1.13"
 conf = K8s.Conf.from_file("~/.kube/config")
+# Or from a service account in cluster
+# conf = K8s.Conf.from_service_account()
 K8s.Cluster.register(name, conf)
 ```
 
@@ -112,7 +113,7 @@ Providers are checked in order, the first to return an authorization struct wins
 
 Custom providers are processed before default providers.
 
-See [Certicate](lib/k8s/conf/auth/certificate.ex) and [Token](lib/k8s/conf/auth/token.ex) for protocol and behavior implementations.
+See [Certificate](lib/k8s/conf/auth/certificate.ex) and [Token](lib/k8s/conf/auth/token.ex) for protocol and behavior implementations.
 
 Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
 and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
