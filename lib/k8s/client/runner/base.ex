@@ -88,7 +88,7 @@ defmodule K8s.Client.Runner.Base do
   def run(operation = %Operation{}, cluster_name, body, opts \\ []) do
     case Cluster.url_for(operation, cluster_name) do
       {:ok, url} ->
-        conf = Cluster.conf(cluster_name)
+        {:ok, conf} = Cluster.conf(cluster_name)
         request_options = RequestOptions.generate(conf)
         http_headers = K8s.http_provider().headers(request_options)
         http_opts = Keyword.merge([ssl: request_options.ssl_options], opts)

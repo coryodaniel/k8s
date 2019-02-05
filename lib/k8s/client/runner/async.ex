@@ -28,10 +28,10 @@ defmodule K8s.Client.Runner.Async do
     results = K8s.Client.Async.run(operations, "test-cluster")
     ```
   """
-  @spec run(list(Operation.t()), binary) :: list({:ok, struct} | {:error, struct})
-  def run(operations, cluster_name) do
+  @spec run(list(Operation.t()), binary, keyword) :: list({:ok, struct} | {:error, struct})
+  def run(operations, cluster_name, opts \\ []) do
     operations
-    |> Enum.map(&Task.async(fn -> Base.run(&1, cluster_name) end))
+    |> Enum.map(&Task.async(fn -> Base.run(&1, cluster_name, opts) end))
     |> Enum.map(&Task.await/1)
   end
 end

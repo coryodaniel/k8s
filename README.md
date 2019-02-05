@@ -1,6 +1,6 @@
 # K8s
 
-[K8s](https://hexdocs.pm/k8s/readme.html) - A Kubernetes client for Elixir
+[K8s](https://hexdocs.pm/k8s/readme.html) - A Kubernetes library and HTTP client in Elixir
 
 [![Build Status](https://travis-ci.org/coryodaniel/k8s.svg?branch=master)](https://travis-ci.org/coryodaniel/k8s)
 [![Coverage Status](https://coveralls.io/repos/github/coryodaniel/k8s/badge.svg?branch=master)](https://coveralls.io/github/coryodaniel/k8s?branch=master)
@@ -20,6 +20,18 @@ def deps do
   ]
 end
 ```
+
+## Usage
+
+Check out the [Usage Guide](https://hexdocs.pm/k8s/usage.html) for in-depth examples. 
+
+Most functions are also written using doctests.
+
+* [K8s.Client doctests](https://hexdocs.pm/k8s/K8s.Client.html)
+* [K8s.Cluster doctests](https://hexdocs.pm/k8s/K8s.Cluster.html)
+* [K8s.Conf doctests](https://hexdocs.pm/k8s/K8s.Conf.html)
+* [K8s.Resource doctests](https://hexdocs.pm/k8s/K8s.Resource.html)
+* [K8s.Version doctests](https://hexdocs.pm/k8s/K8s.Version.html)
 
 ## Features
 
@@ -44,76 +56,7 @@ end
 * No support the deprecated Watch API.
 * Connect URLs aren't supported.
 
-## Registering Clusters
-
-Clusters can be registered via `config.exs` or directly with `K8s.Cluster.register/2`.
-
-Clusters are referenced by name (`:default` below) when using a `K8s.Client`. Multiple clusters can be registered via config.
-
-This library ships with Kubernetes specs 1.10, 1.11, 1.12, and 1.13.
-
-### Registering clusters via config
-
-Adding a cluster named `:default` using `~/.kube/config`. Defaults to `current-context`.
-
-```elixir
-config :k8s,
-  clusters: %{
-    default: %{
-      conf: "~/.kube/config"
-    }
-  }
-```
-
-Using an alternate context:
-
-```elixir
-config :k8s,
-  clusters: %{
-    default: %{
-      conf: "~/.kube/config"
-      conf_opts: [context: "other-context"]
-    }
-  }
-```
-
-Setting cluster and user explicitly:
-
-```elixir
-config :k8s,
-  clusters: %{
-    default: %{
-      conf: "~/.kube/config"
-      conf_opts: [user: "some-user", cluster: "prod-cluster"]
-    }
-  }
-```
-
-### Registering clusters directly
-
-The below will register a cluster named `"1.13"` using `~/.kube.config` to connect. There are many options for loading a config, this will load the user and cluster from the `current-context`.
-
-```elixir
-name = "1.13"
-conf = K8s.Conf.from_file("~/.kube/config")
-# Or from a service account in cluster
-# conf = K8s.Conf.from_service_account()
-K8s.Cluster.register(name, conf)
-```
-
-*Note:* Kubernetes API specs can be downloaded using `mix k8s.swagger --version 1.13`.
-
-### Adding authorization providers
-
-```elixir
-config :k8s, auth_providers: [My.Custom.Provider]
-```
-
-Providers are checked in order, the first to return an authorization struct wins.
-
-Custom providers are processed before default providers.
-
-See [Certificate](lib/k8s/conf/auth/certificate.ex) and [Token](lib/k8s/conf/auth/token.ex) for protocol and behavior implementations.
+## Docs 
 
 Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
 and published on [HexDocs](https://hexdocs.pm). Once published, the docs can

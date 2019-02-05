@@ -4,8 +4,8 @@ defmodule K8s.MixProject do
   def project do
     [
       app: :k8s,
-      description: "Elixir Kubernetes Client",
-      version: "0.2.0",
+      description: "A Kubernetes library and HTTP client in Elixir",
+      version: "0.2.1",
       elixir: "~> 1.6",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -24,7 +24,7 @@ defmodule K8s.MixProject do
       package: package(),
       elixirc_paths: elixirc_paths(Mix.env()),
       dialyzer: [
-        plt_add_apps: [:mix],
+        plt_add_apps: [:mix, :eex],
         ignore_warnings: ".dialyzer_ignore.exs"
       ]
     ]

@@ -43,7 +43,7 @@ defmodule K8s.Cluster do
   @spec url_for(K8s.Operation.t(), binary()) :: {:ok, binary} | {:error, atom} | {:error, binary}
   def url_for(operation = %K8s.Operation{}, cluster_name) do
     %{group_version: group_version, kind: kind, verb: verb} = operation
-    conf = K8s.Cluster.conf(cluster_name)
+    {:ok, conf} = K8s.Cluster.conf(cluster_name)
 
     with {:ok, resource} <- K8s.Group.find_resource(cluster_name, group_version, kind),
          {:ok, path} <- K8s.Path.build(group_version, resource, verb, operation.path_params) do
@@ -55,13 +55,44 @@ defmodule K8s.Cluster do
 
   @doc """
   Registers clusters automatically from `config.exs`
+
+  ## Examples
+
+  By default a cluster will attempt to use the ServiceAccount assigned to the pod:
+
+  ```elixir
+  config :k8s,
+    clusters: %{
+      default: %{}
+    }
+  ```
+
+  Configuring a cluster using a k8s config:
+
+  ```elixir
+  config :k8s,
+    clusters: %{
+      default: %{
+        conf: "~/.kube/config"
+        conf_opts: [user: "some-user", cluster: "prod-cluster"]
+      }
+    }
+  ```
   """
   def register_clusters do
     clusters = Application.get_env(:k8s, :clusters)
 
     Enum.each(clusters, fn {name, details} ->
-      opts = details[:conf_opts] || []
-      conf = K8s.Conf.from_file(details.conf, opts)
+      conf =
+        case details.conf do
+          nil ->
+            K8s.Conf.from_service_account()
+
+          conf_path ->
+            opts = details[:conf_opts] || []
+            K8s.Conf.from_file(conf_path, opts)
+        end
+
       K8s.Cluster.register(name, conf)
     end)
   end
@@ -71,17 +102,18 @@ defmodule K8s.Cluster do
 
   ## Example
 
-      iex> conf = K8s.Conf.from_file("./test/support/kube-config.yaml")
-      ...> K8s.Cluster.register("test-cluster", conf)
-      ...> K8s.Cluster.conf("test-cluster")
+      iex> config_file = K8s.Conf.from_file("./test/support/kube-config.yaml")
+      ...> K8s.Cluster.register("test-cluster", config_file)
+      ...> {:ok, conf} = K8s.Cluster.conf("test-cluster")
+      ...> conf
       #Conf<%{cluster: "docker-for-desktop-cluster", user: "docker-for-desktop"}>
 
   """
-  @spec conf(binary) :: K8s.Conf.t() | nil
+  @spec conf(binary) :: {:ok, K8s.Conf.t()} | {:error, :cluster_not_registered}
   def conf(cluster_name) do
     case :ets.lookup(K8s.Conf, cluster_name) do
-      [] -> nil
-      [{_, conf}] -> conf
+      [] -> {:error, :cluster_not_registered}
+      [{_, conf}] -> {:ok, conf}
     end
   end
 

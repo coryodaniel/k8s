@@ -17,7 +17,7 @@ defmodule K8s.Discovery do
   """
   @impl true
   def resource_definitions_by_group(cluster_name, opts \\ []) do
-    conf = Cluster.conf(cluster_name)
+    {:ok, conf} = Cluster.conf(cluster_name)
 
     cluster_name
     |> api_paths(opts)
@@ -39,7 +39,7 @@ defmodule K8s.Discovery do
       %{"/api" => ["v1"], "/apis" => ["apps/v1", "batch/v1"]}
   """
   def api_paths(cluster_name, opts \\ []) do
-    conf = Cluster.conf(cluster_name)
+    {:ok, conf} = Cluster.conf(cluster_name)
     api_url = Path.join(conf.url, "/api")
     apis_url = Path.join(conf.url, "/apis")
 

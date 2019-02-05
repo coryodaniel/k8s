@@ -4,6 +4,49 @@ defmodule K8s.Resource do
   """
 
   @doc """
+  Create a resource `Map` from a YAML file.
+
+  Raises `File.Error` when the file does not exist.
+
+  ## Examples
+
+      iex> opts = [namespace: "default", name: "nginx", image: "nginx:nginx:1.7.9"]
+      ...> K8s.Resource.from_file!("test/support/deployment.yaml", opts)
+      %{
+        "apiVersion" => "apps/v1",
+        "kind" => "Deployment",
+        "metadata" => %{
+          "labels" => %{"app" => "nginx"},
+          "name" => "nginx-deployment",
+          "namespace" => "default"
+        },
+        "spec" => %{
+          "replicas" => 3,
+          "selector" => %{"matchLabels" => %{"app" => "nginx"}},
+          "template" => %{
+            "metadata" => %{"labels" => %{"app" => "nginx"}},
+            "spec" => %{
+              "containers" => [
+                %{
+                  "image" => "nginx:nginx:1.7.9",
+                  "name" => "nginx",
+                  "ports" => [%{"containerPort" => 80}]
+                }
+              ]
+            }
+          }
+        }
+      }
+  """
+  @spec from_file!(String.t(), keyword()) :: map | no_return
+  def from_file!(path, assigns) do
+    path
+    |> File.read!()
+    |> EEx.eval_string(assigns)
+    |> YamlElixir.read_from_string!()
+  end
+
+  @doc """
   Returns the kind of k8s resource.
 
   ## Examples
