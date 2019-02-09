@@ -80,7 +80,7 @@ defmodule K8s.Cluster do
   ```
   """
   def register_clusters do
-    clusters = Application.get_env(:k8s, :clusters)
+    clusters = Application.get_env(:k8s, :clusters, [])
 
     Enum.each(clusters, fn {name, details} ->
       conf =
