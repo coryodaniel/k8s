@@ -5,7 +5,7 @@ defmodule K8s.MixProject do
     [
       app: :k8s,
       description: "A Kubernetes library and HTTP client in Elixir",
-      version: "0.2.2",
+      version: "0.2.3",
       elixir: "~> 1.6",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -51,7 +51,7 @@ defmodule K8s.MixProject do
       # dev/test deps
       {:credo, "~> 1.0.0", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.0.0-rc.4", only: [:dev, :test], runtime: false},
-      {:ex_doc, "~> 0.19", only: :dev},
+      {:ex_doc, "~> 0.20", only: :dev},
       {:excoveralls, "~> 0.10", only: :test},
       {:mix_test_watch, "~> 0.8", only: :dev, runtime: false},
       {:stream_data, "~> 0.4", only: :test}

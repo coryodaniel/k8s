@@ -84,7 +84,7 @@ defmodule K8s.Cluster do
 
     Enum.each(clusters, fn {name, details} ->
       conf =
-        case details.conf do
+        case Map.get(details, :conf) do
           nil ->
             K8s.Conf.from_service_account()
 
