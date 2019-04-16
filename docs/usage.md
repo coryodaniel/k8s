@@ -61,6 +61,16 @@ config :k8s,
   }
 ```
 
+Using a pod's service account (`pod.spec.serviceAccountName`):
+
+A cluster name with a blank configuration will default to using the pod's service account.
+
+```elixir
+config :k8s, clusters: %{
+  default: %{}
+}
+```
+
 ## Running an operation
 
 Many more client examples exist in the `K8s.Client` docs.
