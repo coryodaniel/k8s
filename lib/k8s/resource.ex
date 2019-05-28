@@ -94,6 +94,7 @@ defmodule K8s.Resource do
     |> File.read!()
     |> EEx.eval_string(assigns)
     |> YamlElixir.read_all_from_string!()
+    |> Enum.filter(&(&1 != %{}))
   end
 
   @doc """

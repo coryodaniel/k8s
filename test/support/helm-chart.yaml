@@ -27,3 +27,7 @@ spec:
         image: <%= image %>
         ports:
         - containerPort: 80
+
+# Oh, and an empty one, because helm :)
+---
+
