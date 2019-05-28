@@ -44,7 +44,7 @@ defmodule K8s.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:yaml_elixir, "~> 2.1"},
+      {:yaml_elixir, "~> 2.4"},
       {:httpoison, "~> 1.0"},
       {:jason, "~> 1.0"},
 
