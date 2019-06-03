@@ -47,6 +47,57 @@ defmodule K8s.Resource do
   end
 
   @doc """
+  Create a list of resource `Map`s from a YAML file with multi object annotation.
+
+  Raises `File.Error` when the file does not exist.
+
+  ## Examples
+
+      iex> opts = [namespace: "default", name: "nginx", image: "nginx:nginx:1.7.9"]
+      ...> K8s.Resource.all_from_file!("test/support/helm-chart.yaml", opts)
+      [
+        %{
+          "apiVersion" => "v1",
+          "kind" => "Namespace",
+          "metadata" => %{"name" => "default"}
+        },
+        %{
+          "apiVersion" => "apps/v1",
+          "kind" => "Deployment",
+          "metadata" => %{
+            "labels" => %{"app" => "nginx"},
+            "name" => "nginx-deployment",
+            "namespace" => "default"
+          },
+          "spec" => %{
+            "replicas" => 3,
+            "selector" => %{"matchLabels" => %{"app" => "nginx"}},
+            "template" => %{
+              "metadata" => %{"labels" => %{"app" => "nginx"}},
+              "spec" => %{
+                "containers" => [
+                  %{
+                    "image" => "nginx:nginx:1.7.9",
+                    "name" => "nginx",
+                    "ports" => [%{"containerPort" => 80}]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ]
+  """
+  @spec all_from_file!(String.t(), keyword()) :: list(map) | no_return
+  def all_from_file!(path, assigns) do
+    path
+    |> File.read!()
+    |> EEx.eval_string(assigns)
+    |> YamlElixir.read_all_from_string!()
+    |> Enum.filter(&(&1 != %{}))
+  end
+
+  @doc """
   Returns the kind of k8s resource.
 
   ## Examples
