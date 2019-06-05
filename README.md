@@ -1,6 +1,6 @@
 # K8s
 
-[K8s](https://hexdocs.pm/k8s/readme.html) - A Kubernetes library and HTTP client in Elixir
+[K8s](https://hexdocs.pm/k8s/readme.html) - Kubernetes API Client for Elixir
 
 [![Build Status](https://travis-ci.org/coryodaniel/k8s.svg?branch=master)](https://travis-ci.org/coryodaniel/k8s)
 [![Coverage Status](https://coveralls.io/repos/github/coryodaniel/k8s/badge.svg?branch=master)](https://coveralls.io/github/coryodaniel/k8s?branch=master)
