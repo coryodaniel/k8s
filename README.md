@@ -23,7 +23,7 @@ end
 
 ## Usage
 
-Check out the [Usage Guide](https://hexdocs.pm/k8s/usage.html) for in-depth examples. 
+Check out the [Usage Guide](https://hexdocs.pm/k8s/usage.html) for in-depth examples.
 
 Most functions are also written using doctests.
 
@@ -41,7 +41,7 @@ Most functions are also written using doctests.
 * Supports multiple clusters
 * Supports multiple authentication credentials
 * Supports multiple kubernetes API
-* Tested against kubernetes swagger specs: 1.10, 1.11, 1.12, 1.13, and master
+* Tested against kubernetes swagger specs: 1.10+ and master
 * CRD support
 * Kubernetes resource and version helper functions
 * Kube config file parsing
@@ -56,7 +56,7 @@ Most functions are also written using doctests.
 * No support the deprecated Watch API.
 * Connect URLs aren't supported.
 
-## Docs 
+## Docs
 
 Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
 and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
