@@ -26,7 +26,7 @@ cov: ## Generate coverage HTML
 	mix coveralls.html
 
 test/all: ## Run full test suite against
-test/all: test/1.10 test/1.11 test/1.12 test/1.13 test/master
+test/all: test/1.10 test/1.11 test/1.12 test/1.13 test/1.14 test/master
 
 test/%: ## Run full test suite against a specific k8s version
 	K8S_SPEC=test/support/swagger/$*.json mix test
@@ -37,3 +37,6 @@ lint: ## Format and run credo
 
 analyze: ## Run dialyzer
 	mix dialyzer
+
+get/%: ## Add a new swagger spec to the test suite
+	curl -sSL https://raw.githubusercontent.com/kubernetes/kubernetes/release-$*/api/openapi-spec/swagger.json -o test/support/swagger/$*.json
