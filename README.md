@@ -52,9 +52,8 @@ Most functions are also written using doctests.
 ### Non-features
 
 * Modules for every kubernetes resource.
-* K8s.Client does *not* assuming "default" namespaces. Always provide a namespace when a namespace is applicable.
-* No support the deprecated Watch API.
-* Connect URLs aren't supported.
+* Assume the "default" namespaces. Always provide a namespace when a namespace is applicable.
+* Support for the deprecated Watch API.
 
 ## Docs
 
