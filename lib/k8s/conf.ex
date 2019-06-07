@@ -13,6 +13,13 @@ defmodule K8s.Conf do
   ]
 
   @typep auth_t :: nil | struct
+  @derive {Inspect, only: [:user, :cluster]}
+  defstruct cluster_name: nil,
+            user_name: nil,
+            url: "",
+            insecure_skip_tls_verify: false,
+            ca_cert: nil,
+            auth: nil
 
   @type t :: %__MODULE__{
           cluster_name: String.t() | nil,
@@ -22,13 +29,6 @@ defmodule K8s.Conf do
           ca_cert: String.t() | nil,
           auth: auth_t
         }
-
-  defstruct cluster_name: nil,
-            user_name: nil,
-            url: "",
-            insecure_skip_tls_verify: false,
-            ca_cert: nil,
-            auth: nil
 
   @doc """
   Reads configuration details from a kubernetes config file.
@@ -100,6 +100,7 @@ defmodule K8s.Conf do
   end
 
   @doc false
+  @spec resolve_file_path(binary, binary) :: binary
   def resolve_file_path(file_name, base_path) do
     case Path.type(file_name) do
       :absolute -> file_name
@@ -112,16 +113,9 @@ defmodule K8s.Conf do
     Enum.find_value(providers(), fn provider -> provider.create(auth_map, base_path) end)
   end
 
+  @spec providers() :: list(atom)
   defp providers do
     Application.get_env(:k8s, :auth_providers, []) ++ @providers
-  end
-
-  defimpl Inspect, for: __MODULE__ do
-    import Inspect.Algebra
-
-    def inspect(%{user_name: user, cluster_name: cluster}, opts) do
-      concat(["#Conf<", to_doc(%{user: user, cluster: cluster}, opts), ">"])
-    end
   end
 
   defimpl K8s.Conf.RequestOptions, for: __MODULE__ do

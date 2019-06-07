@@ -25,7 +25,7 @@ defmodule K8s.Client.Runner.Watch do
   {:ok, reference} = Watch.run(operation, :test, stream_to: self())
   ```
   """
-  @spec run(Operation.t(), binary, keyword(atom)) :: no_return
+  @spec run(Operation.t(), binary, keyword(atom)) :: Base.result_t()
   def run(operation = %Operation{method: :get}, cluster_name, opts) do
     case get_resource_version(operation, cluster_name) do
       {:ok, rv} -> run(operation, cluster_name, rv, opts)
@@ -53,6 +53,7 @@ defmodule K8s.Client.Runner.Watch do
   {:ok, reference} = Watch.run(operation, :test, resource_version, stream_to: self())
   ```
   """
+  @spec run(Operation.t(), binary, binary, keyword(atom)) :: Base.result_t()
   def run(operation = %Operation{method: :get, verb: verb}, cluster_name, rv, opts)
       when verb in [:list, :list_all_namespaces] do
     opts_w_watch_params = add_watch_params_to_opts(opts, rv)
@@ -82,6 +83,7 @@ defmodule K8s.Client.Runner.Watch do
     end
   end
 
+  @spec add_watch_params_to_opts(keyword, binary) :: keyword
   defp add_watch_params_to_opts(opts, rv) do
     params = Map.merge(opts[:params] || %{}, %{"resourceVersion" => rv, "watch" => true})
     Keyword.put(opts, :params, params)

@@ -127,11 +127,13 @@ defmodule Mock.HTTPProvider do
     raise "#{__MODULE__} has no mock for [#{method}] #{url}"
   end
 
+  @spec render_ok(map) :: nil
   def render_ok(data) do
     body = Jason.encode!(data)
     handle_response({:ok, %HTTPoison.Response{status_code: 200, body: body}})
   end
 
+  @spec stream_namespace_watcher_results(map) :: nil
   defp stream_namespace_watcher_results(pid) do
     send(pid, %HTTPoison.AsyncStatus{code: 200})
     send(pid, %HTTPoison.AsyncHeaders{})
@@ -139,6 +141,7 @@ defmodule Mock.HTTPProvider do
     send(pid, %HTTPoison.AsyncEnd{})
   end
 
+  @spec batch_v1_resource_group() :: map
   defp batch_v1_resource_group() do
     %{
       "apiVersion" => "v1",

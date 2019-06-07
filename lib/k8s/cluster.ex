@@ -109,7 +109,7 @@ defmodule K8s.Cluster do
       ...> K8s.Cluster.register("test-cluster", config_file)
       ...> {:ok, conf} = K8s.Cluster.conf("test-cluster")
       ...> conf
-      #Conf<%{cluster: "docker-for-desktop-cluster", user: "docker-for-desktop"}>
+      #K8s.Conf<...>
 
   """
   @spec conf(binary) :: {:ok, K8s.Conf.t()} | {:error, :cluster_not_registered}

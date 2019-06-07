@@ -3,7 +3,7 @@ defmodule K8s.Client.Runner.Base do
   Base HTTP processor for `K8s.Client`
   """
 
-  @type result :: {:ok, map() | reference()} | {:error, atom} | {:error, binary()}
+  @type result_t :: {:ok, map() | reference()} | {:error, atom} | {:error, binary()}
 
   alias K8s.Cluster
   alias K8s.Conf.RequestOptions
@@ -66,7 +66,7 @@ defmodule K8s.Client.Runner.Base do
   :ok = K8s.Client.Runner.Base.run(operation, "test-cluster", opts)
   ```
   """
-  @spec run(Operation.t(), nil | binary | atom) :: result
+  @spec run(Operation.t(), nil | binary | atom) :: result_t
   def run(operation = %Operation{}, cluster_name \\ "default"),
     do: run(operation, cluster_name, [])
 
@@ -75,7 +75,7 @@ defmodule K8s.Client.Runner.Base do
 
   See `run/2`
   """
-  @spec run(Operation.t(), binary | atom, keyword()) :: result
+  @spec run(Operation.t(), binary | atom, keyword()) :: result_t
   def run(operation = %Operation{}, cluster_name, opts) when is_list(opts) do
     run(operation, cluster_name, operation.resource, opts)
   end
@@ -84,37 +84,24 @@ defmodule K8s.Client.Runner.Base do
   Run an operation with an alternative HTTP Body (map) and pass `opts` to HTTPoison.
   See `run/2`
   """
-  @spec run(Operation.t(), binary | atom, map(), keyword()) :: result
+  @spec run(Operation.t(), binary | atom, map(), keyword()) :: result_t
   def run(operation = %Operation{}, cluster_name, body, opts \\ []) do
-    case Cluster.url_for(operation, cluster_name) do
-      {:ok, url} ->
-        {:ok, conf} = Cluster.conf(cluster_name)
+    with {:ok, url} <- Cluster.url_for(operation, cluster_name),
+         {:ok, conf} <- Cluster.conf(cluster_name),
+         {:ok, request_options} <- RequestOptions.generate(conf),
+         {:ok, http_body} <- encode(body, operation.method) do
+      http_headers = K8s.http_provider().headers(request_options)
+      http_opts = Keyword.merge([ssl: request_options.ssl_options], opts)
 
-        case RequestOptions.generate(conf) do
-          {:ok, request_options} ->
-            http_headers = K8s.http_provider().headers(request_options)
-            http_opts = Keyword.merge([ssl: request_options.ssl_options], opts)
-
-            case encode(body, operation.method) do
-              {:ok, http_body} ->
-                K8s.http_provider().request(
-                  operation.method,
-                  url,
-                  http_body,
-                  http_headers,
-                  http_opts
-                )
-
-              {:error, error} ->
-                {:error, error}
-            end
-
-          error ->
-            error
-        end
-
-      {:error, error} ->
-        {:error, error}
+      K8s.http_provider().request(
+        operation.method,
+        url,
+        http_body,
+        http_headers,
+        http_opts
+      )
+    else
+      error -> error
     end
   end
 

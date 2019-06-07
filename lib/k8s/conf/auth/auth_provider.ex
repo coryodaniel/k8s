@@ -4,13 +4,15 @@ defmodule K8s.Conf.Auth.AuthProvider do
   """
   @behaviour K8s.Conf.Auth
 
+  @derive {Inspect, only: []}
+  defstruct [:cmd_path, :cmd_args, :token_key, :expiry_key, :token, :expiry]
+
   @type t :: %__MODULE__{
           cmd_path: String.t(),
           cmd_args: list(String.t()),
           token_key: list(String.t()),
           expiry_key: list(String.t())
         }
-  defstruct [:cmd_path, :cmd_args, :token_key, :expiry_key, :token, :expiry]
 
   @impl true
   def create(%{"auth-provider" => %{"config" => config}}, _) do
@@ -42,14 +44,6 @@ defmodule K8s.Conf.Auth.AuthProvider do
     |> String.split(".")
   end
 
-  defimpl Inspect, for: __MODULE__ do
-    import Inspect.Algebra
-
-    def inspect(_auth, _opts) do
-      concat(["#AuthProvider<...>"])
-    end
-  end
-
   defimpl K8s.Conf.RequestOptions, for: __MODULE__ do
     @doc "Generates HTTP Authorization options for auth-provider authentication"
     @spec generate(K8s.Conf.Auth.AuthProvider.t()) :: K8s.Conf.RequestOptions.generate_t()
@@ -71,16 +65,14 @@ defmodule K8s.Conf.Auth.AuthProvider do
   @doc """
   "Generate" a token using the `auth-provider` config in kube config.
   """
-  @spec generate_token(t) :: String.t()
+  @spec generate_token(t) ::
+          {:ok, binary} | {:error, binary | atom, {:auth_provider_fail, binary}}
   def generate_token(config) do
     with {cmd_response, 0} <- System.cmd(config.cmd_path, config.cmd_args),
          {:ok, data} <- Jason.decode(cmd_response),
          token when not is_nil(token) <- get_in(data, config.token_key) do
       {:ok, token}
     else
-      {:error, _} = err ->
-        err
-
       {cmd_response, err_code}
       when is_binary(cmd_response) and is_integer(err_code) ->
         {:error, {:auth_provider_fail, cmd_response}}

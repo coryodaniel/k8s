@@ -50,8 +50,10 @@ defmodule K8s.Version do
       ["v2", "v1", "v2beta1", "v1alpha2", "v1alpha1"]
 
   """
+  @spec sort(list(t)) :: list(t)
   def sort(versions), do: Enum.sort(versions, &compare/2)
 
+  @spec compare(t, t) :: boolean
   defp compare(%Version{minor: "stable", major: a}, %Version{minor: "stable", major: b}),
     do: a >= b
 
@@ -171,6 +173,7 @@ defmodule K8s.Version do
     format(major, minor, patch)
   end
 
+  @spec format(binary | integer, binary, binary | integer | nil) :: t
   defp format(major, "", "") when is_integer(major), do: format(major, "stable", nil)
 
   defp format(major, minor, patch) when is_binary(major),

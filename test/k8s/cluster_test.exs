@@ -1,4 +1,5 @@
 defmodule K8s.ClusterTest do
+  # credo:disable-for-this-file
   use ExUnit.Case, async: true
   use ExUnitProperties
   doctest K8s.Cluster
@@ -111,6 +112,7 @@ defmodule K8s.ClusterTest do
     end
   end
 
+  @spec build_operation(binary, binary, keyword) :: Operation.t()
   def build_operation(path, verb, opts) do
     [_ | components] = String.split(path, "/")
     {group_version, pluralized_kind_with_subaction} = components_to_operation(components)

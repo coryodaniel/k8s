@@ -4,10 +4,13 @@ defmodule K8s.Conf.Auth.Certificate do
   """
 
   @behaviour K8s.Conf.Auth
+
   alias K8s.Conf
   alias K8s.Conf.PKI
-  @type t :: %__MODULE__{certificate: binary, key: binary}
+
+  @derive {Inspect, only: []}
   defstruct [:certificate, :key]
+  @type t :: %__MODULE__{certificate: binary, key: binary}
 
   @impl true
   @spec create(map(), String.t()) :: K8s.Conf.Auth.Certificate.t() | nil
@@ -35,14 +38,6 @@ defmodule K8s.Conf.Auth.Certificate do
   end
 
   def create(_, _), do: nil
-
-  defimpl Inspect, for: __MODULE__ do
-    import Inspect.Algebra
-
-    def inspect(_auth, _opts) do
-      concat(["#Certficate<...>"])
-    end
-  end
 
   defimpl K8s.Conf.RequestOptions, for: __MODULE__ do
     @doc "Generates HTTP Authorization options for certificate authentication"

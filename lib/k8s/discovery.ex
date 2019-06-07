@@ -38,6 +38,7 @@ defmodule K8s.Discovery do
       iex> K8s.Discovery.api_paths(:test)
       %{"/api" => ["v1"], "/apis" => ["apps/v1", "batch/v1"]}
   """
+  @spec api_paths(binary, keyword) :: map | {:error, binary | atom}
   def api_paths(cluster_name, opts \\ []) do
     {:ok, conf} = Cluster.conf(cluster_name)
     api_url = Path.join(conf.url, "/api")
@@ -54,7 +55,14 @@ defmodule K8s.Discovery do
     end
   end
 
-  @doc false
+  @doc """
+  Asynchronously fetch resource definitions.
+
+  `Task` will contain a list of resource definitions.
+
+  In the event of failure an empty list is returned.
+  """
+  @spec async_get_resource_definition(binary, binary, map, keyword) :: %Task{}
   def async_get_resource_definition(prefix, version, conf, opts) do
     Task.async(fn ->
       url = Path.join([conf.url, prefix, version])

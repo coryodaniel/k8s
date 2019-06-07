@@ -1,4 +1,5 @@
 defmodule K8s.Client.Runner.WatchTest do
+  # credo:disable-for-this-file
   use ExUnit.Case, async: true
   doctest K8s.Client.Runner.Watch
   alias K8s.Client.Runner.Watch

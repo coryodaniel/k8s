@@ -1,6 +1,5 @@
 defmodule K8s.Application do
-  # See https://hexdocs.pm/elixir/Application.html
-  # for more information on OTP Applications
+  # credo:disable-for-this-file
   @moduledoc false
 
   use Application
