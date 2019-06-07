@@ -10,6 +10,7 @@ defmodule K8s.ClusterTest do
   @k8s_spec System.get_env("K8S_SPEC") || "test/support/swagger/1.14.json"
   @swagger @k8s_spec |> File.read!() |> Jason.decode!()
   @paths @swagger["paths"]
+  @unimplemented_subresources ~r/\/(eviction|finalize|bindings|binding|approval|scale|status)$/
   @swagger_operations @paths
                       |> Enum.reduce([], fn {path, ops}, agg ->
                         operations =
@@ -19,10 +20,7 @@ defmodule K8s.ClusterTest do
                               Map.has_key?(op, "x-kubernetes-group-version-kind") &&
                               op["x-kubernetes-action"] != "connect" &&
                               !Regex.match?(~r/\/watch\//, path) &&
-                              !Regex.match?(
-                                ~r/\/(eviction|finalize|bindings|binding|approval|scale)$/,
-                                path
-                              )
+                              !Regex.match?(@unimplemented_subresources, path)
                           end)
                           |> Enum.map(fn {method, op} ->
                             path_params = @paths[path]["parameters"] || []
@@ -99,16 +97,8 @@ defmodule K8s.ClusterTest do
       verb = action_to_verb(op["x-kubernetes-action"], op)
       operation = build_operation(path, verb, opts)
 
-      result = K8s.Cluster.url_for(operation, "routing-tests")
-
-      case result do
-        {:error, problem} ->
-          # If you see unsupported verb on a /status operation, thats because the functionality isnt built yet ;D
-          Logger.warn("Found #{problem}: Operation: #{inspect(operation)}")
-
-        {:ok, actual} ->
-          assert String.ends_with?(actual, expected)
-      end
+      assert {:ok, url} = K8s.Cluster.url_for(operation, "routing-tests")
+      assert String.ends_with?(url, expected)
     end
   end
 

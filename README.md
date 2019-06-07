@@ -64,3 +64,133 @@ Most functions are also written using doctests.
 Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
 and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
 be found at [https://hexdocs.pm/k8s](https://hexdocs.pm/k8s).
+
+## Testing
+
+### Adding support for a new version of kubernetes
+
+Download the swagger spec for the new version. `k8s` doesn't use swagger to define the API, but it is used to drive property tests.
+
+```shell
+export NEW_VERSION_NUMBER=1.1n
+make get/${NEW_VERSION_NUMBER}
+```
+
+```shell
+make test/${NEW_VERSION_NUMBER}
+```
+
+A [mock `Discovery`](.test/support/mock/discovery.ex) module exist populated by [this JSON config](./test/support/mock/data/groups.json) to simulate runtime API discovery.
+
+If new resources or APIs were added to kubernetes in the new version you will likely see one of these errors: `unsupported_group_version` and `unsupported_kind`.
+
+### Unsupported Group Version errors
+
+This error occurs when a new API is added to kubernetes.
+
+Example: `{:error, :unsupported_group_version, "scheduling.k8s.io/v1"}`
+
+Add the `:unsupported_group_version` to the mock configuration and rerun the test suite.
+
+A config entry looks like:
+
+```javascript
+// ...
+ {
+    "groupVersion": "scheduling.k8s.io/v1", // add the group version name
+    "kind": "APIResourceList", // leave as is
+    "resources": [ // add a list of resources provided by the new `groupVersion`
+      {
+        "kind": "PriorityClass", // `kind` name
+        "name": "priorityclasses", // plural name
+        "namespaced": false, // namespaced or not
+        "singularName": "",
+        "verbs": [ // list of verbs supported by the new API
+          "create",
+          "delete",
+          "deletecollection",
+          "get",
+          "list",
+          "patch",
+          "update",
+          "watch"
+        ]
+      }
+    ]
+  },
+// ...
+```
+
+### Unsupported Kind errors
+
+This error occurs when a new resource type is added to an existing API, similar to above you will need to add the `resource` to the list of `resources`.
+
+The following config is missing `runtimeclasses` as a resource.
+
+```javascript
+  {
+    "groupVersion": "node.k8s.io/v1beta1",
+    "kind": "APIResourceList",
+    "resources": [
+      {
+        "kind": "Node",
+        "name": "nodes",
+        "namespaced": false,
+        "singularName": "",
+        "verbs": [
+          "create",
+          "delete",
+          "deletecollection",
+          "get",
+          "list",
+          "patch",
+          "update",
+          "watch"
+        ]
+      }
+    ]
+  },
+```
+
+After mocking:
+
+```javascript
+  {
+    "groupVersion": "node.k8s.io/v1beta1",
+    "kind": "APIResourceList",
+    "resources": [
+      {
+        "kind": "Node",
+        "name": "nodes",
+        "namespaced": false,
+        "singularName": "",
+        "verbs": [
+          "create",
+          "delete",
+          "deletecollection",
+          "get",
+          "list",
+          "patch",
+          "update",
+          "watch"
+        ]
+      },
+      {
+        "kind": "RuntimeClass",
+        "name": "runtimeclasses",
+        "namespaced": false,
+        "singularName": "",
+        "verbs": [
+          "create",
+          "delete",
+          "deletecollection",
+          "get",
+          "list",
+          "patch",
+          "update",
+          "watch"
+        ]
+      }
+    ]
+  },
+```
