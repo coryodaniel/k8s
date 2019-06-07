@@ -13,16 +13,14 @@ defmodule K8s.Conf.Auth.TokenTest do
     end
   end
 
-  describe "sign/1" do
-    test "creates http request signing options" do
-      config = Conf.from_file("test/support/kube-config.yaml", user: "token-user")
-      assert %Token{token: token} = config.auth
+  test "creates http request signing options" do
+    config = Conf.from_file("test/support/kube-config.yaml", user: "token-user")
+    assert %Token{token: token} = config.auth
 
-      %Conf.RequestOptions{headers: headers, ssl_options: ssl_options} =
-        Conf.RequestOptions.generate(config.auth)
+    {:ok, %Conf.RequestOptions{headers: headers, ssl_options: ssl_options}} =
+      Conf.RequestOptions.generate(config.auth)
 
-      assert headers == [{"Authorization", "Bearer #{token}"}]
-      assert ssl_options == []
-    end
+    assert headers == [{"Authorization", "Bearer #{token}"}]
+    assert ssl_options == []
   end
 end

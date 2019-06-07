@@ -1,0 +1,92 @@
+defmodule K8s.Conf.Auth.AuthProvider do
+  @moduledoc """
+  `auth-provider` authentication support
+  """
+  @behaviour K8s.Conf.Auth
+
+  @type t :: %__MODULE__{
+          cmd_path: String.t(),
+          cmd_args: list(String.t()),
+          token_key: list(String.t()),
+          expiry_key: list(String.t())
+        }
+  defstruct [:cmd_path, :cmd_args, :token_key, :expiry_key, :token, :expiry]
+
+  @impl true
+  def create(%{"auth-provider" => %{"config" => config}}, _) do
+    %{
+      "cmd-path" => cmd_path,
+      "cmd-args" => cmd_args,
+      "token-key" => token_key,
+      "expiry-key" => expiry_key
+    } = config
+
+    %__MODULE__{
+      cmd_path: cmd_path,
+      cmd_args: format_args(cmd_args),
+      token_key: format_json_keys(token_key),
+      expiry_key: format_json_keys(expiry_key)
+    }
+  end
+
+  def create(_, _), do: nil
+
+  @spec format_args(String.t()) :: list(String.t())
+  defp format_args(args), do: String.split(args, " ")
+
+  @spec format_json_keys(String.t()) :: list(String.t())
+  defp format_json_keys(jsonpath) do
+    jsonpath
+    |> String.trim_leading("{.")
+    |> String.trim_trailing("}")
+    |> String.split(".")
+  end
+
+  defimpl Inspect, for: __MODULE__ do
+    import Inspect.Algebra
+
+    def inspect(_auth, _opts) do
+      concat(["#AuthProvider<...>"])
+    end
+  end
+
+  defimpl K8s.Conf.RequestOptions, for: __MODULE__ do
+    @doc "Generates HTTP Authorization options for auth-provider authentication"
+    @spec generate(K8s.Conf.Auth.AuthProvider.t()) :: K8s.Conf.RequestOptions.generate_t()
+    def generate(provider = %K8s.Conf.Auth.AuthProvider{}) do
+      case K8s.Conf.Auth.AuthProvider.generate_token(provider) do
+        {:ok, token} ->
+          {:ok,
+           %K8s.Conf.RequestOptions{
+             headers: [{"Authorization", "Bearer #{token}"}],
+             ssl_options: []
+           }}
+
+        error ->
+          error
+      end
+    end
+  end
+
+  @doc """
+  "Generate" a token using the `auth-provider` config in kube config.
+  """
+  @spec generate_token(t) :: String.t()
+  def generate_token(config) do
+    with {cmd_response, 0} <- System.cmd(config.cmd_path, config.cmd_args),
+         {:ok, data} <- Jason.decode(cmd_response),
+         token when not is_nil(token) <- get_in(data, config.token_key) do
+      {:ok, token}
+    else
+      {:error, _} = err ->
+        err
+
+      {cmd_response, err_code}
+      when is_binary(cmd_response) and is_integer(err_code) ->
+        {:error, {:auth_provider_fail, cmd_response}}
+
+      error ->
+        error
+    end
+  end
+end

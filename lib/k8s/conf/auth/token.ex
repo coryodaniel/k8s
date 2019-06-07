@@ -22,11 +22,13 @@ defmodule K8s.Conf.Auth.Token do
 
   defimpl K8s.Conf.RequestOptions, for: __MODULE__ do
     @doc "Generates HTTP Authorization options for certificate authentication"
+    @spec generate(K8s.Conf.Auth.Token.t()) :: K8s.Conf.RequestOptions.generate_t()
     def generate(%K8s.Conf.Auth.Token{token: token}) do
-      %K8s.Conf.RequestOptions{
-        headers: [{"Authorization", "Bearer #{token}"}],
-        ssl_options: []
-      }
+      {:ok,
+       %K8s.Conf.RequestOptions{
+         headers: [{"Authorization", "Bearer #{token}"}],
+         ssl_options: []
+       }}
     end
   end
 end

@@ -1,12 +1,16 @@
 defmodule K8s.Conf do
   @moduledoc """
-  Handles connection details for a Kubernetes cluster
+  Handles authentication and connection configuration details for a Kubernetes cluster.
   """
 
   alias __MODULE__
   alias K8s.Conf.{PKI, RequestOptions}
 
-  @providers [K8s.Conf.Auth.Certificate, K8s.Conf.Auth.Token]
+  @providers [
+    K8s.Conf.Auth.Certificate,
+    K8s.Conf.Auth.Token,
+    K8s.Conf.Auth.AuthProvider
+  ]
 
   @typep auth_t :: nil | struct
 
@@ -122,27 +126,31 @@ defmodule K8s.Conf do
 
   defimpl K8s.Conf.RequestOptions, for: __MODULE__ do
     @doc "Generates HTTP Authorization options for certificate authentication"
-    @spec generate(K8s.Conf.t()) :: K8s.Conf.RequestOptions.t()
+    @spec generate(K8s.Conf.t()) :: K8s.Conf.RequestOptions.generate_t()
     def generate(conf = %K8s.Conf{}) do
-      %RequestOptions{headers: headers, ssl_options: auth_options} =
-        RequestOptions.generate(conf.auth)
+      case RequestOptions.generate(conf.auth) do
+        {:ok, %RequestOptions{headers: headers, ssl_options: auth_options}} ->
+          verify_options =
+            case conf.insecure_skip_tls_verify do
+              true -> [verify: :verify_none]
+              _ -> []
+            end
 
-      verify_options =
-        case conf.insecure_skip_tls_verify do
-          true -> [verify: :verify_none]
-          _ -> []
-        end
+          ca_options =
+            case conf.ca_cert do
+              nil -> []
+              cert -> [cacerts: [cert]]
+            end
 
-      ca_options =
-        case conf.ca_cert do
-          nil -> []
-          cert -> [cacerts: [cert]]
-        end
+          {:ok,
+           %RequestOptions{
+             headers: headers,
+             ssl_options: auth_options ++ verify_options ++ ca_options
+           }}
 
-      %RequestOptions{
-        headers: headers,
-        ssl_options: auth_options ++ verify_options ++ ca_options
-      }
+        error ->
+          error
+      end
     end
   end
 end

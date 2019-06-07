@@ -2,7 +2,7 @@ defmodule K8s.ConfTest do
   @moduledoc false
   use ExUnit.Case, async: true
   alias K8s.Conf
-  alias K8s.Conf.Auth.{Certificate, Token}
+  alias K8s.Conf.Auth.{Certificate, Token, AuthProvider}
   alias K8s.Conf.RequestOptions
 
   describe "from_file/2" do
@@ -59,6 +59,12 @@ defmodule K8s.ConfTest do
       assert config.url == "https://localhost:6443"
       assert config.auth.token
     end
+
+    test "loading an auth-provider" do
+      config = Conf.from_file("test/support/kube-config.yaml", user: "auth-provider-user")
+      assert %AuthProvider{} = config.auth
+      assert config.url == "https://localhost:6443"
+    end
   end
 
   test "use_service_account/0" do
@@ -77,7 +83,7 @@ defmodule K8s.ConfTest do
       opts = [user: "token-user", cluster: "insecure-cluster"]
       config = Conf.from_file("test/support/kube-config.yaml", opts)
 
-      assert %RequestOptions{headers: headers, ssl_options: ssl_options} =
+      assert {:ok, %RequestOptions{headers: headers, ssl_options: ssl_options}} =
                RequestOptions.generate(config)
 
       assert [{"Authorization", bearer_token}] = headers
@@ -88,7 +94,7 @@ defmodule K8s.ConfTest do
       opts = [user: "pem-cert-user", cluster: "insecure-cluster"]
       config = Conf.from_file("test/support/kube-config.yaml", opts)
 
-      assert %RequestOptions{headers: headers, ssl_options: ssl_options} =
+      assert {:ok, %RequestOptions{headers: headers, ssl_options: ssl_options}} =
                RequestOptions.generate(config)
 
       assert headers == []
@@ -99,7 +105,7 @@ defmodule K8s.ConfTest do
       opts = [user: "pem-cert-user", cluster: "cert-cluster"]
       config = Conf.from_file("test/support/kube-config.yaml", opts)
 
-      assert %RequestOptions{headers: headers, ssl_options: ssl_options} =
+      assert {:ok, %RequestOptions{headers: headers, ssl_options: ssl_options}} =
                RequestOptions.generate(config)
 
       assert headers == []
@@ -110,7 +116,7 @@ defmodule K8s.ConfTest do
       opts = [user: "pem-cert-user", cluster: "insecure-cluster"]
       config = Conf.from_file("test/support/kube-config.yaml", opts)
 
-      assert %RequestOptions{headers: headers, ssl_options: ssl_options} =
+      assert {:ok, %RequestOptions{headers: headers, ssl_options: ssl_options}} =
                RequestOptions.generate(config)
 
       assert headers == []

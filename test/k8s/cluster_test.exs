@@ -6,7 +6,7 @@ defmodule K8s.ClusterTest do
   alias K8s.{Operation}
   require Logger
 
-  @k8s_spec System.get_env("K8S_SPEC") || "test/support/swagger/1.13.json"
+  @k8s_spec System.get_env("K8S_SPEC") || "test/support/swagger/1.14.json"
   @swagger @k8s_spec |> File.read!() |> Jason.decode!()
   @paths @swagger["paths"]
   @swagger_operations @paths
@@ -102,6 +102,7 @@ defmodule K8s.ClusterTest do
 
       case result do
         {:error, problem} ->
+          # If you see unsupported verb on a /status operation, thats because the functionality isnt built yet ;D
           Logger.warn("Found #{problem}: Operation: #{inspect(operation)}")
 
         {:ok, actual} ->

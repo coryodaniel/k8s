@@ -31,16 +31,14 @@ defmodule K8s.Conf.Auth.CertificateTest do
     end
   end
 
-  describe "sign/1" do
-    test "creates http request signing options" do
-      config = Conf.from_file("test/support/kube-config.yaml", [])
-      assert %Certificate{} = config.auth
+  test "creates http request signing options" do
+    config = Conf.from_file("test/support/kube-config.yaml", [])
+    assert %Certificate{} = config.auth
 
-      %Conf.RequestOptions{headers: headers, ssl_options: ssl_options} =
-        Conf.RequestOptions.generate(config.auth)
+    {:ok, %Conf.RequestOptions{headers: headers, ssl_options: ssl_options}} =
+      Conf.RequestOptions.generate(config.auth)
 
-      assert headers == []
-      assert [cert: _, key: _] = ssl_options
-    end
+    assert headers == []
+    assert [cert: _, key: _] = ssl_options
   end
 end

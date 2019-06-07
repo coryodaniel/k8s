@@ -89,16 +89,28 @@ defmodule K8s.Client.Runner.Base do
     case Cluster.url_for(operation, cluster_name) do
       {:ok, url} ->
         {:ok, conf} = Cluster.conf(cluster_name)
-        request_options = RequestOptions.generate(conf)
-        http_headers = K8s.http_provider().headers(request_options)
-        http_opts = Keyword.merge([ssl: request_options.ssl_options], opts)
 
-        case encode(body, operation.method) do
-          {:ok, http_body} ->
-            K8s.http_provider().request(operation.method, url, http_body, http_headers, http_opts)
+        case RequestOptions.generate(conf) do
+          {:ok, request_options} ->
+            http_headers = K8s.http_provider().headers(request_options)
+            http_opts = Keyword.merge([ssl: request_options.ssl_options], opts)
 
-          {:error, error} ->
-            {:error, error}
+            case encode(body, operation.method) do
+              {:ok, http_body} ->
+                K8s.http_provider().request(
+                  operation.method,
+                  url,
+                  http_body,
+                  http_headers,
+                  http_opts
+                )
+
+              {:error, error} ->
+                {:error, error}
+            end
+
+          error ->
+            error
         end
 
       {:error, error} ->

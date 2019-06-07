@@ -46,12 +46,13 @@ defmodule K8s.Conf.Auth.Certificate do
 
   defimpl K8s.Conf.RequestOptions, for: __MODULE__ do
     @doc "Generates HTTP Authorization options for certificate authentication"
-    @spec generate(K8s.Conf.Auth.Certificate.t()) :: K8s.Conf.RequestOptions.t()
+    @spec generate(K8s.Conf.Auth.Certificate.t()) :: K8s.Conf.RequestOptions.generate_t()
     def generate(%K8s.Conf.Auth.Certificate{certificate: certificate, key: key}) do
-      %K8s.Conf.RequestOptions{
-        headers: [],
-        ssl_options: [cert: certificate, key: key]
-      }
+      {:ok,
+       %K8s.Conf.RequestOptions{
+         headers: [],
+         ssl_options: [cert: certificate, key: key]
+       }}
     end
   end
 end

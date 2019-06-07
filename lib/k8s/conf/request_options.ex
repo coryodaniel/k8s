@@ -11,16 +11,21 @@ defprotocol K8s.Conf.RequestOptions do
   @type t :: %__MODULE__{headers: list(), ssl_options: keyword()}
   defstruct headers: [], ssl_options: []
 
-  @spec generate(any()) :: K8s.Conf.RequestOptions.t()
+  @typedoc """
+  `generate/1` response type
+  """
+  @type generate_t :: {:ok, t} | {:error, binary | atom}
+
+  @spec generate(any()) :: generate_t()
   def generate(auth)
 end
 
 defimpl K8s.Conf.RequestOptions, for: Map do
-  @spec generate(map()) :: K8s.Conf.RequestOptions.t()
-  def generate(map), do: struct(K8s.Conf.RequestOptions, map)
+  @spec generate(map()) :: K8s.Conf.RequestOptions.generate_t()
+  def generate(map), do: {:ok, struct(K8s.Conf.RequestOptions, map)}
 end
 
 defimpl K8s.Conf.RequestOptions, for: Any do
-  @spec generate(any()) :: K8s.Conf.RequestOptions.t()
-  def generate(_), do: %K8s.Conf.RequestOptions{}
+  @spec generate(any()) :: K8s.Conf.RequestOptions.generate_t()
+  def generate(_), do: {:ok, %K8s.Conf.RequestOptions{}}
 end

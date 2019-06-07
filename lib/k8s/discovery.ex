@@ -74,10 +74,15 @@ defmodule K8s.Discovery do
   end
 
   defp do_run(url, conf, opts) do
-    request_options = RequestOptions.generate(conf)
-    headers = K8s.http_provider().headers(request_options)
-    opts = Keyword.merge([ssl: request_options.ssl_options], opts)
+    case RequestOptions.generate(conf) do
+      {:ok, request_options} ->
+        headers = K8s.http_provider().headers(request_options)
+        opts = Keyword.merge([ssl: request_options.ssl_options], opts)
 
-    K8s.http_provider().request(:get, url, "", headers, opts)
+        K8s.http_provider().request(:get, url, "", headers, opts)
+
+      error ->
+        error
+    end
   end
 end

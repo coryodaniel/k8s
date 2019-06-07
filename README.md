@@ -40,6 +40,10 @@ Most functions are also written using doctests.
 * Client supports standard HTTP calls, async batches, wait on status, and watchers
 * Supports multiple clusters
 * Supports multiple authentication credentials
+  * serviceaccount
+  * token
+  * certificate
+  * auth-provider
 * Supports multiple kubernetes API
 * Tested against kubernetes swagger specs: 1.10+ and master
 * CRD support

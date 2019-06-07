@@ -88,6 +88,9 @@ defmodule K8s.Cluster do
           nil ->
             K8s.Conf.from_service_account()
 
+          %{use_sa: true} ->
+            K8s.Conf.from_service_account()
+
           conf_path ->
             opts = details[:conf_opts] || []
             K8s.Conf.from_file(conf_path, opts)
