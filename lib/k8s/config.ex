@@ -30,7 +30,7 @@ defmodule K8s.Config do
   """
   @spec clusters() :: map
   def clusters() do
-    compile_time_clusters_config = Application.get_env(:k8s, :clusters)
+    compile_time_clusters_config = Application.get_env(:k8s, :clusters, %{})
     runtime_clusters_config(env(), compile_time_clusters_config)
   end
 
@@ -87,8 +87,11 @@ defmodule K8s.Config do
   defp cluster_name(@env_var_path_prefix <> cluster_name), do: cluster_name
   defp cluster_name(@env_var_sa_prefix <> cluster_name), do: cluster_name
 
-  defp env(), do: Map.take(System.get_env(), env_keys())
+  @spec env() :: map
+  @doc "Subset of env vars applicable to k8s"
+  def env(), do: Map.take(System.get_env(), env_keys())
 
+  @spec env_keys() :: list(binary)
   defp env_keys() do
     System.get_env()
     |> Map.keys()
