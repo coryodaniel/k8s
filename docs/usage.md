@@ -71,6 +71,41 @@ config :k8s, clusters: %{
 }
 ```
 
+### Registering Clusters with Environment Variables
+
+Multiple clusters can be registered via environment variables. Keep in mind that under the hood, `k8s` uses `kubeconfig` files.
+
+**Environment Variable Prefixes:**
+
+* `K8S_CLUSTER_CONF_SA_` - *boolean* enables authentication to the k8s API with the pods `spec.serviceAccount`.
+* `K8S_CLUSTER_CONF_PATH_` - *string* absolute path to the kube config file.
+* `K8S_CLUSTER_CONF_CONTEXT_` *string* which context to use in the kube config file.
+
+**Examples:**
+
+Configure access to a cluster named `us_central` to use the pod's service account:
+
+```shell
+export K8S_CLUSTER_CONF_SA_us_central=true
+```
+
+Set the path to a `kubeconfig` file and the context to use for `us_east`:
+
+```shell
+export K8S_CLUSTER_CONF_PATH_us_east="east.yaml"
+export K8S_CLUSTER_CONF_CONTEXT_us_east="east"
+```
+
+Register multiple clusters:
+
+```shell
+export K8S_CLUSTER_CONF_SA_us_central=true
+export K8S_CLUSTER_CONF_PATH_us_east="east.yaml"
+export K8S_CLUSTER_CONF_CONTEXT_us_east="east"
+export K8S_CLUSTER_CONF_PATH_us_west="west.yaml"
+export K8S_CLUSTER_CONF_CONTEXT_us_west="west"
+```
+
 ## Running an operation
 
 Many more client examples exist in the `K8s.Client` docs.
