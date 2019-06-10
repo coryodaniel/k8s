@@ -5,7 +5,7 @@ defmodule K8s.MixProject do
     [
       app: :k8s,
       description: "Kubernetes API Client for Elixir",
-      version: "0.2.8",
+      version: "0.2.9",
       elixir: "~> 1.6",
       start_permanent: Mix.env() == :prod,
       deps: deps(),

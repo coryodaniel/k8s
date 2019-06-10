@@ -4075,6 +4075,7 @@
         "namespaced": false,
         "singularName": "",
         "verbs": [
+          "create",
           "delete",
           "deletecollection",
           "get",
