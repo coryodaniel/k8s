@@ -5,7 +5,6 @@ defmodule K8s.Conf.Auth.Token do
 
   @behaviour K8s.Conf.Auth
 
-  @derive {Inspect, only: []}
   defstruct [:token]
   @type t :: %__MODULE__{token: binary}
 

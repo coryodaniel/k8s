@@ -14,13 +14,13 @@ defmodule K8s.Client.Runner.Base do
 
   ## Examples
 
-  *Note:* Examples assume a cluster was registered named "test-cluster", see `K8s.Cluster.register/2`.
+  *Note:* Examples assume a cluster was registered named :test_cluster, see `K8s.Cluster.register/2`.
 
   Running a list pods operation:
 
   ```elixir
   operation = K8s.Client.list("v1", "Pod", namespace: :all)
-  {:ok, %{"items" => pods}} = K8s.Client.run(operation, "test-cluster")
+  {:ok, %{"items" => pods}} = K8s.Client.run(operation, :test_cluster)
   ```
 
   Running a dry-run of a create deployment operation:
@@ -63,11 +63,11 @@ defmodule K8s.Client.Runner.Base do
 
   # opts is passed to HTTPoison as opts.
   opts = [params: %{"dryRun" => "all"}]
-  :ok = K8s.Client.Runner.Base.run(operation, "test-cluster", opts)
+  :ok = K8s.Client.Runner.Base.run(operation, :test_cluster, opts)
   ```
   """
   @spec run(Operation.t(), nil | binary | atom) :: result_t
-  def run(operation = %Operation{}, cluster_name \\ "default"),
+  def run(operation = %Operation{}, cluster_name \\ :default),
     do: run(operation, cluster_name, [])
 
   @doc """

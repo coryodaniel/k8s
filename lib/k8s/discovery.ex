@@ -18,6 +18,7 @@ defmodule K8s.Discovery do
   @impl true
   def resource_definitions_by_group(cluster_name, opts \\ []) do
     {:ok, conf} = Cluster.conf(cluster_name)
+    timeout = K8s.Config.discovery_http_timeout(cluster_name)
 
     cluster_name
     |> api_paths(opts)
@@ -27,7 +28,7 @@ defmodule K8s.Discovery do
       |> Enum.map(&async_get_resource_definition(prefix, &1, conf, opts))
       |> Enum.concat(acc)
     end)
-    |> Enum.map(&Task.await/1)
+    |> Enum.map(fn task -> Task.await(task, timeout) end)
     |> List.flatten()
   end
 
@@ -38,11 +39,13 @@ defmodule K8s.Discovery do
       iex> K8s.Discovery.api_paths(:test)
       %{"/api" => ["v1"], "/apis" => ["apps/v1", "batch/v1"]}
   """
-  @spec api_paths(binary, keyword) :: map | {:error, binary | atom}
-  def api_paths(cluster_name, opts \\ []) do
+  @spec api_paths(atom, keyword) :: map | {:error, binary | atom}
+  def api_paths(cluster_name, defaults \\ []) do
     {:ok, conf} = Cluster.conf(cluster_name)
+    timeout = K8s.Config.discovery_http_timeout(cluster_name)
     api_url = Path.join(conf.url, "/api")
     apis_url = Path.join(conf.url, "/apis")
+    opts = Keyword.merge([recv_timeout: timeout], defaults)
 
     with {:ok, api} <- do_run(api_url, conf, opts),
          {:ok, apis} <- do_run(apis_url, conf, opts) do
@@ -68,8 +71,11 @@ defmodule K8s.Discovery do
       url = Path.join([conf.url, prefix, version])
 
       case do_run(url, conf, opts) do
-        {:ok, resource_definition} -> resource_definition
-        _ -> []
+        {:ok, resource_definition} ->
+          resource_definition
+
+        _ ->
+          []
       end
     end)
   end

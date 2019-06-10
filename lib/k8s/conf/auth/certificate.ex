@@ -8,7 +8,6 @@ defmodule K8s.Conf.Auth.Certificate do
   alias K8s.Conf
   alias K8s.Conf.PKI
 
-  @derive {Inspect, only: []}
   defstruct [:certificate, :key]
   @type t :: %__MODULE__{certificate: binary, key: binary}
 

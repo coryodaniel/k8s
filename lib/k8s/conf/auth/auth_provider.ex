@@ -4,8 +4,7 @@ defmodule K8s.Conf.Auth.AuthProvider do
   """
   @behaviour K8s.Conf.Auth
 
-  @derive {Inspect, only: []}
-  defstruct [:cmd_path, :cmd_args, :token_key, :expiry_key, :token, :expiry]
+  defstruct [:cmd_path, :cmd_args, :token_key, :expiry_key]
 
   @type t :: %__MODULE__{
           cmd_path: String.t(),

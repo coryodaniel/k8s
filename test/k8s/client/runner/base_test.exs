@@ -8,7 +8,7 @@ defmodule K8s.Client.Runner.BaseTest do
 
   setup do
     conf = K8s.Conf.from_file("test/support/kube-config.yaml")
-    cluster = K8s.Cluster.register("base-test", conf)
+    cluster = K8s.Cluster.register(:base_runner_test, conf)
 
     {:ok, cluster: cluster}
   end

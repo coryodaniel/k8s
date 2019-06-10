@@ -25,7 +25,7 @@ defmodule K8s.Client.Runner.Watch do
   {:ok, reference} = Watch.run(operation, :test, stream_to: self())
   ```
   """
-  @spec run(Operation.t(), binary, keyword(atom)) :: Base.result_t()
+  @spec run(Operation.t(), atom, keyword(atom)) :: Base.result_t()
   def run(operation = %Operation{method: :get}, cluster_name, opts) do
     case get_resource_version(operation, cluster_name) do
       {:ok, rv} -> run(operation, cluster_name, rv, opts)
@@ -53,7 +53,7 @@ defmodule K8s.Client.Runner.Watch do
   {:ok, reference} = Watch.run(operation, :test, resource_version, stream_to: self())
   ```
   """
-  @spec run(Operation.t(), binary, binary, keyword(atom)) :: Base.result_t()
+  @spec run(Operation.t(), atom, binary, keyword(atom)) :: Base.result_t()
   def run(operation = %Operation{method: :get, verb: verb}, cluster_name, rv, opts)
       when verb in [:list, :list_all_namespaces] do
     opts_w_watch_params = add_watch_params_to_opts(opts, rv)
@@ -71,7 +71,7 @@ defmodule K8s.Client.Runner.Watch do
   def run(op, _, _, _),
     do: {:error, "Only HTTP GET operations (list, get) are supported. #{inspect(op)}"}
 
-  @spec get_resource_version(Operation.t(), binary) :: {:ok, binary} | {:error, binary}
+  @spec get_resource_version(Operation.t(), atom) :: {:ok, binary} | {:error, binary}
   defp get_resource_version(operation = %Operation{}, cluster_name) do
     case Base.run(operation, cluster_name) do
       {:ok, payload} ->

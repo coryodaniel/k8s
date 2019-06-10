@@ -11,11 +11,11 @@ defmodule K8s.Cluster do
   ## Examples
 
       iex> conf = K8s.Conf.from_file("./test/support/kube-config.yaml")
-      ...> "test-cluster" = K8s.Cluster.register("test-cluster", conf)
-      "test-cluster"
+      ...> :test_cluster = K8s.Cluster.register(:test_cluster, conf)
+      :test_cluster
 
   """
-  @spec register(binary, K8s.Conf.t()) :: binary
+  @spec register(atom, K8s.Conf.t()) :: atom
   def register(cluster_name, conf) do
     :ets.insert(K8s.Conf, {cluster_name, conf})
     groups = @discovery.resource_definitions_by_group(cluster_name)
@@ -34,13 +34,13 @@ defmodule K8s.Cluster do
   ## Examples
 
       iex> conf = K8s.Conf.from_file("./test/support/kube-config.yaml")
-      ...> K8s.Cluster.register("test-cluster", conf)
+      ...> K8s.Cluster.register(:test_cluster, conf)
       ...> operation = K8s.Operation.build(:get, "apps/v1", :deployment, [namespace: "default", name: "nginx"])
-      ...> K8s.Cluster.url_for(operation, "test-cluster")
+      ...> K8s.Cluster.url_for(operation, :test_cluster)
       {:ok, "https://localhost:6443/apis/apps/v1/namespaces/default/deployments/nginx"}
 
   """
-  @spec url_for(K8s.Operation.t(), binary()) :: {:ok, binary} | {:error, atom} | {:error, binary}
+  @spec url_for(K8s.Operation.t(), atom) :: {:ok, binary} | {:error, atom} | {:error, binary}
   def url_for(operation = %K8s.Operation{}, cluster_name) do
     %{group_version: group_version, kind: kind, verb: verb} = operation
     {:ok, conf} = K8s.Cluster.conf(cluster_name)
@@ -98,6 +98,8 @@ defmodule K8s.Cluster do
 
       K8s.Cluster.register(name, conf)
     end)
+
+    clusters
   end
 
   @doc """
@@ -105,14 +107,14 @@ defmodule K8s.Cluster do
 
   ## Example
 
-      iex> config_file = K8s.Conf.from_file("./test/support/kube-config.yaml")
-      ...> K8s.Cluster.register("test-cluster", config_file)
-      ...> {:ok, conf} = K8s.Cluster.conf("test-cluster")
+      iex> config_file = K8s.Conf.from_file("./test/support/kube-config.yaml", [user: "token-user"])
+      ...> K8s.Cluster.register(:test_cluster, config_file)
+      ...> {:ok, conf} = K8s.Cluster.conf(:test_cluster)
       ...> conf
-      #K8s.Conf<...>
+      %K8s.Conf{auth: %K8s.Conf.Auth.Token{token: "just-a-token-user-pun-intended"}, ca_cert: nil, cluster_name: "docker-for-desktop-cluster", insecure_skip_tls_verify: true, url: "https://localhost:6443",user_name: "token-user"}
 
   """
-  @spec conf(binary) :: {:ok, K8s.Conf.t()} | {:error, :cluster_not_registered}
+  @spec conf(atom) :: {:ok, K8s.Conf.t()} | {:error, :cluster_not_registered}
   def conf(cluster_name) do
     case :ets.lookup(K8s.Conf, cluster_name) do
       [] -> {:error, :cluster_not_registered}
@@ -123,7 +125,7 @@ defmodule K8s.Cluster do
   @doc """
   List registered cluster names
   """
-  @spec list() :: list(binary | atom)
+  @spec list() :: list(atom)
   def list() do
     K8s.Conf
     |> :ets.tab2list()

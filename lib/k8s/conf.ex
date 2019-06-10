@@ -13,7 +13,6 @@ defmodule K8s.Conf do
   ]
 
   @typep auth_t :: nil | struct
-  @derive {Inspect, only: [:user, :cluster]}
   defstruct cluster_name: nil,
             user_name: nil,
             url: "",

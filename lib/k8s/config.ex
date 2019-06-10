@@ -24,6 +24,9 @@ defmodule K8s.Config do
   @env_var_sa_prefix "K8S_CLUSTER_CONF_SA_"
   @env_var_path_prefix "K8S_CLUSTER_CONF_PATH_"
   @env_var_context_prefix "K8S_CLUSTER_CONF_CONTEXT_"
+  @env_var_discovery_timeout_prefix "K8S_DISCOVERY_TIMEOUT_"
+
+  @default_discover_timeout_ms 10_000
 
   @doc """
   Returns runtime and compile time cluster configuration merged together.
@@ -32,6 +35,29 @@ defmodule K8s.Config do
   def clusters() do
     compile_time_clusters_config = Application.get_env(:k8s, :clusters, %{})
     runtime_clusters_config(env(), compile_time_clusters_config)
+  end
+
+  @doc """
+  Discovery HTTP call timeouts in ms for each API endpoint. API endpoints are discovered in parallel. This controls the timeout for any given HTTP request.
+
+  ## Examples
+    ```shell
+    export K8S_DISCOVERY_TIMEOUT_us_central=10000
+    ```
+  """
+  @spec discovery_http_timeout(atom | binary) :: pos_integer
+  def discovery_http_timeout(cluster_name) do
+    "#{@env_var_discovery_timeout_prefix}#{cluster_name}"
+    |> System.get_env()
+    |> parse_discovery_http_timeout
+  end
+
+  @spec parse_discovery_http_timeout(nil | binary | {pos_integer, any}) :: pos_integer
+  defp parse_discovery_http_timeout(nil), do: @default_discover_timeout_ms
+  defp parse_discovery_http_timeout({ms, _}), do: ms
+
+  defp parse_discovery_http_timeout(ms) when is_binary(ms) do
+    ms |> Integer.parse() |> parse_discovery_http_timeout
   end
 
   @doc """

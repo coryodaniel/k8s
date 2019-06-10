@@ -17,7 +17,7 @@ defmodule K8s.Client.Runner.Async do
     ```elixir
     # Get the pods
     operation = K8s.Client.list("v1", "Pod", namespace: :all)
-    {:ok, %{"items" => pods}} = K8s.Client.run(operation, "test-cluster")
+    {:ok, %{"items" => pods}} = K8s.Client.run(operation, :test_cluster)
 
     # Map each one to an individual `GET` operation.
     operations = Enum.map(pods, fn(%{"metadata" => %{"name" => name, "namespace" => ns}}) ->
@@ -25,7 +25,7 @@ defmodule K8s.Client.Runner.Async do
     end)
 
     # Get the results asynchronously
-    results = K8s.Client.Async.run(operations, "test-cluster")
+    results = K8s.Client.Async.run(operations, :test_cluster)
     ```
   """
   @spec run(list(Operation.t()), binary, keyword) :: list({:ok, struct} | {:error, struct})

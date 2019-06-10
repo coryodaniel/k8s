@@ -37,7 +37,7 @@ defmodule K8s.ClusterTest do
 
   setup_all do
     conf = K8s.Conf.from_file("./test/support/kube-config.yaml")
-    K8s.Cluster.register("routing-tests", conf)
+    K8s.Cluster.register(:routing_tests, conf)
     :ok
   end
 
@@ -97,7 +97,7 @@ defmodule K8s.ClusterTest do
       verb = action_to_verb(op["x-kubernetes-action"], op)
       operation = build_operation(path, verb, opts)
 
-      assert {:ok, url} = K8s.Cluster.url_for(operation, "routing-tests")
+      assert {:ok, url} = K8s.Cluster.url_for(operation, :routing_tests)
       assert String.ends_with?(url, expected)
     end
   end

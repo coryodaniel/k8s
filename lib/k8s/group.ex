@@ -39,7 +39,7 @@ defmodule K8s.Group do
       "dev/apps/v1"
 
   """
-  @spec cluster_key(binary, binary) :: binary
+  @spec cluster_key(atom, binary) :: binary
   def cluster_key(cluster_name, group_version), do: "#{cluster_name}/#{group_version}"
 
   @spec match_resource_by_name(map, atom | binary) :: boolean
