@@ -108,7 +108,7 @@ defmodule K8s.Client do
         path_params: [namespace: "test", name: "nginx"]}
 
   """
-  @spec get(binary, binary, options | nil) :: Operation.t()
+  @spec get(binary, binary | atom, options | nil) :: Operation.t()
   def get(group_version, kind, opts \\ []), do: Operation.build(:get, group_version, kind, opts)
 
   @doc """
@@ -142,7 +142,7 @@ defmodule K8s.Client do
       }
 
   """
-  @spec list(binary, binary, options | nil) :: Operation.t()
+  @spec list(binary, binary | atom, options | nil) :: Operation.t()
   def list(group_version, kind, opts \\ [])
 
   def list(group_version, kind, namespace: :all),
@@ -496,7 +496,7 @@ defmodule K8s.Client do
       }
 
   """
-  @spec delete(binary, binary, options | nil) :: Operation.t()
+  @spec delete(binary, binary | atom, options | nil) :: Operation.t()
   def delete(group_version, kind, opts), do: Operation.build(:delete, group_version, kind, opts)
 
   @doc """
@@ -522,7 +522,7 @@ defmodule K8s.Client do
         path_params: []
       }
   """
-  @spec delete_all(binary(), binary()) :: Operation.t()
+  @spec delete_all(binary(), binary() | atom()) :: Operation.t()
   def delete_all(group_version, kind) do
     Operation.build(:deletecollection, group_version, kind, [])
   end
@@ -550,7 +550,7 @@ defmodule K8s.Client do
         path_params: [namespace: "staging"]
       }
   """
-  @spec delete_all(binary(), binary(), namespace: binary()) :: Operation.t()
+  @spec delete_all(binary(), binary() | atom(), namespace: binary()) :: Operation.t()
   def delete_all(group_version, kind, namespace: namespace) do
     Operation.build(:deletecollection, group_version, kind, namespace: namespace)
   end
