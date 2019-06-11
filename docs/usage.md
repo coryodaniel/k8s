@@ -293,3 +293,39 @@ Providers are checked in order, the first to return an authorization struct wins
 Custom providers are processed before default providers.
 
 See [Certificate](lib/conf/auth/certificate.ex) and [Token](lib/conf/auth/token.ex) for protocol and behavior implementations.
+
+## Performing "unsupported" sub-resource operations
+
+Currently sub-resource (eviction|finalize|bindings|binding|approval|scale|status) operations aren't officially supported by the `K8s.Client` API and currently need to be constructed using HTTPoison directly. `K8s.Cluster.url_for/2` can still be used to generate the base URL for the request.
+
+Below is an example `evict/1` function that will evict a pod from a node on the cluster registered as `:default`.
+
+```elixir
+def evict(%{"metadata" => %{"name" => name, "namespace" => ns}}) do
+  operation = K8s.Operation.build(:get, "v1", :pod, namespace: ns, name: name)
+
+  with {:ok, base_url} <- K8s.Cluster.url_for(operation, :default),
+       {:ok, cluster_connection_config} <- K8s.Cluster.conf(:default),
+       {:ok, request_options} <- K8s.Conf.RequestOptions.generate(cluster_connection_config),
+       {:ok, body} <- eviction_body(ns, name) do
+    eviction_url = "#{base_url}/eviction"
+    headers = request_options.headers ++ [{"Accept", "application/json"}, {"Content-Type", "application/json"}]
+    options = [ssl: request_options.ssl_options]
+
+    HTTPoison.post(eviction_url, body, headers, options)
+  end
+end
+
+defp eviction_body(ns, name) do
+  manifest = %{
+    apiVersion: "policy/v1beta1",
+    kind: "Eviction",
+    metadata: %{
+      name: name,
+      namespace: ns
+    }
+  }
+
+  Jason.encode(manifest)
+end
+```

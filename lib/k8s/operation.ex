@@ -1,6 +1,9 @@
 defmodule K8s.Operation do
   @moduledoc """
-  Encapsulates a k8s swagger operations
+  Encapsulates a k8s swagger operations.
+
+  * `method` is the HTTP method
+  * `verb` is the kubernetes REST API verb (`deletecollection`, `update`, `create`, `watch`, etc)
   """
 
   @derive {Jason.Encoder, except: [:path_params]}
