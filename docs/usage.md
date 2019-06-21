@@ -292,7 +292,7 @@ Providers are checked in order, the first to return an authorization struct wins
 
 Custom providers are processed before default providers.
 
-See [Certificate](lib/conf/auth/certificate.ex) and [Token](lib/conf/auth/token.ex) for protocol and behavior implementations.
+For protocol and behavior implementation examples check out `Certificate`, `Token`, or `AuthProvider` [here](../lib/k8s/conf/auth/).
 
 ## Performing "unsupported" sub-resource operations
 

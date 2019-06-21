@@ -5,7 +5,6 @@ defmodule K8s.ClusterTest do
   doctest K8s.Cluster
 
   alias K8s.{Operation}
-  require Logger
 
   @k8s_spec System.get_env("K8S_SPEC") || "test/support/swagger/1.14.json"
   @swagger @k8s_spec |> File.read!() |> Jason.decode!()
