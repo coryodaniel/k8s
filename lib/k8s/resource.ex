@@ -3,6 +3,27 @@ defmodule K8s.Resource do
   Manifest attribute helpers
   """
 
+  # Symbol -> bytes
+  @binary_multipliers %{
+    "Ki" => 1024,
+    "Mi" => 1_048_576,
+    "Gi" => 1_073_741_824,
+    "Ti" => 1_099_511_627_776,
+    "Pi" => 1_125_899_906_842_624,
+    "Ei" => 1_152_921_504_606_846_976
+  }
+
+  @decimal_multipliers %{
+    "" => 1,
+    "k" => 1000,
+    "m" => 1_000_000,
+    "M" => 1_000_000,
+    "G" => 1_000_000_000,
+    "T" => 1_000_000_000_000,
+    "P" => 1_000_000_000_000_000,
+    "E" => 1_000_000_000_000_000_000
+  }
+
   @doc """
   Create a resource `Map` from a YAML file.
 
@@ -221,6 +242,7 @@ defmodule K8s.Resource do
 
   """
   @spec cpu(binary()) :: number
+  def cpu(nil), do: 0
   def cpu("-" <> str), do: -1 * deserialize_cpu_quantity(str)
   def cpu("+" <> str), do: deserialize_cpu_quantity(str)
   def cpu(str), do: deserialize_cpu_quantity(str)
@@ -239,27 +261,6 @@ defmodule K8s.Resource do
       _ -> value
     end
   end
-
-  # # symbol -> bytes
-  @binary_multipliers %{
-    "Ki" => 1024,
-    "Mi" => 1_048_576,
-    "Gi" => 1_073_741_824,
-    "Ti" => 1_099_511_627_776,
-    "Pi" => 1_125_899_906_842_624,
-    "Ei" => 1_152_921_504_606_846_976
-  }
-
-  @decimal_multipliers %{
-    "" => 1,
-    "k" => 1000,
-    "m" => 1_000_000,
-    "M" => 1_000_000,
-    "G" => 1_000_000_000,
-    "T" => 1_000_000_000_000,
-    "P" => 1_000_000_000_000_000,
-    "E" => 1_000_000_000_000_000_000
-  }
 
   @doc """
   Deserializes memory quantity
@@ -287,6 +288,7 @@ defmodule K8s.Resource do
 
   """
   @spec memory(binary()) :: number
+  def memory(nil), do: 0
   def memory("-" <> str), do: -1 * deserialize_memory_quantity(str)
   def memory("+" <> str), do: deserialize_memory_quantity(str)
   def memory(str), do: deserialize_memory_quantity(str)
