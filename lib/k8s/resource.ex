@@ -202,4 +202,133 @@ defmodule K8s.Resource do
   """
   @spec has_annotation?(map(), binary()) :: boolean()
   def has_annotation?(%{} = resource, name), do: resource |> annotations() |> Map.has_key?(name)
+
+  @doc """
+  Deserializes CPU quantity
+
+  ## Examples
+    Parses whole values
+      iex> K8s.Resource.cpu("3")
+      3
+
+    Parses millicpu values
+      iex> K8s.Resource.cpu("500m")
+      0.5
+
+    Parses decimal values
+      iex> K8s.Resource.cpu("1.5")
+      1.5
+
+  """
+  @spec cpu(binary()) :: number
+  def cpu("-" <> str), do: -1 * deserialize_cpu_quantity(str)
+  def cpu("+" <> str), do: deserialize_cpu_quantity(str)
+  def cpu(str), do: deserialize_cpu_quantity(str)
+
+  defp deserialize_cpu_quantity(str) do
+    contains_decimal = String.contains?(str, ".")
+
+    {value, maybe_millicpu} =
+      case contains_decimal do
+        true -> Float.parse(str)
+        false -> Integer.parse(str)
+      end
+
+    case maybe_millicpu do
+      "m" -> value / 1000
+      _ -> value
+    end
+  end
+
+  # # symbol -> bytes
+  @binary_multipliers %{
+    "Ki" => 1024,
+    "Mi" => 1_048_576,
+    "Gi" => 1_073_741_824,
+    "Ti" => 1_099_511_627_776,
+    "Pi" => 1_125_899_906_842_624,
+    "Ei" => 1_152_921_504_606_846_976
+  }
+
+  @decimal_multipliers %{
+    "" => 1,
+    "k" => 1000,
+    "m" => 1_000_000,
+    "M" => 1_000_000,
+    "G" => 1_000_000_000,
+    "T" => 1_000_000_000_000,
+    "P" => 1_000_000_000_000_000,
+    "E" => 1_000_000_000_000_000_000
+  }
+
+  @doc """
+  Deserializes memory quantity
+
+  ## Examples
+    Parses whole values
+      iex> K8s.Resource.memory("1000000")
+      1000000
+
+    Parses decimal values
+      iex> K8s.Resource.memory("10.75")
+      10.75
+
+    Parses decimalSI values
+      iex> K8s.Resource.memory("10M")
+      10000000
+
+    Parses binarySI suffixes
+      iex> K8s.Resource.memory("50Mi")
+      52428800
+
+    Returns the numeric value when the suffix is unrecognized
+      iex> K8s.Resource.memory("50Foo")
+      50
+
+  """
+  @spec memory(binary()) :: number
+  def memory("-" <> str), do: -1 * deserialize_memory_quantity(str)
+  def memory("+" <> str), do: deserialize_memory_quantity(str)
+  def memory(str), do: deserialize_memory_quantity(str)
+
+  defp deserialize_memory_quantity(str) do
+    contains_decimal = String.contains?(str, ".")
+    # contains_exponent = String.match?(str, ~r/[eE]/)
+
+    {value, maybe_multiplier} =
+      case contains_decimal do
+        true -> Float.parse(str)
+        false -> Integer.parse(str)
+      end
+
+    multiplier = @binary_multipliers[maybe_multiplier] || @decimal_multipliers[maybe_multiplier]
+
+    case multiplier do
+      nil ->
+        value
+
+      mult ->
+        value * mult
+    end
+  end
+
+  # The serialization format is:
+  #  <quantity> ::= <signedNumber><suffix> (Note that <suffix> may be empty, from the "" case in <decimalSI>.)
+  #  <signedNumber> ::= <number> | <sign><number>
+  #  <sign> ::= "+" | "-"
+  #  <number> ::= <digits> | <digits>.<digits> | <digits>. | .<digits>
+  #  <digit> ::= 0 | 1 | ... | 9
+  #  <digits> ::= <digit> | <digit><digits>
+
+  #  <suffix> ::= <binarySI> | <decimalExponent> | <decimalSI>
+  #  <binarySI> ::= Ki | Mi | Gi | Ti | Pi | Ei
+  #     (International System of units; See: http://physics.nist.gov/cuu/Units/binary.html)
+  #  <decimalSI> ::= m | "" | k | M | G | T | P | E
+  #     (Note that 1024 = 1Ki but 1000 = 1k; I didn't choose the capitalization.)
+
+  #  <decimalExponent> ::= "e" <signedNumber> | "E" <signedNumber>
+  #   No matter which of the three exponent forms is used, no
+  #  quantity may represent a number greater than 2^63-1 in magnitude, nor may
+  #  it have more than 3 decimal places. Numbers larger or more precise will be
+  #  capped or rounded up.
 end
