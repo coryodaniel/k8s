@@ -115,6 +115,43 @@ defmodule Mock.HTTPProvider do
     end
   end
 
+  def make_continue_response(continue, items) do
+    %{
+      "metadata" => %{
+        "continue" => continue
+      },
+      "items" => items
+    }
+  end
+
+  def make_service(name, ns \\ "default") do
+    %{
+      "kind" => "Service",
+      "apiVersion" => "v1",
+      "metadata" => %{"name" => name, "namespace" => ns}
+    }
+  end
+
+  def request(:get, @uri_prefix <> "/api/v1/namespaces/stream-runner-test/services", _, _, opts) do
+    params = opts[:params]
+    page1_items = [make_service("foo", "stream-runner-test")]
+    page2_items = [make_service("bar", "stream-runner-test")]
+    page3_items = [make_service("qux", "stream-runner-test")]
+
+    body =
+      case params do
+        %{continue: nil, limit: limit} -> make_continue_response("start", page1_items)
+        %{continue: "start"} -> make_continue_response("end", page2_items)
+        %{continue: "end"} -> make_continue_response("", page3_items)
+      end
+
+    render_ok(body)
+  end
+
+  def request(:get, @uri_prefix <> "/api/v1/namespaces", _, _, opts) do
+    render_ok(nil)
+  end
+
   def request(:get, @uri_prefix <> "/api/v1/namespaces/test", _, _, _) do
     render_ok(nil)
   end
@@ -128,6 +165,8 @@ defmodule Mock.HTTPProvider do
   end
 
   @spec render_ok(map) :: nil
+  def render_ok(nil), do: render_ok("Not what you expected? Did you set the http_provider mock?")
+
   def render_ok(data) do
     body = Jason.encode!(data)
     handle_response({:ok, %HTTPoison.Response{status_code: 200, body: body}})

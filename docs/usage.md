@@ -238,6 +238,18 @@ results = K8s.Client.async([operation1, operation2], :dev)
 
 *Note*: all operations are fired async and their results are returned. Processing does not halt if an error occurs for one operation.
 
+## List operations as a Elixir Streams
+
+```elixir
+operation = K8s.Client.list("v1", "Pod", namespace: :all)
+
+operation
+|> K8s.Client.stream()
+|> Stream.filter(&my_filter_function?/1)
+|> Stream.map(&my_map_function?/1)
+|> Enum.into([])
+```
+
 ## Custom Resource Definitions
 
 Custom resources are discovered via the same mechanism as "standard" k8s resources and can be worked with as such:

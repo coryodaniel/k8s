@@ -70,13 +70,13 @@ defmodule K8s.Client.HTTPProvider do
 
   ## Example
 
-      iex> ro = %K8s.Conf.RequestOptions{headers: [{"Authorization", "Basic AF"}]}
-      ...> K8s.Client.HTTPProvider.headers(ro)
+      iex> opts = %K8s.Conf.RequestOptions{headers: [{"Authorization", "Basic AF"}]}
+      ...> K8s.Client.HTTPProvider.headers(opts)
       [{"Authorization", "Basic AF"},{"Accept", "application/json"}, {"Content-Type", "application/json"}]
   """
   @impl true
-  def headers(ro = %RequestOptions{}) do
-    ro.headers ++ [{"Accept", "application/json"}, {"Content-Type", "application/json"}]
+  def headers(%RequestOptions{} = opts) do
+    opts.headers ++ [{"Accept", "application/json"}, {"Content-Type", "application/json"}]
   end
 
   @spec decode(binary()) :: list | map | nil

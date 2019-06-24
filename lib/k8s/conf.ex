@@ -108,7 +108,7 @@ defmodule K8s.Conf do
   end
 
   @spec get_auth(map(), String.t()) :: auth_t
-  defp get_auth(auth_map = %{}, base_path) do
+  defp get_auth(%{} = auth_map, base_path) do
     Enum.find_value(providers(), fn provider -> provider.create(auth_map, base_path) end)
   end
 
@@ -120,7 +120,7 @@ defmodule K8s.Conf do
   defimpl K8s.Conf.RequestOptions, for: __MODULE__ do
     @doc "Generates HTTP Authorization options for certificate authentication"
     @spec generate(K8s.Conf.t()) :: K8s.Conf.RequestOptions.generate_t()
-    def generate(conf = %K8s.Conf{}) do
+    def generate(%K8s.Conf{} = conf) do
       case RequestOptions.generate(conf.auth) do
         {:ok, %RequestOptions{headers: headers, ssl_options: auth_options}} ->
           verify_options =

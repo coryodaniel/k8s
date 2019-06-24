@@ -105,7 +105,7 @@ defmodule K8s.Resource do
       "Deployment"
   """
   @spec kind(map()) :: binary() | nil
-  def kind(resource = %{}), do: resource["kind"]
+  def kind(%{} = resource), do: resource["kind"]
 
   @doc """
   Returns the metadata of k8s resource.
@@ -115,7 +115,7 @@ defmodule K8s.Resource do
       %{"name" => "nginx", "namespace" => "foo"}
   """
   @spec metadata(map()) :: map() | nil
-  def metadata(resource = %{}), do: resource["metadata"]
+  def metadata(%{} = resource), do: resource["metadata"]
 
   @doc """
   Returns the name of k8s resource.
@@ -125,7 +125,7 @@ defmodule K8s.Resource do
       "nginx"
   """
   @spec name(map()) :: binary() | nil
-  def name(resource = %{}), do: get_in(resource, ~w(metadata name))
+  def name(%{} = resource), do: get_in(resource, ~w(metadata name))
 
   @doc """
   Returns the namespace of k8s resource.
@@ -135,7 +135,7 @@ defmodule K8s.Resource do
       "foo"
   """
   @spec namespace(map()) :: binary() | nil
-  def namespace(resource = %{}), do: get_in(resource, ~w(metadata namespace))
+  def namespace(%{} = resource), do: get_in(resource, ~w(metadata namespace))
 
   @doc """
   Returns the labels of k8s resource.
@@ -145,7 +145,7 @@ defmodule K8s.Resource do
       %{"env" => "test"}
   """
   @spec labels(map()) :: map()
-  def labels(resource = %{}), do: get_in(resource, ~w(metadata labels)) || %{}
+  def labels(%{} = resource), do: get_in(resource, ~w(metadata labels)) || %{}
 
   @doc """
   Returns the value of a k8s resource's label.
@@ -155,7 +155,7 @@ defmodule K8s.Resource do
       "test"
   """
   @spec label(map(), binary) :: binary() | nil
-  def label(resource = %{}, name), do: get_in(resource, ["metadata", "labels", name])
+  def label(%{} = resource, name), do: get_in(resource, ["metadata", "labels", name])
 
   @doc """
   Returns the annotations of k8s resource.
@@ -165,7 +165,7 @@ defmodule K8s.Resource do
       %{"env" => "test"}
   """
   @spec annotations(map()) :: map()
-  def annotations(resource = %{}), do: get_in(resource, ~w(metadata annotations)) || %{}
+  def annotations(%{} = resource), do: get_in(resource, ~w(metadata annotations)) || %{}
 
   @doc """
   Returns the value of a k8s resource's annotation.
@@ -175,7 +175,7 @@ defmodule K8s.Resource do
       "test"
   """
   @spec annotation(map(), binary) :: binary() | nil
-  def annotation(resource = %{}, name), do: get_in(resource, ["metadata", "annotations", name])
+  def annotation(%{} = resource, name), do: get_in(resource, ["metadata", "annotations", name])
 
   @doc """
   Check if a label is present.
@@ -188,7 +188,7 @@ defmodule K8s.Resource do
       false
   """
   @spec has_label?(map(), binary()) :: boolean()
-  def has_label?(resource = %{}, name), do: resource |> labels() |> Map.has_key?(name)
+  def has_label?(%{} = resource, name), do: resource |> labels() |> Map.has_key?(name)
 
   @doc """
   Check if an annotation is present.
@@ -201,5 +201,5 @@ defmodule K8s.Resource do
       false
   """
   @spec has_annotation?(map(), binary()) :: boolean()
-  def has_annotation?(resource = %{}, name), do: resource |> annotations() |> Map.has_key?(name)
+  def has_annotation?(%{} = resource, name), do: resource |> annotations() |> Map.has_key?(name)
 end

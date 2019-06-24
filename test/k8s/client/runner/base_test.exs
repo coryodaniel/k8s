@@ -60,9 +60,9 @@ defmodule K8s.Client.Runner.BaseTest do
   end
 
   describe "run" do
-    test "request with HTTP 2xx response with no body", %{cluster: cluster} do
+    test "request with HTTP 2xx response", %{cluster: cluster} do
       operation = Client.list("v1", "Namespace", [])
-      assert {:ok, nil} = Base.run(operation, cluster)
+      assert {:ok, _} = Base.run(operation, cluster)
     end
   end
 end

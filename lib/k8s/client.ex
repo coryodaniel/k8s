@@ -23,7 +23,7 @@ defmodule K8s.Client do
   @type options :: [option]
 
   alias K8s.Operation
-  alias K8s.Client.Runner.{Async, Base, Wait, Watch}
+  alias K8s.Client.Runner.{Async, Base, Stream, Wait, Watch}
 
   @doc "alias of `K8s.Client.Runner.Base.run/2`"
   defdelegate run(operation, cluster_name), to: Base
@@ -48,6 +48,9 @@ defmodule K8s.Client do
 
   @doc "alias of `K8s.Client.Runner.Watch.run/4`"
   defdelegate watch(operation, cluster_name, rv, opts), to: Watch, as: :run
+
+  @doc "alias of `K8s.Client.Runner.Stream.run/3`"
+  defdelegate stream(operation, cluster_name, opts), to: Stream, as: :run
 
   @doc """
   Returns a `GET` operation for a resource given a manifest. May be a partial manifest as long as it contains:
@@ -79,7 +82,7 @@ defmodule K8s.Client do
       }
   """
   @spec get(map()) :: Operation.t()
-  def get(resource = %{}), do: Operation.build(:get, resource)
+  def get(%{} = resource), do: Operation.build(:get, resource)
 
   @doc """
   Returns a `GET` operation for a resource by version, kind, name, and optionally namespace.
@@ -234,18 +237,18 @@ defmodule K8s.Client do
   """
   @spec create(map()) :: Operation.t()
   def create(
-        resource = %{
+        %{
           "apiVersion" => group_version,
           "kind" => kind,
           "metadata" => %{"namespace" => ns}
-        }
+        } = resource
       ) do
     Operation.build(:create, group_version, kind, [namespace: ns], resource)
   end
 
   # Support for creating resources that aren't namespaced... like a Namespace or other cluster-scoped resources.
   def create(
-        resource = %{"apiVersion" => group_version, "kind" => kind, "metadata" => %{"name" => _}}
+        %{"apiVersion" => group_version, "kind" => kind, "metadata" => %{"name" => _}} = resource
       ) do
     Operation.build(:create, group_version, kind, [], resource)
   end
@@ -334,7 +337,7 @@ defmodule K8s.Client do
       }
   """
   @spec patch(map()) :: Operation.t()
-  def patch(resource = %{}), do: Operation.build(:patch, resource)
+  def patch(%{} = resource), do: Operation.build(:patch, resource)
 
   @doc """
   Returns a `PUT` operation to replace/update the given resource.
@@ -420,7 +423,7 @@ defmodule K8s.Client do
       }
   """
   @spec update(map()) :: Operation.t()
-  def update(resource = %{}), do: Operation.build(:update, resource)
+  def update(%{} = resource), do: Operation.build(:update, resource)
 
   @doc """
   Returns a `DELETE` operation for a resource by manifest. May be a partial manifest as long as it contains:
@@ -479,7 +482,7 @@ defmodule K8s.Client do
 
   """
   @spec delete(map()) :: Operation.t()
-  def delete(resource = %{}), do: Operation.build(:delete, resource)
+  def delete(%{} = resource), do: Operation.build(:delete, resource)
 
   @doc """
   Returns a `DELETE` operation for a resource by version, kind, name, and optionally namespace.

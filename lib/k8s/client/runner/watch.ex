@@ -26,7 +26,7 @@ defmodule K8s.Client.Runner.Watch do
   ```
   """
   @spec run(Operation.t(), atom, keyword(atom)) :: Base.result_t()
-  def run(operation = %Operation{method: :get}, cluster_name, opts) do
+  def run(%Operation{method: :get} = operation, cluster_name, opts) do
     case get_resource_version(operation, cluster_name) do
       {:ok, rv} -> run(operation, cluster_name, rv, opts)
       error -> error
@@ -54,13 +54,13 @@ defmodule K8s.Client.Runner.Watch do
   ```
   """
   @spec run(Operation.t(), atom, binary, keyword(atom)) :: Base.result_t()
-  def run(operation = %Operation{method: :get, verb: verb}, cluster_name, rv, opts)
+  def run(%Operation{method: :get, verb: verb} = operation, cluster_name, rv, opts)
       when verb in [:list, :list_all_namespaces] do
     opts_w_watch_params = add_watch_params_to_opts(opts, rv)
     Base.run(operation, cluster_name, opts_w_watch_params)
   end
 
-  def run(operation = %Operation{method: :get, verb: :get}, cluster_name, rv, opts) do
+  def run(%Operation{method: :get, verb: :get} = operation, cluster_name, rv, opts) do
     {list_op, field_selector_param} = get_to_list(operation)
 
     params = Map.merge(opts[:params] || %{}, field_selector_param)
@@ -72,7 +72,7 @@ defmodule K8s.Client.Runner.Watch do
     do: {:error, "Only HTTP GET operations (list, get) are supported. #{inspect(op)}"}
 
   @spec get_resource_version(Operation.t(), atom) :: {:ok, binary} | {:error, binary}
-  defp get_resource_version(operation = %Operation{}, cluster_name) do
+  defp get_resource_version(%Operation{} = operation, cluster_name) do
     case Base.run(operation, cluster_name) do
       {:ok, payload} ->
         rv = parse_resource_version(payload)
@@ -90,7 +90,7 @@ defmodule K8s.Client.Runner.Watch do
   end
 
   @spec parse_resource_version(any) :: binary
-  defp parse_resource_version(payload = %{}),
+  defp parse_resource_version(%{} = payload),
     do: get_in(payload, @resource_version_json_path) || "0"
 
   defp parse_resource_version(_), do: "0"

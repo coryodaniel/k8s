@@ -47,30 +47,30 @@ defmodule K8s.Operation do
   @spec build(atom, map) :: __MODULE__.t()
   def build(
         verb,
-        resource = %{
+        %{
           "apiVersion" => v,
           "kind" => k,
           "metadata" => %{"name" => name, "namespace" => ns}
-        }
+        } = resource
       ) do
     build(verb, v, k, [namespace: ns, name: name], resource)
   end
 
   def build(
         verb,
-        resource = %{"apiVersion" => v, "kind" => k, "metadata" => %{"name" => name}}
+        %{"apiVersion" => v, "kind" => k, "metadata" => %{"name" => name}} = resource
       ) do
     build(verb, v, k, [name: name], resource)
   end
 
   def build(
         verb,
-        resource = %{"apiVersion" => v, "kind" => k, "metadata" => %{"namespace" => ns}}
+        %{"apiVersion" => v, "kind" => k, "metadata" => %{"namespace" => ns}} = resource
       ) do
     build(verb, v, k, [namespace: ns], resource)
   end
 
-  def build(verb, resource = %{"apiVersion" => v, "kind" => k}) do
+  def build(verb, %{"apiVersion" => v, "kind" => k} = resource) do
     build(verb, v, k, [], resource)
   end
 

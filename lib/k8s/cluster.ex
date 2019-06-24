@@ -41,7 +41,7 @@ defmodule K8s.Cluster do
 
   """
   @spec url_for(K8s.Operation.t(), atom) :: {:ok, binary} | {:error, atom} | {:error, binary}
-  def url_for(operation = %K8s.Operation{}, cluster_name) do
+  def url_for(%K8s.Operation{} = operation, cluster_name) do
     %{group_version: group_version, kind: kind, verb: verb} = operation
     {:ok, conf} = K8s.Cluster.conf(cluster_name)
 

@@ -2,6 +2,8 @@ defmodule K8s.Conf.Auth.AuthProvider do
   @moduledoc """
   `auth-provider` authentication support
   """
+  alias K8s.Conf.Auth.AuthProvider
+  alias K8s.Conf.RequestOptions
   @behaviour K8s.Conf.Auth
 
   defstruct [:cmd_path, :cmd_args, :token_key, :expiry_key]
@@ -43,14 +45,14 @@ defmodule K8s.Conf.Auth.AuthProvider do
     |> String.split(".")
   end
 
-  defimpl K8s.Conf.RequestOptions, for: __MODULE__ do
+  defimpl RequestOptions, for: __MODULE__ do
     @doc "Generates HTTP Authorization options for auth-provider authentication"
-    @spec generate(K8s.Conf.Auth.AuthProvider.t()) :: K8s.Conf.RequestOptions.generate_t()
-    def generate(provider = %K8s.Conf.Auth.AuthProvider{}) do
-      case K8s.Conf.Auth.AuthProvider.generate_token(provider) do
+    @spec generate(AuthProvider.t()) :: RequestOptions.generate_t()
+    def generate(%AuthProvider{} = provider) do
+      case AuthProvider.generate_token(provider) do
         {:ok, token} ->
           {:ok,
-           %K8s.Conf.RequestOptions{
+           %RequestOptions{
              headers: [{"Authorization", "Bearer #{token}"}],
              ssl_options: []
            }}

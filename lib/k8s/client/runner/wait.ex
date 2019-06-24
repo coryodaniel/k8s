@@ -34,7 +34,7 @@ defmodule K8s.Client.Runner.Wait do
   """
   @spec run(Operation.t(), binary, keyword(atom())) ::
           {:ok, map()} | {:error, binary()}
-  def run(op = %Operation{method: :get}, cluster_name, opts) do
+  def run(%Operation{method: :get} = op, cluster_name, opts) do
     conditions =
       Wait
       |> struct(opts)
@@ -68,7 +68,7 @@ defmodule K8s.Client.Runner.Wait do
     {:ok, processed}
   end
 
-  defp run_operation(op, cluster_name, opts = %Wait{timeout_after: timeout_after}) do
+  defp run_operation(op, cluster_name, %Wait{timeout_after: timeout_after} = opts) do
     case timed_out?(timeout_after) do
       true -> {:error, :timeout}
       false -> evaluate_operation(op, cluster_name, opts)
@@ -78,7 +78,7 @@ defmodule K8s.Client.Runner.Wait do
   defp evaluate_operation(
          op,
          cluster_name,
-         opts = %Wait{processor: processor, sleep: sleep, eval: eval, find: find}
+         %Wait{processor: processor, sleep: sleep, eval: eval, find: find} = opts
        ) do
     with {:ok, resp} <- processor.(op, cluster_name),
          true <- satisfied?(resp, find, eval) do

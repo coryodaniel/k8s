@@ -66,8 +66,8 @@ defmodule K8s.Client.Runner.Base do
   :ok = K8s.Client.Runner.Base.run(operation, :test_cluster, opts)
   ```
   """
-  @spec run(Operation.t(), nil | binary | atom) :: result_t
-  def run(operation = %Operation{}, cluster_name \\ :default),
+  @spec run(Operation.t(), atom | nil) :: result_t
+  def run(%Operation{} = operation, cluster_name \\ :default),
     do: run(operation, cluster_name, [])
 
   @doc """
@@ -76,7 +76,7 @@ defmodule K8s.Client.Runner.Base do
   See `run/2`
   """
   @spec run(Operation.t(), binary | atom, keyword()) :: result_t
-  def run(operation = %Operation{}, cluster_name, opts) when is_list(opts) do
+  def run(%Operation{} = operation, cluster_name, opts) when is_list(opts) do
     run(operation, cluster_name, operation.resource, opts)
   end
 
@@ -84,8 +84,8 @@ defmodule K8s.Client.Runner.Base do
   Run an operation with an alternative HTTP Body (map) and pass `opts` to HTTPoison.
   See `run/2`
   """
-  @spec run(Operation.t(), binary | atom, map(), keyword()) :: result_t
-  def run(operation = %Operation{}, cluster_name, body, opts \\ []) do
+  @spec run(Operation.t(), atom, map(), keyword()) :: result_t
+  def run(%Operation{} = operation, cluster_name, body, opts \\ []) do
     with {:ok, url} <- Cluster.url_for(operation, cluster_name),
          {:ok, conf} <- Cluster.conf(cluster_name),
          {:ok, request_options} <- RequestOptions.generate(conf),
