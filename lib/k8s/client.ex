@@ -49,6 +49,9 @@ defmodule K8s.Client do
   @doc "alias of `K8s.Client.Runner.Watch.run/4`"
   defdelegate watch(operation, cluster_name, rv, opts), to: Watch, as: :run
 
+  @doc "alias of `K8s.Client.Runner.Stream.run/2`"
+  defdelegate stream(operation, cluster_name), to: Stream, as: :run
+
   @doc "alias of `K8s.Client.Runner.Stream.run/3`"
   defdelegate stream(operation, cluster_name, opts), to: Stream, as: :run
 

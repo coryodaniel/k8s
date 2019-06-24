@@ -7,13 +7,16 @@ defmodule K8s.Client.Runner.Stream do
     @moduledoc "List operation as a Stream data type"
     @limit 10
 
+    @typedoc "opts for `Base.run/3`"
+    @type opts_t :: keyword | nil
+
     @typedoc "List operation as a Stream data type"
     @type t :: %{
             operation: K8s.Operation.t(),
             cluster: atom,
             continue: nil | binary | :halt,
             limit: pos_integer,
-            opts: keyword | map | nil
+            opts: opts_t
           }
     defstruct operation: nil, cluster: nil, continue: nil, opts: [], limit: @limit
   end
@@ -100,10 +103,12 @@ defmodule K8s.Client.Runner.Stream do
   # Make a list request and convert response to stream state
   @spec list(ListRequest.t()) :: {:ok, state_t} | {:error, atom() | binary()}
   def list(%ListRequest{} = request) do
+    default_params = request.opts[:params] || %{}
     pagination_params = %{limit: request.limit, continue: request.continue}
-    params = Map.merge(request.opts[:params] || %{}, pagination_params)
+    request_params = Map.merge(default_params || %{}, pagination_params)
+    opts = Keyword.put(request.opts, :params, request_params)
 
-    response = Base.run(request.operation, request.cluster, params: params)
+    response = Base.run(request.operation, request.cluster, opts)
 
     case response do
       {:ok, response} ->
