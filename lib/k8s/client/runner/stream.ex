@@ -5,21 +5,22 @@ defmodule K8s.Client.Runner.Stream do
 
   defmodule ListRequest do
     @moduledoc "List operation as a Stream data type"
+    @limit 10
+
     @typedoc "List operation as a Stream data type"
     @type t :: %{
             operation: K8s.Operation.t(),
             cluster: atom,
             continue: nil | binary | :halt,
+            limit: pos_integer,
             opts: keyword | map | nil
           }
-    defstruct [:operation, :cluster, :continue, :opts]
+    defstruct operation: nil, cluster: nil, continue: nil, opts: [], limit: @limit
   end
 
   alias K8s.Client.Runner.Base
   alias K8s.Operation
   alias K8s.Client.Runner.Stream.ListRequest
-
-  @limit 10
 
   @typedoc "List of items and pagination request"
   @type state_t :: {list(), nil | ListRequest.t()}
@@ -34,7 +35,7 @@ defmodule K8s.Client.Runner.Stream do
   Validates operation type before calling `stream/3`. Only supports verbs: `list_all_namespaces` and `list`.
   """
   @spec run(Operation.t(), atom, keyword()) :: return_t
-  def run(operation, cluster, opts \\ [foo: :bar])
+  def run(operation, cluster, opts \\ [])
 
   def run(%Operation{verb: :list_all_namespaces} = op, cluster, opts),
     do: stream(op, cluster, opts)
@@ -96,15 +97,15 @@ defmodule K8s.Client.Runner.Stream do
   end
 
   @doc false
+  # Make a list request and convert response to stream state
   @spec list(ListRequest.t()) :: {:ok, state_t} | {:error, atom() | binary()}
   def list(%ListRequest{} = request) do
-    pagination_params = %{limit: @limit, continue: request.continue}
+    pagination_params = %{limit: request.limit, continue: request.continue}
     params = Map.merge(request.opts[:params] || %{}, pagination_params)
 
     response = Base.run(request.operation, request.cluster, params: params)
 
     case response do
-      # convert k8s response to stream state
       {:ok, response} ->
         items = Map.get(response, "items")
         next_request = Map.put(request, :continue, do_continue(response))
