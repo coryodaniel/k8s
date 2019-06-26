@@ -1,5 +1,5 @@
+# credo:disable-for-this-file
 defmodule K8s.Application do
-  # credo:disable-for-this-file
   @moduledoc false
 
   use Application

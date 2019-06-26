@@ -8,31 +8,6 @@
 [![Documentation](https://img.shields.io/badge/documentation-on%20hexdocs-green.svg)](https://hexdocs.pm/k8s/)
 ![Hex.pm](https://img.shields.io/hexpm/l/k8s.svg?style=flat)
 
-## Installation
-
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `k8s` to your list of dependencies in `mix.exs`:
-
-```elixir
-def deps do
-  [
-    {:k8s, "~> 0.2"}
-  ]
-end
-```
-
-## Usage
-
-Check out the [Usage Guide](https://hexdocs.pm/k8s/usage.html) for in-depth examples.
-
-Most functions are also written using doctests.
-
-* [K8s.Client doctests](https://hexdocs.pm/k8s/K8s.Client.html)
-* [K8s.Cluster doctests](https://hexdocs.pm/k8s/K8s.Cluster.html)
-* [K8s.Conf doctests](https://hexdocs.pm/k8s/K8s.Conf.html)
-* [K8s.Resource doctests](https://hexdocs.pm/k8s/K8s.Resource.html)
-* [K8s.Version doctests](https://hexdocs.pm/k8s/K8s.Version.html)
-
 ## Features
 
 * A client API for humans
@@ -53,17 +28,29 @@ Most functions are also written using doctests.
 * Pluggable auth providers
 * Macro free; fast compile & fast startup
 
-### Non-features
+## Installation
 
-* Modules for every kubernetes resource.
-* Assume the "default" namespaces. Always provide a namespace when a namespace is applicable.
-* Support for the deprecated Watch API.
+The package can be installed by adding `k8s` to your list of dependencies in `mix.exs`:
 
-## Docs
+```elixir
+def deps do
+  [
+    {:k8s, "~> 0.2"}
+  ]
+end
+```
 
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at [https://hexdocs.pm/k8s](https://hexdocs.pm/k8s).
+## Usage
+
+Check out the [Usage Guide](https://hexdocs.pm/k8s/usage.html) for in-depth examples.
+
+Most functions are also written using doctests.
+
+* [K8s.Client doctests](https://hexdocs.pm/k8s/K8s.Client.html)
+* [K8s.Cluster doctests](https://hexdocs.pm/k8s/K8s.Cluster.html)
+* [K8s.Conf doctests](https://hexdocs.pm/k8s/K8s.Conf.html)
+* [K8s.Resource doctests](https://hexdocs.pm/k8s/K8s.Resource.html)
+* [K8s.Version doctests](https://hexdocs.pm/k8s/K8s.Version.html)
 
 ## Testing
 
