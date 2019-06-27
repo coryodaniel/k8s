@@ -133,6 +133,12 @@ defmodule Mock.HTTPProvider do
     }
   end
 
+  def request(:get, @uri_prefix <> "/api/v1/namespaces/stream-empty-test/services", _, _, opts) do
+    items = []
+    body = make_continue_response("", items)
+    render_ok(body)
+  end
+
   def request(:get, @uri_prefix <> "/api/v1/namespaces/stream-failure-test/services", _, _, opts) do
     params = opts[:params]
     page1_items = [make_service("foo", "stream-failure-test")]

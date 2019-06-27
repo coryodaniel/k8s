@@ -3,41 +3,20 @@ defmodule K8s.Client.Runner.Stream do
   Takes a `K8s.Client.list/3` operation and returns an Elixir [`Stream`](https://hexdocs.pm/elixir/Stream.html)
   """
 
-  defmodule ListRequest do
-    @moduledoc "List operation as a Stream data type"
-    @limit 10
-
-    @typedoc "opts for `Base.run/3`"
-    @type opts_t :: keyword | nil
-
-    @typedoc "List operation as a Stream data type"
-    @type t :: %{
-            operation: K8s.Operation.t(),
-            cluster: atom,
-            continue: nil | binary | :halt,
-            limit: pos_integer,
-            opts: opts_t
-          }
-    defstruct operation: nil, cluster: nil, continue: nil, opts: [], limit: @limit
-  end
-
   alias K8s.Client.Runner.Base
   alias K8s.Operation
   alias K8s.Client.Runner.Stream.ListRequest
 
   @typedoc "List of items and pagination request"
-  @type state_t :: {list(), nil | ListRequest.t()}
+  @type state_t :: {list(), ListRequest.t()}
 
   @typedoc "Halt streaming"
   @type halt_t :: {:halt, state_t}
 
-  @typedoc "Success / Error"
-  @type return_t :: {:ok, Enumerable.t()} | {:error, atom}
-
   @doc """
   Validates operation type before calling `stream/3`. Only supports verbs: `list_all_namespaces` and `list`.
   """
-  @spec run(Operation.t(), atom, keyword()) :: return_t
+  @spec run(Operation.t(), atom, keyword()) :: {:ok, Enumerable.t()} | {:error, atom}
   def run(operation, cluster, opts \\ [])
 
   def run(%Operation{verb: :list_all_namespaces} = op, cluster, opts),
@@ -72,20 +51,27 @@ defmodule K8s.Client.Runner.Stream do
   @doc false
   @spec next_item(state_t) :: state_t | halt_t
   # All items in list have been popped, get more
-  def next_item({[], _request} = state), do: fetch_next_page(state)
+  def next_item({[], _request} = state) do
+    fetch_next_page(state)
+  end
 
   # Items are in list, pop one and keep on keeping on.
-  def next_item(state), do: pop_item(state)
+  def next_item({_items, _request} = state) do
+    pop_item(state)
+  end
 
   @doc false
   # fetches next page when item list is empty. Returns `:halt` to stream processor when
   # maybe_continue returns `:halt`
   @spec fetch_next_page(state_t) :: state_t | halt_t
+  def fetch_next_page({_empty, %ListRequest{continue: :halt}} = state) do
+    {:halt, state}
+  end
 
-  def fetch_next_page({_, %ListRequest{continue: :halt}} = state), do: {:halt, state}
-
-  def fetch_next_page({[], next_request} = _state) do
-    next_request |> list |> pop_item
+  def fetch_next_page({_empty, next_request} = _state) do
+    next_request
+    |> list
+    |> pop_item
   end
 
   @doc false
@@ -101,30 +87,25 @@ defmodule K8s.Client.Runner.Stream do
 
     case response do
       {:ok, response} ->
-        items = Map.get(response, "items")
-        next_request = make_next_request(request, response)
+        items = Map.get(response, "items", [])
+        next_request = ListRequest.make_next_request(request, response)
         {items, next_request}
 
       {:error, error} ->
         items = [{:error, error}]
-        halt_requests = make_next_request(request, :halt)
+        halt_requests = ListRequest.make_next_request(request, :halt)
         {items, halt_requests}
     end
   end
 
-  @spec make_next_request(ListRequest.t(), map) :: ListRequest.t()
-  defp make_next_request(%ListRequest{} = request, response) do
-    Map.put(request, :continue, maybe_continue(response))
+  # Return the next item to the stream caller (`[head]`) and return the tail and next request as the current state
+  @spec pop_item(state_t) :: {list, state_t}
+  defp pop_item({[], next}) do
+    new_state = {[], next}
+    {[], new_state}
   end
 
-  @spec maybe_continue(map) :: :halt | binary
-  defp maybe_continue(%{"metadata" => %{"continue" => ""}}), do: :halt
-  defp maybe_continue(%{"metadata" => %{"continue" => cont}}) when is_binary(cont), do: cont
-  defp maybe_continue(_map), do: :halt
-
-  # Return the next item to the stream caller `[head]` and return the tail as the new state of the Stream
-  @spec pop_item(state_t) :: state_t
-  defp pop_item({[head | tail], next}) do
+  defp pop_item({[head | tail], next} = _state) do
     new_state = {tail, next}
     {[head], new_state}
   end
@@ -132,5 +113,7 @@ defmodule K8s.Client.Runner.Stream do
   @doc false
   # Stop processing the stream.
   @spec stop(state_t) :: nil
-  def stop(_state), do: nil
+  def stop(_state) do
+    nil
+  end
 end

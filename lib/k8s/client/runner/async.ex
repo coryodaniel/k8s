@@ -1,13 +1,13 @@
 defmodule K8s.Client.Runner.Async do
   @moduledoc """
-  `K8s.Client` runner to process a batch of operations asynchronously.
+  `K8s.Client` runner to process a batch of operations in parallel.
   """
 
   alias K8s.Client.Runner.Base
   alias K8s.Operation
 
   @doc """
-  Async run multiple operations. Operations will be returned in same order given.
+  Runs multiple operations in parallel. Operations will be returned in same order given.
   Operations will not cease in event of failure.
 
   ## Example

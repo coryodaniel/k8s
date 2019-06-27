@@ -38,6 +38,9 @@ defmodule K8s.Client do
   defdelegate async(operations, cluster_name), to: Async, as: :run
 
   @doc "alias of `K8s.Client.Runner.Async.run/3`"
+  defdelegate parallel(operations, cluster_name, opts), to: Async, as: :run
+
+  @doc "alias of `K8s.Client.Runner.Async.run/3`"
   defdelegate async(operations, cluster_name, opts), to: Async, as: :run
 
   @doc "alias of `K8s.Client.Runner.Wait.run/3`"
