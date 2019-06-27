@@ -1,3 +1,4 @@
+# credo:disable-for-this-file
 defmodule Mock.HTTPProvider do
   @moduledoc """
   Mock of `K8s.Client.HTTProvider`

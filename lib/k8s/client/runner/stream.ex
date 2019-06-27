@@ -49,6 +49,10 @@ defmodule K8s.Client.Runner.Stream do
 
   @doc """
   Returns an elixir stream of paginated list results.
+
+  Elements in stream will be HTTP bodies, or error tuples.
+
+  Encountering an HTTP error mid-stream will halt the stream.
   """
   @spec stream(Operation.t(), atom, keyword | nil) :: Enumerable.t()
   def stream(%Operation{} = op, cluster, opts \\ []) do
@@ -81,18 +85,12 @@ defmodule K8s.Client.Runner.Stream do
   def fetch_next_page({_, %ListRequest{continue: :halt}} = state), do: {:halt, state}
 
   def fetch_next_page({[], next_request} = _state) do
-    case list(next_request) do
-      {:ok, state} ->
-        pop_item(state)
-
-      {:halt, state} ->
-        {:halt, state}
-    end
+    next_request |> list |> pop_item
   end
 
   @doc false
   # Make a list request and convert response to stream state
-  @spec list(ListRequest.t()) :: {:ok, state_t} | {:error, atom()}
+  @spec list(ListRequest.t()) :: state_t
   def list(%ListRequest{} = request) do
     default_params = request.opts[:params] || %{}
     pagination_params = %{limit: request.limit, continue: request.continue}
@@ -105,12 +103,12 @@ defmodule K8s.Client.Runner.Stream do
       {:ok, response} ->
         items = Map.get(response, "items")
         next_request = make_next_request(request, response)
-        {:ok, {items, next_request}}
+        {items, next_request}
 
       {:error, error} ->
         items = [{:error, error}]
-        next_request = make_next_request(request, :halt)
-        {:ok, {items, next_request}}
+        halt_requests = make_next_request(request, :halt)
+        {items, halt_requests}
     end
   end
 
