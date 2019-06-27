@@ -32,7 +32,7 @@ defmodule K8s.Client.Runner.Stream do
   @type halt_t :: {:halt, state_t}
 
   @typedoc "Success / Error"
-  @type return_t :: {:ok, Enumerable.t()} | {:error, binary | atom}
+  @type return_t :: {:ok, Enumerable.t()} | {:error, atom}
 
   @doc """
   Validates operation type before calling `stream/3`. Only supports verbs: `list_all_namespaces` and `list`.
@@ -41,16 +41,16 @@ defmodule K8s.Client.Runner.Stream do
   def run(operation, cluster, opts \\ [])
 
   def run(%Operation{verb: :list_all_namespaces} = op, cluster, opts),
-    do: stream(op, cluster, opts)
+    do: {:ok, stream(op, cluster, opts)}
 
-  def run(%Operation{verb: :list} = op, cluster, opts), do: stream(op, cluster, opts)
+  def run(%Operation{verb: :list} = op, cluster, opts), do: {:ok, stream(op, cluster, opts)}
 
   def run(_, _, _), do: {:error, :unsupported_operation}
 
   @doc """
   Returns an elixir stream of paginated list results.
   """
-  @spec stream(Operation.t(), atom, keyword | nil) :: return_t
+  @spec stream(Operation.t(), atom, keyword | nil) :: Enumerable.t()
   def stream(%Operation{} = op, cluster, opts \\ []) do
     request = %ListRequest{
       operation: op,
@@ -58,20 +58,11 @@ defmodule K8s.Client.Runner.Stream do
       opts: opts
     }
 
-    case list(request) do
-      {:ok, initial_state} ->
-        stream =
-          Stream.resource(
-            fn -> initial_state end,
-            &next_item/1,
-            &stop/1
-          )
-
-        {:ok, stream}
-
-      error ->
-        error
-    end
+    Stream.resource(
+      fn -> {[], request} end,
+      &next_item/1,
+      &stop/1
+    )
   end
 
   @doc false
@@ -94,14 +85,17 @@ defmodule K8s.Client.Runner.Stream do
 
   def fetch_next_page({[], next_request} = state) do
     case list(next_request) do
-      {:ok, state} -> pop_item(state)
-      {:error, _msg} -> {:halt, state}
+      {:ok, state} ->
+        pop_item(state)
+
+      {:error, _msg} ->
+        {:halt, state}
     end
   end
 
   @doc false
   # Make a list request and convert response to stream state
-  @spec list(ListRequest.t()) :: {:ok, state_t} | {:error, atom() | binary()}
+  @spec list(ListRequest.t()) :: {:ok, state_t} | {:error, atom()}
   def list(%ListRequest{} = request) do
     default_params = request.opts[:params] || %{}
     pagination_params = %{limit: request.limit, continue: request.continue}

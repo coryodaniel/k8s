@@ -129,6 +129,16 @@ defmodule K8s.Resource do
   def kind(%{} = resource), do: resource["kind"]
 
   @doc """
+  Returns the apiVersion of k8s resource.
+
+  ## Examples
+      iex> K8s.Resource.api_version(%{"apiVersion" => "apps/v1"})
+      "apps/v1"
+  """
+  @spec api_version(map()) :: binary() | nil
+  def api_version(%{} = resource), do: resource["apiVersion"]
+
+  @doc """
   Returns the metadata of k8s resource.
 
   ## Examples
