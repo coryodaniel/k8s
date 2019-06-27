@@ -6,13 +6,13 @@ defmodule K8s.Behaviours.HTTPProvider do
   @callback headers(K8s.Conf.RequestOptions.t()) :: list({binary, binary})
 
   @callback request(atom, binary, binary, keyword, keyword) ::
-              {:ok, map}
-              | {:ok, reference}
-              | {:error, atom}
-              | {:error, binary}
+              {:ok, map() | reference()}
+              | {:error, atom | HTTPoison.Response.t() | HTTPoison.Error.t()}
 
   @callback handle_response(
               {:ok, HTTPoison.Response.t() | HTTPoison.AsyncResponse.t()}
               | {:error, HTTPoison.Error.t()}
-            ) :: {:ok, map()} | {:ok, reference()} | {:error, binary()}
+            ) ::
+              {:ok, map() | reference()}
+              | {:error, atom | HTTPoison.Response.t() | HTTPoison.Error.t()}
 end

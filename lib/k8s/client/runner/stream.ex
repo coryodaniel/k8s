@@ -67,9 +67,6 @@ defmodule K8s.Client.Runner.Stream do
 
   @doc false
   @spec next_item(state_t) :: state_t | halt_t
-  # Handle case of no items, no state. When started, but no items found.
-  def next_item({[], nil} = state), do: {:halt, state}
-
   # All items in list have been popped, get more
   def next_item({[], _request} = state), do: fetch_next_page(state)
 
@@ -78,17 +75,17 @@ defmodule K8s.Client.Runner.Stream do
 
   @doc false
   # fetches next page when item list is empty. Returns `:halt` to stream processor when
-  # do_continue returns `:halt`
+  # maybe_continue returns `:halt`
   @spec fetch_next_page(state_t) :: state_t | halt_t
 
   def fetch_next_page({_, %ListRequest{continue: :halt}} = state), do: {:halt, state}
 
-  def fetch_next_page({[], next_request} = state) do
+  def fetch_next_page({[], next_request} = _state) do
     case list(next_request) do
       {:ok, state} ->
         pop_item(state)
 
-      {:error, _msg} ->
+      {:halt, state} ->
         {:halt, state}
     end
   end
@@ -107,24 +104,29 @@ defmodule K8s.Client.Runner.Stream do
     case response do
       {:ok, response} ->
         items = Map.get(response, "items")
-        next_request = Map.put(request, :continue, do_continue(response))
+        next_request = make_next_request(request, response)
         {:ok, {items, next_request}}
 
-      error ->
-        error
+      {:error, error} ->
+        items = [{:error, error}]
+        next_request = make_next_request(request, :halt)
+        {:ok, {items, next_request}}
     end
   end
 
-  @doc false
-  @spec do_continue(map) :: :halt | binary
-  defp do_continue(%{"metadata" => %{"continue" => ""}}), do: :halt
-  defp do_continue(%{"metadata" => %{"continue" => cont}}) when is_binary(cont), do: cont
-  defp do_continue(_map), do: :halt
+  @spec make_next_request(ListRequest.t(), map) :: ListRequest.t()
+  defp make_next_request(%ListRequest{} = request, response) do
+    Map.put(request, :continue, maybe_continue(response))
+  end
 
-  @doc false
+  @spec maybe_continue(map) :: :halt | binary
+  defp maybe_continue(%{"metadata" => %{"continue" => ""}}), do: :halt
+  defp maybe_continue(%{"metadata" => %{"continue" => cont}}) when is_binary(cont), do: cont
+  defp maybe_continue(_map), do: :halt
+
   # Return the next item to the stream caller `[head]` and return the tail as the new state of the Stream
   @spec pop_item(state_t) :: state_t
-  def pop_item({[head | tail], next}) do
+  defp pop_item({[head | tail], next}) do
     new_state = {tail, next}
     {[head], new_state}
   end

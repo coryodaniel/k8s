@@ -31,15 +31,15 @@ defmodule K8s.Client.HTTPProvider do
       iex> K8s.Client.HTTPProvider.handle_response({:ok, %HTTPoison.Response{status_code: 404}})
       {:error, :not_found}
 
-  Handles 4xx responses:
+  Passes through HTTPoison 4xx responses:
 
       iex> K8s.Client.HTTPProvider.handle_response({:ok, %HTTPoison.Response{status_code: 410, body: "Gone"}})
-      {:error, "HTTP Error: 410; Gone"}
+      {:error, %HTTPoison.Response{status_code: 410, body: "Gone"}}
 
-  Handles HTTPoison error responses:
+  Passes through HTTPoison error responses:
 
       iex> K8s.Client.HTTPProvider.handle_response({:error, %HTTPoison.Error{reason: "Foo"}})
-      {:error, "HTTP Client Error: Foo"}
+      {:error, %HTTPoison.Error{reason: "Foo"}}
 
   """
   @impl true
@@ -57,11 +57,11 @@ defmodule K8s.Client.HTTPProvider do
       {:ok, %HTTPoison.Response{status_code: 404}} ->
         {:error, :not_found}
 
-      {:ok, %HTTPoison.Response{status_code: code, body: body}} when code in 400..599 ->
-        {:error, "HTTP Error: #{code}; #{body}"}
+      {:ok, %HTTPoison.Response{status_code: code} = resp} when code in 400..599 ->
+        {:error, resp}
 
-      {:error, %HTTPoison.Error{reason: reason}} ->
-        {:error, "HTTP Client Error: #{reason}"}
+      {:error, %HTTPoison.Error{} = err} ->
+        {:error, err}
     end
   end
 

@@ -132,6 +132,26 @@ defmodule Mock.HTTPProvider do
     }
   end
 
+  def request(:get, @uri_prefix <> "/api/v1/namespaces/stream-failure-test/services", _, _, opts) do
+    params = opts[:params]
+    page1_items = [make_service("foo", "stream-failure-test")]
+
+    case params do
+      %{continue: nil, limit: limit} ->
+        body = make_continue_response("next", page1_items)
+        render_ok(body)
+
+      %{continue: "next"} ->
+        render_error(404, %{})
+    end
+  end
+
+  # HTTPoison returns :ok when there is a 4xx-5xx error
+  def render_error(code, data) do
+    body = Jason.encode!(data)
+    handle_response({:ok, %HTTPoison.Response{status_code: code, body: body}})
+  end
+
   def request(:get, @uri_prefix <> "/api/v1/namespaces/stream-runner-test/services", _, _, opts) do
     params = opts[:params]
     page1_items = [make_service("foo", "stream-runner-test")]
