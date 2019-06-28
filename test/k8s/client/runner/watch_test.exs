@@ -3,7 +3,7 @@ defmodule K8s.Client.Runner.WatchTest do
   use ExUnit.Case, async: true
   doctest K8s.Client.Runner.Watch
   alias K8s.Client.Runner.Watch
-  alias K8s.Mock.DynamicHTTPProvider
+  alias K8s.Client.DynamicHTTPProvider
 
   defmodule HTTPMock do
     @base_url "https://localhost:6443"

@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-- `K8s.Mock.DynamicHTTPProvider` to allow per-process registering of HTTP request handlers.
+- `K8s.Client.DynamicHTTPProvider` to allow per-process registering of HTTP request handlers.
 
 ### Changed
 

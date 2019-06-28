@@ -1,7 +1,7 @@
 # credo:disable-for-this-file
 defmodule K8s.DiscoveryTest do
   use ExUnit.Case, async: true
-  alias K8s.Mock.DynamicHTTPProvider
+  alias K8s.Client.DynamicHTTPProvider
 
   defmodule HTTPMock do
     @base_url "https://localhost:6443"

@@ -4,7 +4,7 @@ defmodule K8s.Client.Runner.StreamTest do
   doctest K8s.Client.Runner.Stream
   doctest K8s.Client.Runner.Stream.ListRequest
   alias K8s.Client.Runner.Stream
-  alias K8s.Mock.DynamicHTTPProvider
+  alias K8s.Client.DynamicHTTPProvider
 
   defmodule HTTPMock do
     @base_url "https://localhost:6443"

@@ -5,7 +5,7 @@ defmodule K8s.Client.Runner.BaseTest do
 
   alias K8s.Client
   alias K8s.Client.Runner.Base
-  alias K8s.Mock.DynamicHTTPProvider
+  alias K8s.Client.DynamicHTTPProvider
   import K8s.Test.KubeHelper
 
   defmodule HTTPMock do

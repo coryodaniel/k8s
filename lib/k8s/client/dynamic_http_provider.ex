@@ -1,6 +1,8 @@
-defmodule K8s.Mock.DynamicHTTPProvider do
+defmodule K8s.Client.DynamicHTTPProvider do
   @moduledoc """
-  Dynamically mockable `K8s.Client.HTTPProvider`
+  Allows for registration of `K8s.Behaviours.HTTPProvider` handlers per-process.
+
+  Used internally by the test suite for testing/mocking kubernetes responses.
   """
   use GenServer
   @behaviour K8s.Behaviours.HTTPProvider
@@ -18,7 +20,7 @@ defmodule K8s.Mock.DynamicHTTPProvider do
   end
 
   @doc "Lookup the handler module for this process"
-  @spec lookup(pid) :: map()
+  @spec lookup(pid) :: module() | function() | nil
   def lookup(this_pid) do
     GenServer.call(__MODULE__, {:lookup, this_pid})
   end
@@ -29,8 +31,8 @@ defmodule K8s.Mock.DynamicHTTPProvider do
 
   @doc "Register the handler mdoule for this process"
   @spec register(pid(), module() | function()) :: map()
-  def register(this_pid, mf) do
-    GenServer.call(__MODULE__, {:register, this_pid, mf})
+  def register(this_pid, module_or_function) do
+    GenServer.call(__MODULE__, {:register, this_pid, module_or_function})
   end
 
   @doc """
