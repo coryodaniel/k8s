@@ -7,11 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- `K8s.Mock.DynamicHTTPProvider` to allow per-process registering of HTTP request handlers.
+
+### Changed
+
+- Refactored tests on DynamicHTTPProvider
+
+## [0.2.13] - 2019-06-27
+
 ### Added
 
 - K8s.Cluster.base_url/1
 
-## [0.2.12] - 2019-06-27
+## [0.2.12] - 2019-06-26
 
 ### Added
 

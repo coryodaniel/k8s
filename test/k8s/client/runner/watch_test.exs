@@ -3,25 +3,34 @@ defmodule K8s.Client.Runner.WatchTest do
   use ExUnit.Case, async: true
   doctest K8s.Client.Runner.Watch
   alias K8s.Client.Runner.Watch
+  alias K8s.Mock.DynamicHTTPProvider
 
-  def get_operation() do
-    %K8s.Operation{
-      method: :get,
-      verb: :get,
-      group_version: "v1",
-      kind: "Pod",
-      path_params: [namespace: "test", name: "nginx-pod"]
-    }
+  defmodule HTTPMock do
+    @base_url "https://localhost:6443"
+    @namespaced_url @base_url <> "/api/v1/namespaces"
+    import K8s.Test.HTTPHelper
+
+    def request(:get, @namespaced_url, _body, _headers, opts) do
+      case opts[:stream_to] do
+        nil ->
+          render(nil)
+
+        pid ->
+          send(pid, %HTTPoison.AsyncStatus{code: 200})
+          send(pid, %HTTPoison.AsyncHeaders{})
+          send(pid, %HTTPoison.AsyncChunk{chunk: "Namespace Watcher"})
+          send(pid, %HTTPoison.AsyncEnd{})
+          render(nil)
+      end
+    end
+
+    def request(:get, @namespaced_url <> "/test", _, _, _) do
+      render(nil)
+    end
   end
 
-  def list_operation() do
-    %K8s.Operation{
-      method: :get,
-      verb: :list,
-      group_version: "v1",
-      kind: "Pod",
-      path_params: [namespace: "test"]
-    }
+  setup do
+    DynamicHTTPProvider.register(self(), __MODULE__.HTTPMock)
   end
 
   describe "run/4" do

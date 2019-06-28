@@ -8,13 +8,7 @@ defmodule K8s.Discovery do
   alias K8s.Cluster
   alias K8s.Conf.RequestOptions
 
-  @doc """
-  List all resource definitions by group
-
-  ## Examples
-      iex> K8s.Discovery.resource_definitions_by_group(:test)
-      [%{"apiVersion" => "v1", "groupVersion" => "apps/v1", "kind" => "APIResourceList", "resources" => [%{"kind" => "DaemonSet", "name" => "daemonsets", "namespaced" => true, "verbs" => ["create", "delete", "deletecollection", "get", "list", "patch", "update", "watch"]}, %{"kind" => "Deployment", "name" => "deployments", "namespaced" => true, "verbs" => ["create", "delete", "deletecollection", "get", "list", "patch", "update", "watch"]}]}, %{"apiVersion" => "v1", "groupVersion" => "batch/v1", "kind" => "APIResourceList", "resources" => [%{"kind" => "Job", "name" => "jobs", "namespaced" => true, "verbs" => ["create", "delete", "deletecollection", "get", "list", "patch", "update", "watch"]}]}, %{"groupVersion" => "v1", "kind" => "APIResourceList", "resources" => [%{"kind" => "Namespace", "name" => "namespaces", "namespaced" => false, "verbs" => ["create", "delete", "get", "list", "patch", "update", "watch"]}]}]
-  """
+  @doc "List all resource definitions by group"
   @impl true
   def resource_definitions_by_group(cluster_name, opts \\ []) do
     {:ok, conf} = Cluster.conf(cluster_name)
@@ -32,13 +26,7 @@ defmodule K8s.Discovery do
     |> List.flatten()
   end
 
-  @doc """
-  Get a map of API type to groups
-
-  ## Examples
-      iex> K8s.Discovery.api_paths(:test)
-      %{"/api" => ["v1"], "/apis" => ["apps/v1", "batch/v1"]}
-  """
+  @doc "Get a map of API type to groups"
   @spec api_paths(atom, keyword) :: map | {:error, binary | atom}
   def api_paths(cluster_name, defaults \\ []) do
     {:ok, conf} = Cluster.conf(cluster_name)
