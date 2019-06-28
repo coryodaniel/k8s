@@ -17,14 +17,18 @@ defmodule K8s.Cluster do
   """
   @spec register(atom, K8s.Conf.t()) :: atom
   def register(cluster_name, conf) do
-    :ets.insert(K8s.Conf, {cluster_name, conf})
-    groups = @discovery.resource_definitions_by_group(cluster_name)
+    {duration, _result} =
+      :timer.tc(fn ->
+        :ets.insert(K8s.Conf, {cluster_name, conf})
+        groups = @discovery.resource_definitions_by_group(cluster_name)
 
-    Enum.each(groups, fn %{"groupVersion" => gv, "resources" => rs} ->
-      cluster_group_key = K8s.Group.cluster_key(cluster_name, gv)
-      :ets.insert(K8s.Group, {cluster_group_key, gv, rs})
-    end)
+        Enum.each(groups, fn %{"groupVersion" => gv, "resources" => rs} ->
+          cluster_group_key = K8s.Group.cluster_key(cluster_name, gv)
+          :ets.insert(K8s.Group, {cluster_group_key, gv, rs})
+        end)
+      end)
 
+    K8s.Sys.Event.cluster_registered(%{duration: duration}, %{name: cluster_name})
     cluster_name
   end
 

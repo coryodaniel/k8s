@@ -47,6 +47,8 @@ defmodule K8s.MixProject do
       {:yaml_elixir, "~> 2.4"},
       {:httpoison, "~> 1.0"},
       {:jason, "~> 1.0"},
+      {:notion, "~> 0.2"},
+      {:telemetry, ">=  0.4.0"},
 
       # dev/test deps
       {:credo, "~> 1.0.0", only: [:dev, :test], runtime: false},
