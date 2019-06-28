@@ -1,20 +1,20 @@
 defmodule K8s do
   @moduledoc """
-  Documentation for K8s.
+  Kubernetes API Client for Elixir
   """
-
-  @http_provider Application.get_env(:k8s, :http_provider, K8s.Client.HTTPProvider)
 
   @doc """
-  Initialize `K8s.Conf` and `K8s.Group` ETS tables
+  Initialize ETS tables and register clusters
   """
   def init do
-    make_table(K8s.Conf)
-    make_table(K8s.Group)
+    :ets.new(K8s.Conf, [:set, :public, :named_table])
+    :ets.new(K8s.Group, [:set, :public, :named_table])
     K8s.Cluster.register_clusters()
   end
 
-  def http_provider, do: @http_provider
-
-  defp make_table(name), do: :ets.new(name, [:set, :public, :named_table])
+  @doc false
+  @spec http_provider() :: module()
+  def http_provider do
+    Application.get_env(:k8s, :http_provider, K8s.Client.HTTPProvider)
+  end
 end
