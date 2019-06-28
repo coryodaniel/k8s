@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- K8s.Cluster.base_url/1
+
+## [0.2.12] - 2019-06-27
+
+### Added
+
 - First K8s.Client.Runner.Stream evaluation made lazy
 - K8s.Resource.api_version/1
 

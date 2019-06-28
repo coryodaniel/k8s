@@ -54,6 +54,23 @@ defmodule K8s.Cluster do
   end
 
   @doc """
+  Retrieve the base URL for a cluster
+
+  ## Examples
+
+      iex> conf = K8s.Conf.from_file("./test/support/kube-config.yaml")
+      ...> K8s.Cluster.register(:test_cluster, conf)
+      ...> K8s.Cluster.base_url(:test_cluster)
+      {:ok, "https://localhost:6443"}
+  """
+  @spec base_url(atom) :: {:ok, binary()} | {:error, atom} | {:error, binary}
+  def base_url(cluster_name) do
+    with {:ok, conf} <- K8s.Cluster.conf(cluster_name) do
+      {:ok, conf.url}
+    end
+  end
+
+  @doc """
   Registers clusters automatically from `config.exs`
 
   ## Examples
@@ -112,7 +129,6 @@ defmodule K8s.Cluster do
       ...> {:ok, conf} = K8s.Cluster.conf(:test_cluster)
       ...> conf
       %K8s.Conf{auth: %K8s.Conf.Auth.Token{token: "just-a-token-user-pun-intended"}, ca_cert: nil, cluster_name: "docker-for-desktop-cluster", insecure_skip_tls_verify: true, url: "https://localhost:6443",user_name: "token-user"}
-
   """
   @spec conf(atom) :: {:ok, K8s.Conf.t()} | {:error, :cluster_not_registered}
   def conf(cluster_name) do
