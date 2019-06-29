@@ -46,4 +46,4 @@ analyze: ## Run dialyzer
 	mix dialyzer
 
 get/%: ## Add a new swagger spec to the test suite
-	curl -sSL https://raw.githubusercontent.com/kubernetes/kubernetes/release-$*/api/openapi-spec/swagger.json -o test/support/swagger/$*.json
+	curl -sfSL https://raw.githubusercontent.com/kubernetes/kubernetes/release-$*/api/openapi-spec/swagger.json -o test/support/swagger/$*.json
