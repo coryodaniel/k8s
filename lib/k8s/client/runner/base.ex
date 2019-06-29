@@ -100,8 +100,6 @@ defmodule K8s.Client.Runner.Base do
         http_headers,
         http_opts
       )
-    else
-      error -> error
     end
   end
 

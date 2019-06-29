@@ -1,4 +1,4 @@
-defmodule K8s.Group do
+defmodule K8s.Cluster.Group do
   @moduledoc """
   Kubernetes API Groups
   """
@@ -7,9 +7,11 @@ defmodule K8s.Group do
   Finds a resource definition by group version and kind
   """
   @spec find_resource(binary | atom, binary, binary | atom) ::
-          {:ok, map} | {:error, atom() | binary}
+          {:ok, map}
+          | {:error, :unsupported_kind, binary()}
+          | {:error, :unsupported_group_version, binary()}
   def find_resource(cluster_name, group_version, kind) do
-    case :ets.lookup(K8s.Group, cluster_key(cluster_name, group_version)) do
+    case :ets.lookup(K8s.Cluster.Group, cluster_key(cluster_name, group_version)) do
       [] ->
         {:error, :unsupported_group_version, group_version}
 
@@ -25,17 +27,17 @@ defmodule K8s.Group do
     resource = Enum.find(resources, &match_resource_by_name(&1, kind))
 
     case resource do
-      nil -> {:error, :unsupported_kind}
+      nil -> {:error, :unsupported_kind, kind}
       resource -> {:ok, resource}
     end
   end
 
   @doc """
-  Creates a ETS key for `K8s.Group` per `K8s.Cluster`
+  Creates a ETS key for `K8s.Cluster.Group` per `K8s.Cluster`
 
   ## Examples
 
-      iex. K8s.Group.cluster_key(:dev, "apps/v1")
+      iex. K8s.Cluster.Group.cluster_key(:dev, "apps/v1")
       "dev/apps/v1"
 
   """

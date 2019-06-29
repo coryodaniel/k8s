@@ -4,6 +4,17 @@ defmodule K8s.Cluster do
   """
 
   @discovery Application.get_env(:k8s, :discovery_provider, K8s.Discovery)
+  @dialyzer {:no_return, register!: 2, auto_register_clusters!: 0}
+
+  defmodule RegistrationException do
+    defexception [:message, :error]
+
+    @impl true
+    def exception(error) do
+      msg = "Failed to register cluster: #{inspect(error)}"
+      %K8s.Cluster.RegistrationException{message: msg, error: error}
+    end
+  end
 
   @doc """
   Register a new cluster to use with `K8s.Client`
@@ -11,25 +22,49 @@ defmodule K8s.Cluster do
   ## Examples
 
       iex> conf = K8s.Conf.from_file("./test/support/kube-config.yaml")
-      ...> :test_cluster = K8s.Cluster.register(:test_cluster, conf)
+      ...> K8s.Cluster.register(:test_cluster, conf)
+      {:ok, :test_cluster}
+
+  """
+  @spec register(atom, K8s.Conf.t()) :: {:ok, atom()} | {:error, any()}
+  def register(cluster_name, conf) do
+    with true <- :ets.insert(K8s.Conf, {cluster_name, conf}),
+         {:ok, groups} <- @discovery.resource_definitions_by_group(cluster_name) do
+      insert_groups(cluster_name, groups)
+      K8s.Sys.Event.cluster_registered(%{}, %{cluster: cluster_name})
+      {:ok, cluster_name}
+    end
+  end
+
+  @doc """
+  Register a new cluster to use with `K8s.Client`
+
+  ## Examples
+
+      iex> conf = K8s.Conf.from_file("./test/support/kube-config.yaml")
+      ...> K8s.Cluster.register!(:test_cluster, conf)
       :test_cluster
 
   """
-  @spec register(atom, K8s.Conf.t()) :: atom
-  def register(cluster_name, conf) do
-    {duration, _result} =
-      :timer.tc(fn ->
-        :ets.insert(K8s.Conf, {cluster_name, conf})
-        groups = @discovery.resource_definitions_by_group(cluster_name)
+  @spec register!(atom, K8s.Conf.t()) :: any | no_return
+  def register!(cluster_name, conf) do
+    case register(cluster_name, conf) do
+      {:ok, _} ->
+        cluster_name
 
-        Enum.each(groups, fn %{"groupVersion" => gv, "resources" => rs} ->
-          cluster_group_key = K8s.Group.cluster_key(cluster_name, gv)
-          :ets.insert(K8s.Group, {cluster_group_key, gv, rs})
-        end)
-      end)
+      {:error, error} ->
+        raise K8s.Cluster.RegistrationException, error
+    end
+  end
 
-    K8s.Sys.Event.cluster_registered(%{duration: duration}, %{name: cluster_name})
-    cluster_name
+  @spec insert_groups(atom, list(map)) :: no_return
+  defp insert_groups(cluster_name, groups) do
+    Enum.each(groups, fn %{"groupVersion" => gv, "resources" => rs} ->
+      cluster_group_key = K8s.Cluster.Group.cluster_key(cluster_name, gv)
+      :ets.insert(K8s.Cluster.Group, {cluster_group_key, gv, rs})
+    end)
+
+    nil
   end
 
   @doc """
@@ -44,16 +79,15 @@ defmodule K8s.Cluster do
       {:ok, "https://localhost:6443/apis/apps/v1/namespaces/default/deployments/nginx"}
 
   """
-  @spec url_for(K8s.Operation.t(), atom) :: {:ok, binary} | {:error, atom} | {:error, binary}
+  @spec url_for(K8s.Operation.t(), atom) :: {:ok, binary} | {:error, atom(), binary()}
   def url_for(%K8s.Operation{} = operation, cluster_name) do
     %{group_version: group_version, kind: kind, verb: verb} = operation
     {:ok, conf} = K8s.Cluster.conf(cluster_name)
 
-    with {:ok, resource} <- K8s.Group.find_resource(cluster_name, group_version, kind),
-         {:ok, path} <- K8s.Path.build(group_version, resource, verb, operation.path_params) do
+    with {:ok, resource} <- K8s.Cluster.Group.find_resource(cluster_name, group_version, kind),
+         {:ok, path} <-
+           K8s.Cluster.Path.build(group_version, resource, verb, operation.path_params) do
       {:ok, Path.join(conf.url, path)}
-    else
-      error -> error
     end
   end
 
@@ -75,7 +109,9 @@ defmodule K8s.Cluster do
   end
 
   @doc """
-  Registers clusters automatically from `config.exs`
+  Registers clusters automatically from all configuration sources.
+
+  See the [usage guide](https://hexdocs.pm/k8s/usage.html#registering-clusters) for more details on configuring connection details.
 
   ## Examples
 
@@ -100,7 +136,8 @@ defmodule K8s.Cluster do
     }
   ```
   """
-  def register_clusters do
+  @spec auto_register_clusters! :: no_return
+  def auto_register_clusters! do
     clusters = K8s.Config.clusters()
 
     Enum.each(clusters, fn {name, details} ->
@@ -117,10 +154,10 @@ defmodule K8s.Cluster do
             K8s.Conf.from_file(conf_path, opts)
         end
 
-      K8s.Cluster.register(name, conf)
+      K8s.Cluster.register!(name, conf)
     end)
 
-    clusters
+    nil
   end
 
   @doc """

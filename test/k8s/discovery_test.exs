@@ -81,12 +81,12 @@ defmodule K8s.DiscoveryTest do
   end
 
   test "api_paths/1" do
-    api_paths = K8s.Discovery.api_paths(:test)
+    {:ok, api_paths} = K8s.Discovery.api_paths(:test)
     assert api_paths == %{"/api" => ["v1"], "/apis" => ["apps/v1", "batch/v1"]}
   end
 
   test "resource_definitions_by_group/2" do
-    resource_definitions = K8s.Discovery.resource_definitions_by_group(:test)
+    {:ok, resource_definitions} = K8s.Discovery.resource_definitions_by_group(:test)
 
     assert resource_definitions == [
              %{
