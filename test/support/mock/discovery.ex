@@ -7,8 +7,11 @@ defmodule Mock.Discovery do
 
   @impl true
   def resource_definitions_by_group(_cluster_name, _opts \\ []) do
-    "test/support/mock/data/groups.json"
-    |> File.read!()
-    |> Jason.decode!()
+    groups =
+      "test/support/mock/data/groups.json"
+      |> File.read!()
+      |> Jason.decode!()
+
+    {:ok, groups}
   end
 end

@@ -1,0 +1,18 @@
+{
+  "skip_files": [
+    "test/support/",
+    "lib/k8s/sys/logger.ex"
+  ],
+  "default_stop_words": [
+    "defdelegate",
+    "defmodule",
+    "defevent",
+    "defrecord",
+    "defstruct",
+    "defimpl",
+    "def.+(.+\/\/.+).+do"
+  ],
+  "coverage_options": {
+    "treat_no_relevant_lines_as_covered": true
+  }
+}

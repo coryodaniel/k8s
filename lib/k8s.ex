@@ -8,8 +8,8 @@ defmodule K8s do
   """
   def init do
     :ets.new(K8s.Conf, [:set, :public, :named_table])
-    :ets.new(K8s.Group, [:set, :public, :named_table])
-    K8s.Cluster.register_clusters()
+    :ets.new(K8s.Cluster.Group, [:set, :public, :named_table])
+    K8s.Cluster.auto_register_clusters!()
   end
 
   @doc false

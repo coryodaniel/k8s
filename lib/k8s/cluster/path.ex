@@ -1,4 +1,4 @@
-defmodule K8s.Path do
+defmodule K8s.Cluster.Path do
   @moduledoc """
   Generates Kubernetes REST API Paths
   """
@@ -6,6 +6,7 @@ defmodule K8s.Path do
   @path_params [:namespace, :name, :path, :logpath]
 
   @doc false
+  @spec path_params() :: list(atom)
   def path_params, do: @path_params
 
   @doc """
@@ -21,7 +22,7 @@ defmodule K8s.Path do
       ...>   "namespaced" => false,
       ...>   "verbs" => ["update"]
       ...> }
-      ...> K8s.Path.build("apps/v1", resource, :update, [name: "foo"])
+      ...> K8s.Cluster.Path.build("apps/v1", resource, :update, [name: "foo"])
       {:ok, "/apis/apps/v1/certificatesigningrequests/foo"}
 
   Generate a path for a namespace scoped resource:
@@ -32,7 +33,7 @@ defmodule K8s.Path do
       ...>   "namespaced" => true,
       ...>   "verbs" => ["update"]
       ...> }
-      ...> K8s.Path.build("v1", resource, :update, [namespace: "default", name: "foo"])
+      ...> K8s.Cluster.Path.build("v1", resource, :update, [namespace: "default", name: "foo"])
       {:ok, "/api/v1/namespaces/default/pods/foo"}
 
   Generate a path for a namespace scoped resource on the collection: (ie create, list)
@@ -43,7 +44,7 @@ defmodule K8s.Path do
       ...>   "namespaced" => true,
       ...>   "verbs" => ["create"]
       ...> }
-      ...> K8s.Path.build("v1", resource, :create, [namespace: "default"])
+      ...> K8s.Cluster.Path.build("v1", resource, :create, [namespace: "default"])
       {:ok, "/api/v1/namespaces/default/pods"}
 
   Generating a listing path for a namespace:
@@ -54,7 +55,7 @@ defmodule K8s.Path do
       ...>   "namespaced" => true,
       ...>   "verbs" => ["list"]
       ...> }
-      ...> K8s.Path.build("v1", resource, :list, [namespace: "default"])
+      ...> K8s.Cluster.Path.build("v1", resource, :list, [namespace: "default"])
       {:ok, "/api/v1/namespaces/default/pods"}
 
   Generating a listing path for a all namespaces:
@@ -65,7 +66,7 @@ defmodule K8s.Path do
       ...>   "namespaced" => true,
       ...>   "verbs" => ["list"]
       ...> }
-      ...> K8s.Path.build("v1", resource, :list_all_namespaces, [])
+      ...> K8s.Cluster.Path.build("v1", resource, :list_all_namespaces, [])
       {:ok, "/api/v1/pods"}
 
   Generating a path for a subresource:
@@ -76,7 +77,7 @@ defmodule K8s.Path do
       ...>   "namespaced" => true,
       ...>   "verbs" => ["get"]
       ...> }
-      ...> K8s.Path.build("v1", resource, :get, [namespace: "default", name: "foo"])
+      ...> K8s.Cluster.Path.build("v1", resource, :get, [namespace: "default", name: "foo"])
       {:ok, "/api/v1/namespaces/default/pods/foo/status"}
 
   Deleting a collection:
@@ -89,18 +90,19 @@ defmodule K8s.Path do
       ...>     "deletecollection"
       ...>   ]
       ...> }
-      ...> K8s.Path.build("v1", resource, :deletecollection, [namespace: "default"])
+      ...> K8s.Cluster.Path.build("v1", resource, :deletecollection, [namespace: "default"])
       {:ok, "/api/v1/namespaces/default/pods"}
 
   """
   @spec build(binary, map, atom, keyword(atom)) ::
           {:ok, binary}
-          | {:error, :unsupported_verb | binary}
+          | {:error, :unsupported_verb}
+          | {:error, :missing_required_param, list(atom)}
   def build(group_version, resource, verb, params) do
     case resource_supports_verb?(resource, verb) do
       true ->
         path_template = to_path(group_version, resource, verb)
-        required_params = K8s.Path.find_params(path_template)
+        required_params = K8s.Cluster.Path.find_params(path_template)
         provided_params = Keyword.keys(params)
 
         case required_params -- provided_params do
@@ -108,8 +110,7 @@ defmodule K8s.Path do
             {:ok, replace_path_vars(path_template, params)}
 
           missing_params ->
-            msg = Enum.join(missing_params, ", ")
-            {:error, "Missing required params: #{msg}"}
+            {:error, :missing_required_param, missing_params}
         end
 
       false ->
@@ -122,7 +123,7 @@ defmodule K8s.Path do
 
   ## Examples
 
-      iex> K8s.Path.replace_path_vars("/foo/{name}", name: "bar")
+      iex> K8s.Cluster.Path.replace_path_vars("/foo/{name}", name: "bar")
       "/foo/bar"
 
   """
@@ -138,13 +139,13 @@ defmodule K8s.Path do
 
   ## Examples
 
-      iex> K8s.Path.find_params("/foo/{name}")
+      iex> K8s.Cluster.Path.find_params("/foo/{name}")
       [:name]
 
-      iex> K8s.Path.find_params("/foo/{namespace}/bar/{name}")
+      iex> K8s.Cluster.Path.find_params("/foo/{namespace}/bar/{name}")
       [:namespace, :name]
 
-      iex> K8s.Path.find_params("/foo/bar")
+      iex> K8s.Cluster.Path.find_params("/foo/bar")
       []
 
   """

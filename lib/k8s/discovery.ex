@@ -1,22 +1,46 @@
 defmodule K8s.Discovery do
   @moduledoc """
-  Auto discovery of Kubenetes API Versions and Groups.
+  Auto discovery of Kubenetes API Versions and API Groups.
   """
 
   @behaviour K8s.Behaviours.DiscoveryProvider
 
-  alias K8s.Cluster
+  alias K8s.{Cluster, Conf, Config}
   alias K8s.Conf.RequestOptions
 
   @doc "List all resource definitions by group"
   @impl true
-  def resource_definitions_by_group(cluster_name, opts \\ []) do
-    {:ok, conf} = Cluster.conf(cluster_name)
-    timeout = K8s.Config.discovery_http_timeout(cluster_name)
+  def resource_definitions_by_group(cluster_name, defaults \\ []) do
+    timeout = Config.discovery_http_timeout(cluster_name)
+    opts = Keyword.merge([timeout: timeout, recv_timeout: timeout], defaults)
 
-    cluster_name
-    |> api_paths(opts)
-    |> Enum.into(%{})
+    with {:ok, conf} <- Cluster.conf(cluster_name),
+         {:ok, apis} <- api_paths(cluster_name, opts) do
+      {:ok, get_resource_definitions(apis, conf, opts)}
+    end
+  end
+
+  @doc "Get a map of API type to groups"
+  @spec api_paths(atom, keyword) :: {:ok, map()} | {:error, binary | atom}
+  def api_paths(cluster_name, opts \\ []) do
+    with {:ok, conf} <- Cluster.conf(cluster_name),
+         api_url <- Path.join(conf.url, "/api"),
+         apis_url <- Path.join(conf.url, "/apis"),
+         {:ok, api} <- get(api_url, conf, opts),
+         {:ok, apis} <- get(apis_url, conf, opts) do
+      {:ok,
+       %{
+         "/api" => api["versions"],
+         "/apis" => group_versions(apis["groups"])
+       }}
+    end
+  end
+
+  @spec get_resource_definitions(map(), Conf.t(), Keyword.t()) :: list(map())
+  defp get_resource_definitions(apis, conf, opts) do
+    timeout = Keyword.get(opts, :timeout)
+
+    apis
     |> Enum.reduce([], fn {prefix, versions}, acc ->
       versions
       |> Enum.map(&async_get_resource_definition(prefix, &1, conf, opts))
@@ -24,26 +48,6 @@ defmodule K8s.Discovery do
     end)
     |> Enum.map(fn task -> Task.await(task, timeout) end)
     |> List.flatten()
-  end
-
-  @doc "Get a map of API type to groups"
-  @spec api_paths(atom, keyword) :: map | {:error, binary | atom}
-  def api_paths(cluster_name, defaults \\ []) do
-    {:ok, conf} = Cluster.conf(cluster_name)
-    timeout = K8s.Config.discovery_http_timeout(cluster_name)
-    api_url = Path.join(conf.url, "/api")
-    apis_url = Path.join(conf.url, "/apis")
-    opts = Keyword.merge([recv_timeout: timeout], defaults)
-
-    with {:ok, api} <- do_run(api_url, conf, opts),
-         {:ok, apis} <- do_run(apis_url, conf, opts) do
-      %{
-        "/api" => api["versions"],
-        "/apis" => group_versions(apis["groups"])
-      }
-    else
-      error -> error
-    end
   end
 
   @doc """
@@ -58,7 +62,7 @@ defmodule K8s.Discovery do
     Task.async(fn ->
       url = Path.join([conf.url, prefix, version])
 
-      case do_run(url, conf, opts) do
+      case get(url, conf, opts) do
         {:ok, resource_definition} ->
           resource_definition
 
@@ -68,6 +72,7 @@ defmodule K8s.Discovery do
     end)
   end
 
+  @spec group_versions(list(map)) :: list(map)
   defp group_versions(groups) do
     Enum.reduce(groups, [], fn group, acc ->
       group_versions = Enum.map(group["versions"], fn %{"groupVersion" => gv} -> gv end)
@@ -75,7 +80,9 @@ defmodule K8s.Discovery do
     end)
   end
 
-  defp do_run(url, conf, opts) do
+  @spec get(binary(), Conf.t(), Keyword.t()) ::
+          {:ok, HTTPoison.Response.t()} | {:error, atom}
+  defp get(url, conf, opts) do
     case RequestOptions.generate(conf) do
       {:ok, request_options} ->
         headers = K8s.http_provider().headers(request_options)

@@ -1,6 +1,6 @@
-defmodule K8s.PathTest do
+defmodule K8s.Cluster.PathTest do
   use ExUnit.Case, async: true
-  doctest K8s.Path
+  doctest K8s.Cluster.Path
 
   defp resource_definition() do
     %{
@@ -22,8 +22,8 @@ defmodule K8s.PathTest do
 
   describe "build/4" do
     test "when a required param is missing, returns an error tuple" do
-      res = K8s.Path.build("v1", resource_definition(), :update, namespace: "default")
-      assert {:error, "Missing required params: name"} = res
+      res = K8s.Cluster.Path.build("v1", resource_definition(), :update, namespace: "default")
+      assert {:error, :missing_required_param, [:name]} = res
     end
   end
 end
