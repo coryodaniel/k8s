@@ -6,8 +6,7 @@ defmodule K8s.ClusterTest do
 
   alias K8s.{Operation}
 
-  @k8s_current_spec "1.15"
-  @k8s_spec System.get_env("K8S_SPEC") || "test/support/swagger/#{@k8s_current_spec}.json"
+  @k8s_spec System.get_env("K8S_SPEC") || "test/support/swagger/1.15.json"
 
   @swagger @k8s_spec |> File.read!() |> Jason.decode!()
   @paths @swagger["paths"]

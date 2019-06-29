@@ -31,8 +31,8 @@ test/all: get-and-test-master
 
 MASTER_SWAGGER_PATH:=test/support/swagger/master.json
 get-and-test-master:
-	- rm -f ${MASTER_SWAGGER_PATH}
-	curl -sSL https://raw.githubusercontent.com/kubernetes/kubernetes/master/api/openapi-spec/swagger.json -o ${MASTER_SWAGGER_PATH}
+	@-rm -f ${MASTER_SWAGGER_PATH}
+	@curl -sSL https://raw.githubusercontent.com/kubernetes/kubernetes/master/api/openapi-spec/swagger.json -o ${MASTER_SWAGGER_PATH}
 	K8S_SPEC=${MASTER_SWAGGER_PATH} mix test
 
 test/%: ## Run full test suite against a specific k8s version

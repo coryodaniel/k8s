@@ -25,3 +25,6 @@ k8s-*.tar
 .elixir_ls
 
 .iex.exs
+
+# Ignore master version as its always pulled w/ make test/all
+test/support/swagger/master.json
