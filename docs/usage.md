@@ -6,7 +6,7 @@ Clusters can be registered via `config.exs` or directly with `K8s.Cluster.regist
 
 Clusters are referenced by name (`:default` below) when using a `K8s.Client`. Multiple clusters can be registered via config or at runtime.
 
-Kubernetes API resources are auto-discovered at boot time. This library is currently tested against k8s OpenAPI specs: 1.10, 1.11, 1.12, 1.13, and master.
+Kubernetes API resources are auto-discovered at boot time. This library is currently tested against k8s OpenAPI specs: 1.1x and master.
 
 ### Registering Clusters at Run Time
 
