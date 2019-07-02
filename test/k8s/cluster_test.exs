@@ -10,28 +10,31 @@ defmodule K8s.ClusterTest do
 
   @swagger @k8s_spec |> File.read!() |> Jason.decode!()
   @paths @swagger["paths"]
-  @swagger_operations @paths
-                      |> Enum.reduce([], fn {path, ops}, agg ->
-                        operations =
-                          ops
-                          |> Enum.filter(fn {method, op} ->
-                            method != "parameters" &&
-                              Map.has_key?(op, "x-kubernetes-group-version-kind") &&
-                              op["x-kubernetes-action"] != "connect" &&
-                              !Regex.match?(~r/\/watch\//, path)
-                          end)
-                          |> Enum.map(fn {method, op} ->
-                            path_params = @paths[path]["parameters"] || []
-                            op_params = op["parameters"] || []
 
-                            op
-                            |> Map.put("http_method", method)
-                            |> Map.put("path", path)
-                            |> Map.put("parameters", path_params ++ op_params)
-                          end)
+  # Create a list of swagger operations to use as input for property tests
+  defp swagger_operations() do
+    Enum.reduce(@paths, [], fn {path, ops}, agg ->
+      operations =
+        ops
+        |> Enum.filter(fn {method, op} ->
+          method != "parameters" &&
+            Map.has_key?(op, "x-kubernetes-group-version-kind") &&
+            op["x-kubernetes-action"] != "connect" &&
+            !Regex.match?(~r/\/watch\//, path)
+        end)
+        |> Enum.map(fn {method, op} ->
+          path_params = @paths[path]["parameters"] || []
+          op_params = op["parameters"] || []
 
-                        agg ++ operations
-                      end)
+          op
+          |> Map.put("http_method", method)
+          |> Map.put("path", path)
+          |> Map.put("parameters", path_params ++ op_params)
+        end)
+
+      agg ++ operations
+    end)
+  end
 
   setup_all do
     conf = K8s.Conf.from_file("./test/support/kube-config.yaml")
@@ -87,7 +90,7 @@ defmodule K8s.ClusterTest do
   end
 
   property "generates valid paths" do
-    check all(op <- member_of(@swagger_operations)) do
+    check all(op <- member_of(swagger_operations())) do
       path = op["path"]
       expected = expected_path(path)
 

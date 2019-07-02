@@ -4,30 +4,30 @@ defmodule K8s.Cluster.Group do
   """
 
   @doc """
-  Finds a resource definition by group version and kind
+  Finds a resource definition by group version and (name or kind).
   """
-  @spec find_resource(binary | atom, binary, binary | atom) ::
+  @spec find_resource(atom(), binary(), atom() | binary()) ::
           {:ok, map}
-          | {:error, :unsupported_kind, binary()}
+          | {:error, :unsupported_resource, binary()}
           | {:error, :unsupported_group_version, binary()}
-  def find_resource(cluster_name, group_version, kind) do
+  def find_resource(cluster_name, group_version, name_or_kind) do
     case :ets.lookup(K8s.Cluster.Group, cluster_key(cluster_name, group_version)) do
       [] ->
         {:error, :unsupported_group_version, group_version}
 
       [{_, _group_version, resources}] ->
-        find_resource_by_name(resources, kind)
+        find_resource_by_name(resources, name_or_kind)
     end
   end
 
   @doc false
-  @spec find_resource_by_name(list(map), binary()) ::
+  @spec find_resource_by_name(list(map), atom() | binary()) ::
           {:ok, map} | {:error, atom() | binary()}
-  def find_resource_by_name(resources, kind) do
-    resource = Enum.find(resources, &match_resource_by_name(&1, kind))
+  def find_resource_by_name(resources, name_or_kind) do
+    resource = Enum.find(resources, &match_resource_by_name(&1, name_or_kind))
 
     case resource do
-      nil -> {:error, :unsupported_kind, kind}
+      nil -> {:error, :unsupported_resource, name_or_kind}
       resource -> {:ok, resource}
     end
   end
@@ -48,7 +48,7 @@ defmodule K8s.Cluster.Group do
   defp match_resource_by_name(resource, kind) when is_atom(kind),
     do: match_resource_by_name(resource, Atom.to_string(kind))
 
-  defp match_resource_by_name(%{"kind" => kind}, kind), do: true
   defp match_resource_by_name(%{"name" => name}, name), do: true
+  defp match_resource_by_name(%{"kind" => kind}, kind), do: true
   defp match_resource_by_name(%{"kind" => kind}, name), do: String.downcase(kind) == name
 end

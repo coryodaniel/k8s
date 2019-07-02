@@ -17,6 +17,12 @@ defmodule K8s.Cluster.Discovery do
 
   @typedoc """
   Resource definition identifier. Format: `{groupVersion, kind, name}`
+
+  Where `kind` is the kubernetes resource type and `name` is the name of the resource, which includes sub-resources.
+
+  E.g.:
+  * `{"apps/v1", "Deployment", "deployments"}
+  * `{"apps/v1", "Deployment", "deployments/status"}
   """
   @type resource_definition_identifier_t :: {binary(), binary(), binary()}
 

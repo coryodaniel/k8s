@@ -109,7 +109,7 @@ make test/${NEW_VERSION_NUMBER}
 
 Mock discovery [responses](.test/support/discovery) exist to simulate runtime API discovery using the [`FileDriver`](./lib/k8s/cluster/discover/file_driver.ex)
 
-If new resources or APIs were added to kubernetes in the new version you will likely see one of these errors: `unsupported_group_version` and `unsupported_kind`.
+If new resources or APIs were added to kubernetes in the new version you will likely see one of these errors: `unsupported_group_version` and `unsupported_resource`.
 
 ### Unsupported Group Version errors
 
