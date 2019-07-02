@@ -10,7 +10,6 @@ defmodule K8s.ClusterTest do
 
   @swagger @k8s_spec |> File.read!() |> Jason.decode!()
   @paths @swagger["paths"]
-  @unimplemented_subresources ~r/\/(eviction|finalize|bindings|binding|approval|scale|status)$/
   @swagger_operations @paths
                       |> Enum.reduce([], fn {path, ops}, agg ->
                         operations =
@@ -19,8 +18,7 @@ defmodule K8s.ClusterTest do
                             method != "parameters" &&
                               Map.has_key?(op, "x-kubernetes-group-version-kind") &&
                               op["x-kubernetes-action"] != "connect" &&
-                              !Regex.match?(~r/\/watch\//, path) &&
-                              !Regex.match?(@unimplemented_subresources, path)
+                              !Regex.match?(~r/\/watch\//, path)
                           end)
                           |> Enum.map(fn {method, op} ->
                             path_params = @paths[path]["parameters"] || []
