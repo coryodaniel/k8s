@@ -37,7 +37,7 @@ defmodule K8s.ClusterTest do
 
   setup_all do
     conf = K8s.Conf.from_file("./test/support/kube-config.yaml")
-    K8s.Cluster.register(:routing_tests, conf)
+    K8s.Cluster.Registry.add(:routing_tests, conf)
     :ok
   end
 
@@ -89,7 +89,7 @@ defmodule K8s.ClusterTest do
   end
 
   property "generates valid paths" do
-    check all op <- member_of(@swagger_operations) do
+    check all(op <- member_of(@swagger_operations)) do
       path = op["path"]
       expected = expected_path(path)
 

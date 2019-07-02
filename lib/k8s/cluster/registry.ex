@@ -1,0 +1,140 @@
+defmodule K8s.Cluster.Registry do
+  @moduledoc """
+  Register resource definitions for `K8s.Cluster`
+  """
+  use GenServer
+  alias K8s.Cluster.Discovery
+
+  @dialyzer {:no_return, add!: 2, auto_register_clusters!: 0, handle_info: 2}
+  @five_minutes 5 * 60 * 1000
+  @rediscover_interval Application.get_env(:k8s, :rediscover_interval, @five_minutes)
+
+  @spec start_link(Keyword.t()) :: GenServer.on_start()
+  def start_link(_opts) do
+    GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
+  end
+
+  @impl true
+  def init(:ok) do
+    schedule(@rediscover_interval)
+    {:ok, %{}}
+  end
+
+  @doc """
+  Add or update a cluster to use with `K8s.Client`
+
+  ## Examples
+
+      iex> conf = K8s.Conf.from_file("./test/support/kube-config.yaml")
+      ...> K8s.Cluster.Registry.add(:test_cluster, conf)
+      {:ok, :test_cluster}
+
+  """
+  @spec add(atom(), K8s.Conf.t()) :: {:ok, atom()} | {:error, atom()}
+  def add(cluster, conf) do
+    with true <- :ets.insert(K8s.Conf, {cluster, conf}),
+         {:ok, definitions} <- Discovery.resource_definitions(cluster) do
+      insert_definitions(cluster, definitions)
+      K8s.Sys.Event.cluster_registered(%{}, %{cluster: cluster})
+      {:ok, cluster}
+    end
+  end
+
+  @doc """
+  Add or update a new cluster to use with `K8s.Client`
+
+  ## Examples
+
+      iex> conf = K8s.Conf.from_file("./test/support/kube-config.yaml")
+      ...> K8s.Cluster.Registry.add!(:test_cluster, conf)
+      :test_cluster
+
+  """
+  @spec add!(atom, K8s.Conf.t()) :: any | no_return
+  def add!(cluster, conf) do
+    case add(cluster, conf) do
+      {:ok, _} ->
+        cluster
+
+      {:error, error} ->
+        raise K8s.Cluster.RegistrationException, error
+    end
+  end
+
+  @spec insert_definitions(atom, list(map)) :: no_return
+  defp insert_definitions(cluster, definitions) do
+    Enum.each(definitions, fn %{"groupVersion" => gv, "resources" => rs} ->
+      cluster_group_key = K8s.Cluster.Group.cluster_key(cluster, gv)
+      :ets.insert(K8s.Cluster.Group, {cluster_group_key, gv, rs})
+    end)
+
+    nil
+  end
+
+  @doc """
+  Registers clusters automatically from all configuration sources.
+
+  See the [usage guide](https://hexdocs.pm/k8s/usage.html#registering-clusters) for more details on configuring connection details.
+
+  ## Examples
+
+  By default a cluster will attempt to use the ServiceAccount assigned to the pod:
+
+  ```elixir
+  config :k8s,
+    clusters: %{
+      default: %{}
+    }
+  ```
+
+  Configuring a cluster using a k8s config:
+
+  ```elixir
+  config :k8s,
+    clusters: %{
+      default: %{
+        conf: "~/.kube/config"
+        conf_opts: [user: "some-user", cluster: "prod-cluster"]
+      }
+    }
+  ```
+  """
+  @spec auto_register_clusters! :: no_return
+  def auto_register_clusters! do
+    clusters = K8s.Config.clusters()
+
+    Enum.each(clusters, fn {name, details} ->
+      conf =
+        case Map.get(details, :conf) do
+          nil ->
+            K8s.Conf.from_service_account()
+
+          %{use_sa: true} ->
+            K8s.Conf.from_service_account()
+
+          conf_path ->
+            opts = details[:conf_opts] || []
+            K8s.Conf.from_file(conf_path, opts)
+        end
+
+      add!(name, conf)
+    end)
+
+    nil
+  end
+
+  @doc false
+  @impl GenServer
+  @spec handle_info(:auto_register_clusters, Keyword.t()) :: {:noreply, Keyword.t()}
+  def handle_info(:auto_register_clusters, state) do
+    auto_register_clusters!()
+    schedule(@rediscover_interval)
+    {:noreply, state}
+  end
+
+  @doc "Schedules a re-registration of all clusters."
+  @spec schedule(pos_integer()) :: reference()
+  def schedule(milliseconds) do
+    Process.send_after(__MODULE__, :auto_register_clusters, milliseconds)
+  end
+end

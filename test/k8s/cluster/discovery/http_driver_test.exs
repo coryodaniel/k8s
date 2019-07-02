@@ -1,7 +1,8 @@
 # credo:disable-for-this-file
-defmodule K8s.DiscoveryTest do
+defmodule K8s.Cluster.Discovery.HTTPDriverTest do
   use ExUnit.Case, async: true
   alias K8s.Client.DynamicHTTPProvider
+  alias K8s.Cluster.Discovery.HTTPDriver
 
   defmodule HTTPMock do
     @base_url "https://localhost:6443"
@@ -14,8 +15,6 @@ defmodule K8s.DiscoveryTest do
     def request(:get, @base_url <> "/apis", _, _, _) do
       groups = [
         %{
-          "name" => "apps",
-          "preferredVersion" => %{"groupVersion" => "apps/v1", "version" => "v1"},
           "versions" => [
             %{"groupVersion" => "apps/v1", "version" => "v1"},
             %{"groupVersion" => "batch/v1", "version" => "v1"}
@@ -54,6 +53,10 @@ defmodule K8s.DiscoveryTest do
           %{
             "kind" => "Deployment",
             "name" => "deployments"
+          },
+          %{
+            "kind" => "Deployment",
+            "name" => "deployments/status"
           }
         ]
       }
@@ -80,51 +83,45 @@ defmodule K8s.DiscoveryTest do
     DynamicHTTPProvider.register(self(), __MODULE__.HTTPMock)
   end
 
-  test "api_paths/1" do
-    {:ok, api_paths} = K8s.Discovery.api_paths(:test)
-    assert api_paths == %{"/api" => ["v1"], "/apis" => ["apps/v1", "batch/v1"]}
+  describe "api_versions/1" do
+    test "fetches API versions from the kubernetes API" do
+      cluster = :test
+      {:ok, api_versions} = HTTPDriver.api_versions(cluster)
+
+      assert Enum.member?(api_versions, "v1")
+      assert Enum.member?(api_versions, "apps/v1")
+      assert Enum.member?(api_versions, "batch/v1")
+    end
   end
 
-  test "resource_definitions_by_group/2" do
-    {:ok, resource_definitions} = K8s.Discovery.resource_definitions_by_group(:test)
+  describe "resource_definitions/1" do
+    test "returns a list of kubernetes `APIResourceList`s" do
+      cluster = :test
+      {:ok, resource_definitions} = HTTPDriver.resource_definitions(cluster)
 
-    assert resource_definitions == [
-             %{
-               "apiVersion" => "v1",
-               "groupVersion" => "apps/v1",
-               "kind" => "APIResourceList",
-               "resources" => [
-                 %{
-                   "kind" => "DaemonSet",
-                   "name" => "daemonsets"
-                 },
-                 %{
-                   "kind" => "Deployment",
-                   "name" => "deployments"
-                 }
-               ]
-             },
-             %{
-               "apiVersion" => "v1",
-               "groupVersion" => "batch/v1",
-               "kind" => "APIResourceList",
-               "resources" => [
-                 %{
-                   "kind" => "Job",
-                   "name" => "jobs"
-                 }
-               ]
-             },
-             %{
-               "groupVersion" => "v1",
-               "kind" => "APIResourceList",
-               "resources" => [
-                 %{
-                   "kind" => "Namespace",
-                   "name" => "namespaces"
-                 }
-               ]
-             }
-           ]
+      assert resource_definitions == [
+               %{
+                 "apiVersion" => "v1",
+                 "groupVersion" => "batch/v1",
+                 "kind" => "APIResourceList",
+                 "resources" => [%{"kind" => "Job", "name" => "jobs"}]
+               },
+               %{
+                 "apiVersion" => "v1",
+                 "groupVersion" => "apps/v1",
+                 "kind" => "APIResourceList",
+                 "resources" => [
+                   %{"kind" => "DaemonSet", "name" => "daemonsets"},
+                   %{"kind" => "Deployment", "name" => "deployments"},
+                   %{"kind" => "Deployment", "name" => "deployments/status"}
+                 ]
+               },
+               %{
+                 "groupVersion" => "v1",
+                 "kind" => "APIResourceList",
+                 "resources" => [%{"kind" => "Namespace", "name" => "namespaces"}]
+               }
+             ]
+    end
   end
 end

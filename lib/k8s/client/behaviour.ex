@@ -1,4 +1,4 @@
-defmodule K8s.Behaviours.HTTPProvider do
+defmodule K8s.Client.Behaviour do
   @moduledoc "HTTP Request / Response provider behaviour"
 
   @doc "Generate headers for HTTP Requests"

@@ -2,7 +2,7 @@
 
 ## Registering Clusters
 
-Clusters can be registered via `config.exs` or directly with `K8s.Cluster.register/2`.
+Clusters can be registered via `config.exs` or directly with `K8s.Cluster.Registry.add/2`.
 
 Clusters are referenced by name (`:default` below) when using a `K8s.Client`. Multiple clusters can be registered via config or at runtime.
 
@@ -14,14 +14,14 @@ The below will register a cluster named `:prod` using `~/.kube.config` to connec
 
 ```elixir
 conf = K8s.Conf.from_file("~/.kube/config")
-K8s.Cluster.register(:prod, conf)
+K8s.Cluster.Registry.add(:prod, conf)
 ```
 
 Registering a cluster using the k8s' ServiceAccount of the pod:
 
 ```elixir
 conf = K8s.Conf.from_service_account()
-K8s.Cluster.register(:prod, conf)
+K8s.Cluster.Registry.add(:prod, conf)
 ```
 
 ### Registering Clusters at Compile Time (config.exs)
@@ -269,14 +269,14 @@ Register a staging cluster:
 
 ```elixir
 staging_conf = K8s.Conf.from_file("~/.kube/config")
-{:ok, staging} = K8s.Cluster.register(:staging, staging_conf)
+{:ok, staging} = K8s.Cluster.Registry.add(:staging, staging_conf)
 ```
 
 Register a prod cluster:
 
 ```elixir
 prod_conf = K8s.Conf.from_service_account() # or from_file/2
-{:ok, prod} = K8s.Cluster.register(:prod, staging_conf)
+{:ok, prod} = K8s.Cluster.Registry.add(:prod, staging_conf)
 ```
 
 Get a list of all deployments in the `default` prod namespace:
