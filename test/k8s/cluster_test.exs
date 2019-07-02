@@ -89,7 +89,7 @@ defmodule K8s.ClusterTest do
   end
 
   property "generates valid paths" do
-    check all op <- member_of(@swagger_operations) do
+    check all(op <- member_of(@swagger_operations)) do
       path = op["path"]
       expected = expected_path(path)
 

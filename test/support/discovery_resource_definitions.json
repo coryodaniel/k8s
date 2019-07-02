@@ -1,0 +1,42 @@
+[
+  {
+    "apiVersion": "v1",
+    "groupVersion": "batch/v1",
+    "kind": "APIResourceList",
+    "resources": [
+      {
+        "kind": "Job",
+        "name": "jobs"
+      }
+    ]
+  },
+  {
+    "apiVersion": "v1",
+    "groupVersion": "apps/v1",
+    "kind": "APIResourceList",
+    "resources": [
+      {
+        "kind": "DaemonSet",
+        "name": "daemonsets"
+      },
+      {
+        "kind": "Deployment",
+        "name": "deployments"
+      },
+      {
+        "kind": "Deployment",
+        "name": "deployments/status"
+      }
+    ]
+  },
+  {
+    "groupVersion": "v1",
+    "kind": "APIResourceList",
+    "resources": [
+      {
+        "kind": "Namespace",
+        "name": "namespaces"
+      }
+    ]
+  }
+]

@@ -7,11 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
 - `K8s.Client.DynamicHTTPProvider` to allow per-process registering of HTTP request handlers.
+- `K8s.Cluster.Discovery` discovery interface
+- `K8s.Cluster.Discovery.api_versions/1` - queries a cluster for all apiVersions
+- `K8s.Cluster.Discovery.resource_definitions/1` - queries a cluster for all resource definitions
+- `K8s.Cluster.Discovery.HTTPDriver` for discovery via k8s REST API
+- `K8s.Cluster.Discovery.FileDriver` for discovery via a file, used for testing, shipped to help dependent libraries mock discovery
 
 ### Changed
 
 - Refactored tests on DynamicHTTPProvider
+- Refactored discovery to use `K8s.Cluster.Discovery`
 
 ## [0.2.13] - 2019-06-27
 
