@@ -1,8 +1,8 @@
 defmodule K8s.Client.HTTPProvider do
   @moduledoc """
-  HTTPoison and Jason based `K8s.Behaviours.HTTPProvider`
+  HTTPoison and Jason based `K8s.Client.Behaviour`
   """
-  @behaviour K8s.Behaviours.HTTPProvider
+  @behaviour K8s.Client.Behaviour
   alias K8s.Conf.RequestOptions
 
   @impl true
