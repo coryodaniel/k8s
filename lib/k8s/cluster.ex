@@ -3,7 +3,7 @@ defmodule K8s.Cluster do
   Cluster configuration and API route store for `K8s.Client`
   """
 
-  @discovery Application.get_env(:k8s, :discovery_provider, K8s.Discovery)
+  alias K8s.Cluster.Discovery
   @dialyzer {:no_return, register!: 2, auto_register_clusters!: 0}
 
   defmodule RegistrationException do
@@ -29,8 +29,8 @@ defmodule K8s.Cluster do
   @spec register(atom, K8s.Conf.t()) :: {:ok, atom()} | {:error, any()}
   def register(cluster_name, conf) do
     with true <- :ets.insert(K8s.Conf, {cluster_name, conf}),
-         {:ok, groups} <- @discovery.resource_definitions_by_group(cluster_name) do
-      insert_groups(cluster_name, groups)
+         {:ok, definitions} <- Discovery.resource_definitions(cluster_name) do
+      insert_definitions(cluster_name, definitions)
       K8s.Sys.Event.cluster_registered(%{}, %{cluster: cluster_name})
       {:ok, cluster_name}
     end
@@ -57,9 +57,9 @@ defmodule K8s.Cluster do
     end
   end
 
-  @spec insert_groups(atom, list(map)) :: no_return
-  defp insert_groups(cluster_name, groups) do
-    Enum.each(groups, fn %{"groupVersion" => gv, "resources" => rs} ->
+  @spec insert_definitions(atom, list(map)) :: no_return
+  defp insert_definitions(cluster_name, definitions) do
+    Enum.each(definitions, fn %{"groupVersion" => gv, "resources" => rs} ->
       cluster_group_key = K8s.Cluster.Group.cluster_key(cluster_name, gv)
       :ets.insert(K8s.Cluster.Group, {cluster_group_key, gv, rs})
     end)

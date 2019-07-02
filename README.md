@@ -107,7 +107,7 @@ make get/${NEW_VERSION_NUMBER}
 make test/${NEW_VERSION_NUMBER}
 ```
 
-A [mock `Discovery`](.test/support/mock/discovery.ex) module exist populated by [this JSON config](./test/support/mock/data/groups.json) to simulate runtime API discovery.
+Mock discovery [responses](.test/support/discovery) exist to simulate runtime API discovery using the [`FileDriver`](./lib/k8s/cluster/discover/file_driver.ex)
 
 If new resources or APIs were added to kubernetes in the new version you will likely see one of these errors: `unsupported_group_version` and `unsupported_kind`.
 
@@ -117,7 +117,7 @@ This error occurs when a new API is added to kubernetes.
 
 Example: `{:error, :unsupported_group_version, "scheduling.k8s.io/v1"}`
 
-Add the `:unsupported_group_version` to the mock configuration and rerun the test suite.
+Add the `:unsupported_group_version` to [this](test/support/discovery/resource_definitions.json) mock configuration and rerun the test suite.
 
 A config entry looks like:
 

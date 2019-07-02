@@ -13,8 +13,7 @@ defmodule K8s.Cluster.Discovery do
   """
 
   @behaviour K8s.Cluster.Discovery.Driver
-  @driver K8s.Cluster.Discovery.FileDriver
-  # @driver Application.get_env(:k8s, :discovery_driver, K8s.Cluster.Discovery.HTTPDriver)
+  @driver Application.get_env(:k8s, :discovery_driver, K8s.Cluster.Discovery.HTTPDriver)
 
   @typedoc """
   Resource definition identifier. Format: `{groupVersion, kind, name}`
