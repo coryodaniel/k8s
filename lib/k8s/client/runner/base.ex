@@ -90,7 +90,7 @@ defmodule K8s.Client.Runner.Base do
          {:ok, conf} <- Cluster.conf(cluster_name),
          {:ok, request_options} <- RequestOptions.generate(conf),
          {:ok, http_body} <- encode(body, operation.method) do
-      http_headers = K8s.http_provider().headers(request_options)
+      http_headers = K8s.http_provider().headers(operation.method, request_options)
       http_opts = Keyword.merge([ssl: request_options.ssl_options], opts)
 
       K8s.http_provider().request(
