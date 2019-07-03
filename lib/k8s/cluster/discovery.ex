@@ -44,6 +44,10 @@ defmodule K8s.Cluster.Discovery do
 
   @doc """
   Lists identifiers from Kubernetes resource definitions returned from `resource_definitions/2`.
+
+  ## Examples
+      iex> K8s.Cluster.Discovery.resource_identifiers(:test)
+      [{"auditregistration.k8s.io/v1alpha1", "AuditSink", "auditsinks"}, {"settings.k8s.io/v1alpha1", "PodPreset", "podpresets"}, {"apiregistration.k8s.io/v1", "APIService", "apiservices"}]
   """
   @spec resource_identifiers(atom(), Keyword.t() | nil) ::
           {:ok, list(resource_definition_identifier_t)} | {:error, atom()}
@@ -51,6 +55,27 @@ defmodule K8s.Cluster.Discovery do
     with {:ok, definitions} <- resource_definitions(cluster, opts) do
       {:ok, get_identifiers_from_resource_definitions(definitions)}
     end
+  end
+
+  @doc """
+  Lists all identifiers in group from Kubernetes resource definitions returned from `resource_definitions/2`.
+
+  ## Examples
+      iex> K8s.Cluster.Discovery.resource_identifiers(:test, "apps/v1")
+      [{"apps/v1", "Deployment", "deployments/status"}, {"apps/v1", "Deployment", "deployments"}]
+  """
+  @spec resource_identifiers_by_group(atom(), binary(), Keyword.t() | nil) ::
+          {:ok, list(resource_definition_identifier_t)} | {:error, atom()}
+  def resource_identifiers_by_group(cluster, group, opts \\ []) do
+    with {:ok, identifiers} <- resource_identifiers(cluster, opts) do
+      {:ok, filter_resource_identifiers_by_group(identifiers, group)}
+    end
+  end
+
+  @spec filter_resource_identifiers_by_group(resource_definition_identifier_t(), binary()) ::
+          list(resource_definition_identifier_t())
+  defp filter_resource_identifiers_by_group(resource_identifiers, group) do
+    Enum.filter(resource_identifiers, fn {g, _, _} -> g == group end)
   end
 
   @spec get_identifiers_from_resource_definitions(list(map())) ::

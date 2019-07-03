@@ -23,7 +23,7 @@ defmodule K8s.Cluster.PathTest do
     }
   end
 
-  def deployment_scale_definition() do
+  defp deployment_scale_definition() do
     %{
       "group" => "apps",
       "kind" => "Scale",
@@ -35,7 +35,7 @@ defmodule K8s.Cluster.PathTest do
     }
   end
 
-  def deployment_status_definition() do
+  defp deployment_status_definition() do
     %{
       "kind" => "Deployment",
       "name" => "deployments/status",

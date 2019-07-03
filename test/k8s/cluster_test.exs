@@ -8,12 +8,12 @@ defmodule K8s.ClusterTest do
 
   @k8s_spec System.get_env("K8S_SPEC") || "test/support/swagger/1.15.json"
 
-  @swagger @k8s_spec |> File.read!() |> Jason.decode!()
-  @paths @swagger["paths"]
-
   # Create a list of swagger operations to use as input for property tests
   defp swagger_operations() do
-    Enum.reduce(@paths, [], fn {path, ops}, agg ->
+    swagger = @k8s_spec |> File.read!() |> Jason.decode!()
+    paths = swagger["paths"]
+
+    Enum.reduce(paths, [], fn {path, ops}, agg ->
       operations =
         ops
         |> Enum.filter(fn {method, op} ->
@@ -23,7 +23,7 @@ defmodule K8s.ClusterTest do
             !Regex.match?(~r/\/watch\//, path)
         end)
         |> Enum.map(fn {method, op} ->
-          path_params = @paths[path]["parameters"] || []
+          path_params = paths[path]["parameters"] || []
           op_params = op["parameters"] || []
 
           op
@@ -87,6 +87,27 @@ defmodule K8s.ClusterTest do
     mapping
     |> Map.get(action, action)
     |> fn_to_test(op)
+  end
+
+  # mix test --only debugging
+  # Useful for when adding new k8s versions to trouble shooting adding to K8s.Cluster.Group.
+  # https://github.com/coryodaniel/k8s/issues/19
+  @tag debugging: true
+  test "target specific groupVersion/kind" do
+    group_version = "networking.k8s.io/v1beta1"
+    kind = "ingresses/status"
+    path_params = [namespace: "foo", name: "bar"]
+
+    operation = %K8s.Operation{
+      group_version: group_version,
+      kind: kind,
+      method: :patch,
+      path_params: path_params,
+      resource: nil,
+      verb: :patch
+    }
+
+    assert {:ok, url} = K8s.Cluster.url_for(operation, :routing_tests)
   end
 
   property "generates valid paths" do

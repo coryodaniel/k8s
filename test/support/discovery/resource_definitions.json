@@ -116,6 +116,17 @@
           "update",
           "watch"
         ]
+      },
+      {
+        "kind": "Ingress",
+        "name": "ingresses/status",
+        "namespaced": true,
+        "singularName": "",
+        "verbs": [
+          "get",
+          "patch",
+          "update"
+        ]
       }
     ]
   },
