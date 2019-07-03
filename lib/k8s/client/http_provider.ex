@@ -7,6 +7,8 @@ defmodule K8s.Client.HTTPProvider do
 
   @impl true
   def request(method, url, body, headers, opts) do
+    content_type = content_type_header(method)
+    headers = [content_type | headers]
     {duration, response} = :timer.tc(HTTPoison, :request, [method, url, body, headers, opts])
     measurements = %{duration: duration}
     metadata = %{method: method}
@@ -20,6 +22,15 @@ defmodule K8s.Client.HTTPProvider do
         K8s.Sys.Event.http_request_failed(measurements, metadata)
         {:error, any}
     end
+  end
+
+  @spec content_type_header(atom()) :: {binary(), binary()}
+  defp content_type_header(:patch) do
+    {"Content-Type", "application/merge-patch+json"}
+  end
+
+  defp content_type_header(_http_method) do
+    {"Content-Type", "application/json"}
   end
 
   @doc """
@@ -78,17 +89,16 @@ defmodule K8s.Client.HTTPProvider do
   end
 
   @doc """
-  Appends `Accept` and `Content-Type` headers to `K8s.Conf.RequestOptions` headers.
-
+  Generates HTTP headers from `K8s.Conf.RequestOptions`
   ## Example
 
       iex> opts = %K8s.Conf.RequestOptions{headers: [{"Authorization", "Basic AF"}]}
       ...> K8s.Client.HTTPProvider.headers(opts)
-      [{"Authorization", "Basic AF"},{"Accept", "application/json"}, {"Content-Type", "application/json"}]
+      [{"Accept", "application/json"}, {"Authorization", "Basic AF"}]
   """
   @impl true
   def headers(%RequestOptions{} = opts) do
-    opts.headers ++ [{"Accept", "application/json"}, {"Content-Type", "application/json"}]
+    [{"Accept", "application/json"} | opts.headers]
   end
 
   @spec decode(binary()) :: list | map | nil
