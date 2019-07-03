@@ -1,4 +1,5 @@
 .PHONY: help clean deps all test tdd cov test/all lint analyze get-and-test-master
+.PHONY: mock.dupes mock.groups
 
 help: ## Show this help
 help:
@@ -47,3 +48,9 @@ analyze: ## Run dialyzer
 
 get/%: ## Add a new swagger spec to the test suite
 	curl -sfSL https://raw.githubusercontent.com/kubernetes/kubernetes/release-$*/api/openapi-spec/swagger.json -o test/support/swagger/$*.json
+
+mock.dupes: ## List duplicates in resource_definitions mock (this should be empty)
+	jq '.[].groupVersion' test/support/discovery/resource_definitions.json | uniq -d
+
+mock.groups: ## List of all groups in resource_definitions mock
+	jq '.[].groupVersion' test/support/discovery/resource_definitions.json

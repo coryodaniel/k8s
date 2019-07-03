@@ -52,7 +52,7 @@ Most functions are also written using doctests.
 * [K8s.Resource doctests](https://hexdocs.pm/k8s/K8s.Resource.html)
 * [K8s.Version doctests](https://hexdocs.pm/k8s/K8s.Version.html)
 
-## Testing `K8s` operations in your application.
+## Testing `K8s` operations in your application
 
 `K8s` ships with a [`K8s.Client.DynamicHTTPProvider`](./lib/k8s/client/dynamic_http_provider.ex) for stubbing HTTP responses to kubernetes API requests.
 
