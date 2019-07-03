@@ -174,8 +174,8 @@ defmodule K8s.Cluster.Path do
 
   defp resource_path_suffix([name], verb), do: name_param(name, verb)
 
-  defp resource_path_suffix([name, subaction], verb),
-    do: name_with_subaction_param(name, subaction, verb)
+  defp resource_path_suffix([name, subresource], verb),
+    do: name_with_subresource_param(name, subresource, verb)
 
   @spec name_param(binary, atom) :: binary
   defp name_param(resource_name, :create), do: resource_name
@@ -184,9 +184,9 @@ defmodule K8s.Cluster.Path do
   defp name_param(resource_name, :deletecollection), do: resource_name
   defp name_param(resource_name, _), do: "#{resource_name}/{name}"
 
-  @spec name_with_subaction_param(binary, binary, atom) :: binary
-  defp name_with_subaction_param(resource_name, subaction, _),
-    do: "#{resource_name}/{name}/#{subaction}"
+  @spec name_with_subresource_param(binary, binary, atom) :: binary
+  defp name_with_subresource_param(resource_name, subresource, _),
+    do: "#{resource_name}/{name}/#{subresource}"
 
   @spec build_path(binary, binary, boolean, atom) :: binary
   defp build_path(prefix, suffix, true, :list_all_namespaces), do: "#{prefix}/#{suffix}"

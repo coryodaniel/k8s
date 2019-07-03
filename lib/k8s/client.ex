@@ -83,7 +83,7 @@ defmodule K8s.Client do
         method: :get,
         verb: :get,
         group_version: "v1",
-        kind: "Pod",
+        name: "Pod",
         path_params: [namespace: "test", name: "nginx-pod"],
       }
   """
@@ -104,7 +104,7 @@ defmodule K8s.Client do
         method: :get,
         verb: :get,
         group_version: "apps/v1",
-        kind: "Deployment",
+        name: "Deployment",
         path_params: [namespace: "test", name: "nginx"]
       }
 
@@ -113,7 +113,7 @@ defmodule K8s.Client do
         method: :get,
         verb: :get,
         group_version: "apps/v1",
-        kind: :deployment,
+        name: :deployment,
         path_params: [namespace: "test", name: "nginx"]}
 
   """
@@ -137,7 +137,7 @@ defmodule K8s.Client do
         method: :get,
         verb: :list,
         group_version: "v1",
-        kind: "Pod",
+        name: "Pod",
         path_params: [namespace: "default"]
       }
 
@@ -146,7 +146,7 @@ defmodule K8s.Client do
         method: :get,
         verb: :list_all_namespaces,
         group_version: "apps/v1",
-        kind: "Deployment",
+        name: "Deployment",
         path_params: []
       }
 
@@ -206,7 +206,7 @@ defmodule K8s.Client do
         path_params: [namespace: "test"],
         verb: :create,
         group_version: "apps/v1",
-        kind: "Deployment",
+        name: "Deployment",
         resource: %{
           "apiVersion" => "apps/v1",
           "kind" => "Deployment",
@@ -306,7 +306,7 @@ defmodule K8s.Client do
         method: :patch,
         verb: :patch,
         group_version: "apps/v1",
-        kind: "Deployment",
+        name: "Deployment",
         path_params: [namespace: "test", name: "nginx"],
         resource: %{
           "apiVersion" => "apps/v1",
@@ -392,7 +392,7 @@ defmodule K8s.Client do
         method: :put,
         verb: :update,
         group_version: "apps/v1",
-        kind: "Deployment",
+        name: "Deployment",
         path_params: [namespace: "test", name: "nginx"],
         resource: %{
           "apiVersion" => "apps/v1",
@@ -482,7 +482,7 @@ defmodule K8s.Client do
         method: :delete,
         verb: :delete,
         group_version: "apps/v1",
-        kind: "Deployment",
+        name: "Deployment",
         path_params: [namespace: "test", name: "nginx"]
       }
 
@@ -500,7 +500,7 @@ defmodule K8s.Client do
         method: :delete,
         verb: :delete,
         group_version: "apps/v1",
-        kind: "Deployment",
+        name: "Deployment",
         path_params: [namespace: "test", name: "nginx"]
       }
 
@@ -518,7 +518,7 @@ defmodule K8s.Client do
         method: :delete,
         verb: :deletecollection,
         group_version: "extensions/v1beta1",
-        kind: "PodSecurityPolicy",
+        name: "PodSecurityPolicy",
         path_params: []
       }
 
@@ -527,7 +527,7 @@ defmodule K8s.Client do
         method: :delete,
         verb: :deletecollection,
         group_version: "storage.k8s.io/v1",
-        kind: "StorageClass",
+        name: "StorageClass",
         path_params: []
       }
   """
@@ -546,7 +546,7 @@ defmodule K8s.Client do
         method: :delete,
         verb: :deletecollection,
         group_version: "apps/v1beta1",
-        kind: "ControllerRevision",
+        name: "ControllerRevision",
         path_params: [namespace: "default"]
       }
 
@@ -555,7 +555,7 @@ defmodule K8s.Client do
         method: :delete,
         verb: :deletecollection,
         group_version: "apps/v1",
-        kind: "Deployment",
+        name: "Deployment",
         path_params: [namespace: "staging"]
       }
   """

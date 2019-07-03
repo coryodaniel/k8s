@@ -16,11 +16,11 @@ defmodule K8s.Cluster do
 
   """
   @spec url_for(K8s.Operation.t(), atom) :: {:ok, binary} | {:error, atom(), binary()}
-  def url_for(%K8s.Operation{} = operation, cluster_name) do
-    %{group_version: group_version, kind: kind, verb: verb} = operation
-    {:ok, conf} = K8s.Cluster.conf(cluster_name)
+  def url_for(%K8s.Operation{} = operation, cluster) do
+    %{group_version: group_version, name: name, verb: verb} = operation
+    {:ok, conf} = K8s.Cluster.conf(cluster)
 
-    with {:ok, resource} <- K8s.Cluster.Group.find_resource(cluster_name, group_version, kind),
+    with {:ok, resource} <- K8s.Cluster.Group.find_resource(cluster, group_version, name),
          {:ok, path} <-
            K8s.Cluster.Path.build(group_version, resource, verb, operation.path_params) do
       {:ok, Path.join(conf.url, path)}
@@ -38,8 +38,8 @@ defmodule K8s.Cluster do
       {:ok, "https://localhost:6443"}
   """
   @spec base_url(atom) :: {:ok, binary()} | {:error, atom} | {:error, binary}
-  def base_url(cluster_name) do
-    with {:ok, conf} <- K8s.Cluster.conf(cluster_name) do
+  def base_url(cluster) do
+    with {:ok, conf} <- K8s.Cluster.conf(cluster) do
       {:ok, conf.url}
     end
   end

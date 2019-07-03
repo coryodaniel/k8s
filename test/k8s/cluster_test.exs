@@ -89,18 +89,123 @@ defmodule K8s.ClusterTest do
     |> fn_to_test(op)
   end
 
+  @spec build_operation(binary, binary, keyword) :: Operation.t()
+  def build_operation(path, verb, opts) do
+    [_ | components] = String.split(path, "/")
+
+    {group_version, pluralized_kind_maybe_with_subresource} =
+      path_segments_to_operation(components)
+
+    Operation.build(verb, group_version, pluralized_kind_maybe_with_subresource, opts)
+  end
+
+  # /apis cluster scoped
+  def path_segments_to_operation(["apis", group, version, plural_kind]) do
+    {group_version(group, version), plural_kind}
+  end
+
+  def path_segments_to_operation(["apis", group, version, plural_kind, "{name}"]) do
+    {group_version(group, version), plural_kind}
+  end
+
+  def path_segments_to_operation(["apis", group, version, plural_kind, "{name}", subresource]) do
+    {group_version(group, version), "#{plural_kind}/#{subresource}"}
+  end
+
+  # /apis Namespace scoped
+  def path_segments_to_operation([
+        "apis",
+        group,
+        version,
+        "namespaces",
+        "{namespace}",
+        plural_kind
+      ]) do
+    {group_version(group, version), plural_kind}
+  end
+
+  def path_segments_to_operation([
+        "apis",
+        group,
+        version,
+        "namespaces",
+        "{namespace}",
+        plural_kind,
+        "{name}"
+      ]) do
+    {group_version(group, version), plural_kind}
+  end
+
+  def path_segments_to_operation([
+        "apis",
+        group,
+        version,
+        "namespaces",
+        "{namespace}",
+        plural_kind,
+        "{name}",
+        subresource
+      ]) do
+    {group_version(group, version), "#{plural_kind}/#{subresource}"}
+  end
+
+  # /api Cluster scoped
+  def path_segments_to_operation(["api", version, plural_kind]) do
+    {group_version(nil, version), plural_kind}
+  end
+
+  def path_segments_to_operation(["api", version, plural_kind, "{name}"]) do
+    {group_version(nil, version), plural_kind}
+  end
+
+  def path_segments_to_operation(["api", version, plural_kind, "{name}", subresource]) do
+    {group_version(nil, version), "#{plural_kind}/#{subresource}"}
+  end
+
+  # /api Namespace scoped
+  def path_segments_to_operation(["api", version, "namespaces", "{namespace}", plural_kind]) do
+    {group_version(nil, version), plural_kind}
+  end
+
+  def path_segments_to_operation([
+        "api",
+        version,
+        "namespaces",
+        "{namespace}",
+        plural_kind,
+        "{name}"
+      ]) do
+    {group_version(nil, version), plural_kind}
+  end
+
+  def path_segments_to_operation([
+        "api",
+        version,
+        "namespaces",
+        "{namespace}",
+        plural_kind,
+        "{name}",
+        subresource
+      ]) do
+    {group_version(nil, version), "#{plural_kind}/#{subresource}"}
+  end
+
+  def path_segments_to_operation(list) do
+    {:error, list}
+  end
+
   # mix test --only debugging
   # Useful for when adding new k8s versions to trouble shooting adding to K8s.Cluster.Group.
   # https://github.com/coryodaniel/k8s/issues/19
   @tag debugging: true
   test "target specific groupVersion/kind" do
     group_version = "networking.k8s.io/v1beta1"
-    kind = "ingresses/status"
+    name = "ingresses/status"
     path_params = [namespace: "foo", name: "bar"]
 
     operation = %K8s.Operation{
       group_version: group_version,
-      kind: kind,
+      name: name,
       method: :patch,
       path_params: path_params,
       resource: nil,
@@ -122,94 +227,5 @@ defmodule K8s.ClusterTest do
       assert {:ok, url} = K8s.Cluster.url_for(operation, :routing_tests)
       assert String.ends_with?(url, expected)
     end
-  end
-
-  @spec build_operation(binary, binary, keyword) :: Operation.t()
-  def build_operation(path, verb, opts) do
-    [_ | components] = String.split(path, "/")
-    {group_version, pluralized_kind_with_subaction} = components_to_operation(components)
-
-    Operation.build(verb, group_version, pluralized_kind_with_subaction, opts)
-  end
-
-  # /apis cluster scoped
-  def components_to_operation(["apis", group, version, plural_kind]) do
-    {group_version(group, version), plural_kind}
-  end
-
-  def components_to_operation(["apis", group, version, plural_kind, "{name}"]) do
-    {group_version(group, version), plural_kind}
-  end
-
-  def components_to_operation(["apis", group, version, plural_kind, "{name}", subaction]) do
-    {group_version(group, version), "#{plural_kind}/#{subaction}"}
-  end
-
-  # /apis Namespace scoped
-  def components_to_operation(["apis", group, version, "namespaces", "{namespace}", plural_kind]) do
-    {group_version(group, version), plural_kind}
-  end
-
-  def components_to_operation([
-        "apis",
-        group,
-        version,
-        "namespaces",
-        "{namespace}",
-        plural_kind,
-        "{name}"
-      ]) do
-    {group_version(group, version), plural_kind}
-  end
-
-  def components_to_operation([
-        "apis",
-        group,
-        version,
-        "namespaces",
-        "{namespace}",
-        plural_kind,
-        "{name}",
-        subaction
-      ]) do
-    {group_version(group, version), "#{plural_kind}/#{subaction}"}
-  end
-
-  # /api Cluster scoped
-  def components_to_operation(["api", version, plural_kind]) do
-    {group_version(nil, version), plural_kind}
-  end
-
-  def components_to_operation(["api", version, plural_kind, "{name}"]) do
-    {group_version(nil, version), plural_kind}
-  end
-
-  def components_to_operation(["api", version, plural_kind, "{name}", subaction]) do
-    {group_version(nil, version), "#{plural_kind}/#{subaction}"}
-  end
-
-  # /api Namespace scoped
-  def components_to_operation(["api", version, "namespaces", "{namespace}", plural_kind]) do
-    {group_version(nil, version), plural_kind}
-  end
-
-  def components_to_operation(["api", version, "namespaces", "{namespace}", plural_kind, "{name}"]) do
-    {group_version(nil, version), plural_kind}
-  end
-
-  def components_to_operation([
-        "api",
-        version,
-        "namespaces",
-        "{namespace}",
-        plural_kind,
-        "{name}",
-        subaction
-      ]) do
-    {group_version(nil, version), "#{plural_kind}/#{subaction}"}
-  end
-
-  def components_to_operation(list) do
-    {:error, list}
   end
 end
