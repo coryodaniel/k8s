@@ -78,17 +78,35 @@ defmodule K8s.Client.HTTPProvider do
   end
 
   @doc """
-  Appends `Accept` and `Content-Type` headers to `K8s.Conf.RequestOptions` headers.
+  Generates HTTP headers from `K8s.Conf.RequestOptions`
+
+  * Adds `{"Accept", "application/json"}` to all requests.
+  * Adds `Content-Type` base on HTTP method.
 
   ## Example
-
+    Sets `Content-Type` to `application/merge-patch+json` for PATCH operations
       iex> opts = %K8s.Conf.RequestOptions{headers: [{"Authorization", "Basic AF"}]}
-      ...> K8s.Client.HTTPProvider.headers(opts)
-      [{"Authorization", "Basic AF"},{"Accept", "application/json"}, {"Content-Type", "application/json"}]
+      ...> K8s.Client.HTTPProvider.headers(:patch, opts)
+      [{"Accept", "application/json"}, {"Content-Type", "application/merge-patch+json"}, {"Authorization", "Basic AF"}]
+
+    Sets `Content-Type` to `application/json` for all other operations
+      iex> opts = %K8s.Conf.RequestOptions{headers: [{"Authorization", "Basic AF"}]}
+      ...> K8s.Client.HTTPProvider.headers(:get, opts)
+      [{"Accept", "application/json"}, {"Content-Type", "application/json"}, {"Authorization", "Basic AF"}]
   """
   @impl true
-  def headers(%RequestOptions{} = opts) do
-    opts.headers ++ [{"Accept", "application/json"}, {"Content-Type", "application/json"}]
+  def headers(method, %RequestOptions{} = opts) do
+    defaults = [{"Accept", "application/json"}, content_type_header(method)]
+    defaults ++ opts.headers
+  end
+
+  @spec content_type_header(atom()) :: {binary(), binary()}
+  defp content_type_header(:patch) do
+    {"Content-Type", "application/merge-patch+json"}
+  end
+
+  defp content_type_header(_http_method) do
+    {"Content-Type", "application/json"}
   end
 
   @spec decode(binary()) :: list | map | nil

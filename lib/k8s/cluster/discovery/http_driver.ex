@@ -66,7 +66,7 @@ defmodule K8s.Cluster.Discovery.HTTPDriver do
   defp get(url, conf, opts) do
     case RequestOptions.generate(conf) do
       {:ok, request_options} ->
-        headers = K8s.http_provider().headers(request_options)
+        headers = K8s.http_provider().headers(:get, request_options)
         opts = Keyword.merge([ssl: request_options.ssl_options], opts)
 
         K8s.http_provider().request(:get, url, "", headers, opts)

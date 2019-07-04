@@ -8,7 +8,7 @@ defmodule K8s.Client.DynamicHTTPProvider do
   @behaviour K8s.Client.Behaviour
 
   @impl true
-  defdelegate headers(request_options), to: K8s.Client.HTTPProvider
+  defdelegate headers(method, request_options), to: K8s.Client.HTTPProvider
 
   @impl true
   defdelegate handle_response(resp), to: K8s.Client.HTTPProvider
