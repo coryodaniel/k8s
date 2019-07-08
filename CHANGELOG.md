@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Set correct content-type for patch operations (https://github.com/coryodaniel/k8s/issues/32)
 - Refactored Operation.kind -> Operation.name
 - Group.cluster_key/2 -> Group.lookup_key/2
+- K8s.Cluster.Group :ets data structure changed to map
+- K8s.Cluster.Group module encompases access to :ets table
 
 ## [0.2.13] - 2019-06-27
 
