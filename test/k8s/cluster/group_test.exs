@@ -1,6 +1,7 @@
 defmodule K8s.Cluster.GroupTest do
   use ExUnit.Case, async: true
   doctest K8s.Cluster.Group
+  doctest K8s.Cluster.Group.ResourceNaming
 
   defp daemonset() do
     %{

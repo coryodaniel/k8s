@@ -1,6 +1,7 @@
 defmodule K8s.Cluster.Discovery.HTTPDriver do
   @moduledoc """
-  `K8s.Cluster.Discovery.Driver` implementation that makes calls to Kubernetes REST API.
+  `K8s.Cluster.Discovery.Driver` implementation that makes calls to Kubernetes REST API. No caching is implemented in this driver and all calls
+  will result in `/api` and `/apis` discovery
   """
 
   @behaviour K8s.Cluster.Discovery.Driver

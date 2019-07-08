@@ -148,7 +148,7 @@ A config entry looks like:
 // ...
 ```
 
-### Unsupported Kind errors
+### Unsupported Resource errors
 
 This error occurs when a new resource type is added to an existing API, similar to above you will need to add the `resource` to the list of `resources`.
 

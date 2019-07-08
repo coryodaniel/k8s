@@ -199,8 +199,8 @@ defmodule K8s.ClusterTest do
   # https://github.com/coryodaniel/k8s/issues/19
   @tag debugging: true
   test "target specific groupVersion/kind" do
-    group_version = "networking.k8s.io/v1beta1"
-    name = "ingresses/status"
+    group_version = "autoscaling/v1"
+    name = "replicasets/scale"
     path_params = [namespace: "foo", name: "bar"]
 
     operation = %K8s.Operation{

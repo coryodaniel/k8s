@@ -5,7 +5,9 @@ defmodule K8s.Cluster.Discovery do
   This module implements `K8s.Cluster.Discovery.Driver` behaviour and delegates function calls
   to the configured `@driver`.
 
-  This defaults to the `K8s.Cluster.Discovery.HTTPDriver`, but can be set with:
+  This defaults to the `K8s.Cluster.Discovery.HTTPDriver`
+
+  The driver can be set with:
 
   ```elixir
   Application.get_env(:k8s, :discovery_driver, MyCustomDiscoveryDriver)
@@ -43,6 +45,17 @@ defmodule K8s.Cluster.Discovery do
   def resource_definitions(cluster, opts \\ []), do: @driver.resource_definitions(cluster, opts)
 
   @doc """
+  Get all resources keyed by groupVersion/apiVersion membership.
+  """
+  @spec resources_by_group(atom(), Keyword.t() | nil) :: {:ok, map()} | {:error, atom()}
+  def resources_by_group(cluster, opts \\ []) do
+    with {:ok, definitions} <- resource_definitions(cluster, opts),
+         by_group <- reduce_by_group(definitions) do
+      {:ok, by_group}
+    end
+  end
+
+  @doc """
   Lists identifiers from Kubernetes resource definitions returned from `resource_definitions/2`.
 
   ## Examples
@@ -61,7 +74,7 @@ defmodule K8s.Cluster.Discovery do
   Lists all identifiers in group from Kubernetes resource definitions returned from `resource_definitions/2`.
 
   ## Examples
-      iex> K8s.Cluster.Discovery.resource_identifiers(:test, "apps/v1")
+      iex> K8s.Cluster.Discovery.resource_identifiers_by_group(:test, "apps/v1")
       [{"apps/v1", "Deployment", "deployments/status"}, {"apps/v1", "Deployment", "deployments"}]
   """
   @spec resource_identifiers_by_group(atom(), binary(), Keyword.t() | nil) ::
@@ -69,6 +82,23 @@ defmodule K8s.Cluster.Discovery do
   def resource_identifiers_by_group(cluster, group, opts \\ []) do
     with {:ok, identifiers} <- resource_identifiers(cluster, opts) do
       {:ok, filter_resource_identifiers_by_group(identifiers, group)}
+    end
+  end
+
+  @doc """
+  Lists all versions of a resource from Kubernetes resource definitions returned from `resource_definitions/2`.
+
+  ## Examples
+      iex> K8s.Cluster.Discovery.api_versions_for_resource(:test, "Deployment")
+      ["apps/v1"]
+  """
+  @spec api_versions_for_resource(atom(), binary(), Keyword.t() | nil) ::
+          {:ok, list(resource_definition_identifier_t)} | {:error, atom()}
+  def api_versions_for_resource(cluster, resource, opts \\ []) do
+    with {:ok, identifiers} <- resource_identifiers(cluster, opts) do
+      filtered = Enum.filter(identifiers, fn {_, k, _} -> k == resource end)
+      mapped = Enum.map(filtered, fn {v, _, _} -> v end)
+      {:ok, mapped}
     end
   end
 
@@ -83,11 +113,35 @@ defmodule K8s.Cluster.Discovery do
   defp get_identifiers_from_resource_definitions(definitions) do
     Enum.reduce(definitions, [], fn %{"groupVersion" => gv, "resources" => resources}, acc ->
       resource_identifiers =
-        Enum.map(resources, fn %{"kind" => kind, "name" => name} ->
-          {gv, kind, name}
+        Enum.map(resources, fn resource ->
+          group_version = resource_group_version(gv, resource)
+          {group_version, resource["kind"], resource["name"]}
         end)
 
       acc ++ resource_identifiers
     end)
   end
+
+  @spec reduce_by_group(list(map())) :: map()
+  defp reduce_by_group(groups) do
+    Enum.reduce(groups, %{}, fn %{"groupVersion" => gv, "resources" => resources}, acc ->
+      Enum.reduce(resources, acc, fn resource, acc ->
+        group_version = resource_group_version(gv, resource)
+        prev_resources_in_group = Map.get(acc, group_version, [])
+        new_resources_in_group = [resource | prev_resources_in_group]
+        Map.put(acc, group_version, new_resources_in_group)
+      end)
+    end)
+  end
+
+  @spec resource_group_version(binary(), map) :: binary
+  defp resource_group_version(_group_version, %{
+         "group" => subresource_group,
+         "kind" => _,
+         "name" => _,
+         "version" => subresource_version
+       }),
+       do: Path.join(subresource_group, subresource_version)
+
+  defp resource_group_version(group_version, %{"kind" => _, "name" => _}), do: group_version
 end

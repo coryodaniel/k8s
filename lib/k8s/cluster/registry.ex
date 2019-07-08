@@ -33,8 +33,8 @@ defmodule K8s.Cluster.Registry do
   @spec add(atom(), K8s.Conf.t()) :: {:ok, atom()} | {:error, atom()}
   def add(cluster, conf) do
     with true <- :ets.insert(K8s.Conf, {cluster, conf}),
-         {:ok, definitions} <- Discovery.resource_definitions(cluster) do
-      insert_definitions(cluster, definitions)
+         {:ok, resources_by_group} <- Discovery.resources_by_group(cluster) do
+      K8s.Cluster.Group.insert_all(cluster, resources_by_group)
       K8s.Sys.Event.cluster_registered(%{}, %{cluster: cluster})
       {:ok, cluster}
     end
@@ -59,16 +59,6 @@ defmodule K8s.Cluster.Registry do
       {:error, error} ->
         raise K8s.Cluster.RegistrationException, error
     end
-  end
-
-  @spec insert_definitions(atom, list(map)) :: no_return
-  defp insert_definitions(cluster, definitions) do
-    Enum.each(definitions, fn %{"groupVersion" => gv, "resources" => rs} ->
-      cluster_group_key = K8s.Cluster.Group.cluster_key(cluster, gv)
-      :ets.insert(K8s.Cluster.Group, {cluster_group_key, gv, rs})
-    end)
-
-    nil
   end
 
   @doc """

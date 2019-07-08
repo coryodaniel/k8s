@@ -1532,7 +1532,9 @@
           "get",
           "patch",
           "update"
-        ]
+        ],
+        "group": "extensions",
+        "version": "v1beta1"
       },
       {
         "kind": "ReplicationControllerDummy",
@@ -1550,7 +1552,9 @@
           "get",
           "patch",
           "update"
-        ]
+        ],
+        "group": "autoscaling",
+        "version": "v1beta1"
       }
     ],
     "url": "https://localhost:6443/apis/extensions/v1beta1"

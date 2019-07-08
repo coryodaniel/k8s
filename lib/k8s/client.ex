@@ -71,6 +71,7 @@ defmodule K8s.Client do
   > Get will retrieve a specific resource object by name.
 
   ## Examples
+    Getting a pod
 
       iex> pod = %{
       ...>   "apiVersion" => "v1",
@@ -91,14 +92,14 @@ defmodule K8s.Client do
   def get(%{} = resource), do: Operation.build(:get, resource)
 
   @doc """
-  Returns a `GET` operation for a resource by version, kind, name, and optionally namespace.
+  Returns a `GET` operation for a resource by version, kind/resource type, name, and optionally namespace.
 
   [K8s Docs](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.13/):
 
   > Get will retrieve a specific resource object by name.
 
   ## Examples
-
+    Get the nginx deployment in the default namespace:
       iex> K8s.Client.get("apps/v1", "Deployment", namespace: "test", name: "nginx")
       %K8s.Operation{
         method: :get,
@@ -108,12 +109,31 @@ defmodule K8s.Client do
         path_params: [namespace: "test", name: "nginx"]
       }
 
+    Get the nginx deployment in the default namespace:
       iex> K8s.Client.get("apps/v1", :deployment, namespace: "test", name: "nginx")
       %K8s.Operation{
         method: :get,
         verb: :get,
         group_version: "apps/v1",
         name: :deployment,
+        path_params: [namespace: "test", name: "nginx"]}
+
+    Get the nginx deployment's status:
+      iex> K8s.Client.get("apps/v1", "deployments/status", namespace: "test", name: "nginx")
+      %K8s.Operation{
+        method: :get,
+        verb: :get,
+        group_version: "apps/v1",
+        name: "deployments/status",
+        path_params: [namespace: "test", name: "nginx"]}
+
+    Get the nginx deployment's scale:
+      iex> K8s.Client.get("v1", "deployments/scale", namespace: "test", name: "nginx")
+      %K8s.Operation{
+        method: :get,
+        verb: :get,
+        group_version: "v1",
+        name: "deployments/scale",
         path_params: [namespace: "test", name: "nginx"]}
 
   """
@@ -203,7 +223,7 @@ defmodule K8s.Client do
       ...> K8s.Client.create(deployment)
       %K8s.Operation{
         method: :post,
-        path_params: [namespace: "test"],
+        path_params: [namespace: "test", name: "nginx"],
         verb: :create,
         group_version: "apps/v1",
         name: "Deployment",
@@ -246,17 +266,18 @@ defmodule K8s.Client do
         %{
           "apiVersion" => group_version,
           "kind" => kind,
-          "metadata" => %{"namespace" => ns}
+          "metadata" => %{"namespace" => ns, "name" => name}
         } = resource
       ) do
-    Operation.build(:create, group_version, kind, [namespace: ns], resource)
+    Operation.build(:create, group_version, kind, [namespace: ns, name: name], resource)
   end
 
-  # Support for creating resources that aren't namespaced... like a Namespace or other cluster-scoped resources.
+  # Support for creating resources that are cluster-scoped, like Namespaces.
   def create(
-        %{"apiVersion" => group_version, "kind" => kind, "metadata" => %{"name" => _}} = resource
+        %{"apiVersion" => group_version, "kind" => kind, "metadata" => %{"name" => name}} =
+          resource
       ) do
-    Operation.build(:create, group_version, kind, [], resource)
+    Operation.build(:create, group_version, kind, [name: name], resource)
   end
 
   @doc """

@@ -20,6 +20,16 @@ defmodule K8s.Client.Runner.BaseTest do
     def request(:get, @namespaced_url <> "/test", _body, _headers, _opts) do
       render(nil)
     end
+
+    def request(
+          :get,
+          @base_url <> "/apis/apps/v1/namespaces/default/deployments/nginx/status",
+          _body,
+          _headers,
+          _opts
+        ) do
+      render(nil)
+    end
   end
 
   setup do
@@ -45,6 +55,11 @@ defmodule K8s.Client.Runner.BaseTest do
       operation = Client.get(make_namespace("test"))
       opts = [params: %{"watch" => "true"}]
       assert {:ok, _} = Base.run(operation, cluster, opts)
+    end
+
+    test "supports subresource operations", %{cluster: cluster} do
+      operation = Client.get("apps/v1", "deployments/status", name: "nginx", namespace: "default")
+      assert {:ok, _} = Base.run(operation, cluster)
     end
   end
 
@@ -73,5 +88,19 @@ defmodule K8s.Client.Runner.BaseTest do
       operation = Client.list("v1", "Namespace", [])
       assert {:ok, _} = Base.run(operation, cluster)
     end
+
+    # test "supports subresource operations with custom HTTP bodies", %{cluster: cluster} do
+    #   eviction = %{
+    #     "apiVersion" => "policy/v1beta1",
+    #     "kind" => "Eviction",
+    #     "metadata" => %{
+    #       "name" => "nginx",
+    #       "namespace" => "default"
+    #     }
+    #   }
+
+    #   operation = K8s.Client.create(eviction)
+    #   assert {:ok, _} = Base.run(operation, cluster)
+    # end
   end
 end

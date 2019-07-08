@@ -10,7 +10,7 @@ defmodule K8s.Cluster do
 
       iex> conf = K8s.Conf.from_file("./test/support/kube-config.yaml")
       ...> K8s.Cluster.Registry.add(:test_cluster, conf)
-      ...> operation = K8s.Operation.build(:get, "apps/v1", :deployment, [namespace: "default", name: "nginx"])
+      ...> operation = K8s.Operation.build(:get, "apps/v1", :deployments, [namespace: "default", name: "nginx"])
       ...> K8s.Cluster.url_for(operation, :test_cluster)
       {:ok, "https://localhost:6443/apis/apps/v1/namespaces/default/deployments/nginx"}
 

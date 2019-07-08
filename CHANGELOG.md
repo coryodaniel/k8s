@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactored discovery to use `K8s.Cluster.Discovery`
 - Set correct content-type for patch operations (https://github.com/coryodaniel/k8s/issues/32)
 - Refactored Operation.kind -> Operation.name
+- Group.cluster_key/2 -> Group.lookup_key/2
 
 ## [0.2.13] - 2019-06-27
 
