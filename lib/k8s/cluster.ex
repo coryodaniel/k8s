@@ -3,6 +3,8 @@ defmodule K8s.Cluster do
   Cluster configuration and API route store for `K8s.Client`
   """
 
+  alias K8s.{Cluster, Operation}
+
   @doc """
   Retrieve the URL for a `K8s.Operation`
 
@@ -15,14 +17,12 @@ defmodule K8s.Cluster do
       {:ok, "https://localhost:6443/apis/apps/v1/namespaces/default/deployments/nginx"}
 
   """
-  @spec url_for(K8s.Operation.t(), atom) :: {:ok, binary} | {:error, atom(), binary()}
-  def url_for(%K8s.Operation{} = operation, cluster) do
-    %{group_version: group_version, name: name, verb: verb} = operation
-    {:ok, conf} = K8s.Cluster.conf(cluster)
-
-    with {:ok, resource} <- K8s.Cluster.Group.find_resource(cluster, group_version, name),
-         {:ok, path} <-
-           K8s.Cluster.Path.build(group_version, resource, verb, operation.path_params) do
+  @spec url_for(Operation.t(), atom) :: {:ok, binary} | {:error, atom(), binary()}
+  def url_for(%Operation{api_version: api_version, name: name, verb: verb} = operation, cluster) do
+    with {:ok, conf} <- Cluster.conf(cluster),
+         {:ok, name} <- Cluster.Group.resource_name_for_kind(cluster, api_version, name),
+         operation <- Map.put(operation, :name, name),
+         {:ok, path} <- Cluster.Path.build(operation) do
       {:ok, Path.join(conf.url, path)}
     end
   end
@@ -39,7 +39,7 @@ defmodule K8s.Cluster do
   """
   @spec base_url(atom) :: {:ok, binary()} | {:error, atom} | {:error, binary}
   def base_url(cluster) do
-    with {:ok, conf} <- K8s.Cluster.conf(cluster) do
+    with {:ok, conf} <- Cluster.conf(cluster) do
       {:ok, conf.url}
     end
   end

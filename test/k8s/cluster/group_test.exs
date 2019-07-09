@@ -31,6 +31,18 @@ defmodule K8s.Cluster.GroupTest do
     [daemonset(), deployment(), deployment_status()]
   end
 
+  describe "resource_name_for_kind/3" do
+    test "returns the REST resource name given a kubernetes kind" do
+      {:ok, name} = K8s.Cluster.Group.resource_name_for_kind(:test, "v1", "Pod")
+      assert name == "pods"
+    end
+
+    test "returns the REST resoruce name given a subresource name" do
+      {:ok, name} = K8s.Cluster.Group.resource_name_for_kind(:test, "v1", "pods/status")
+      assert name == "pods/status"
+    end
+  end
+
   describe "find_resource_by_name/2" do
     test "finds a resource by name" do
       {:ok, deployment_status} =

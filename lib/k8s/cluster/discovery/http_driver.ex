@@ -48,17 +48,17 @@ defmodule K8s.Cluster.Discovery.HTTPDriver do
          url <- Path.join(conf.url, @group_api_base_path),
          {:ok, response} <- get(url, conf, opts),
          groups <- Map.get(response, "groups") do
-      group_versions = get_group_versions_from_groups(groups)
+      api_versions = get_api_versions_from_groups(groups)
 
-      {:ok, group_versions}
+      {:ok, api_versions}
     end
   end
 
-  @spec get_group_versions_from_groups(list(map())) :: list(binary())
-  defp get_group_versions_from_groups(groups) do
+  @spec get_api_versions_from_groups(list(map())) :: list(binary())
+  defp get_api_versions_from_groups(groups) do
     Enum.reduce(groups, [], fn group, acc ->
-      group_versions = Enum.map(group["versions"], fn %{"groupVersion" => gv} -> gv end)
-      acc ++ group_versions
+      api_versions = Enum.map(group["versions"], fn %{"groupVersion" => gv} -> gv end)
+      acc ++ api_versions
     end)
   end
 

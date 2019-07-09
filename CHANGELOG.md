@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - K8s.Cluster.Group :ets data structure changed to map
 - K8s.Cluster.Group module encompases access to :ets table
 - Refactored Operation.resource -> Operation.data. The term `resource` is a bit overloaded in this repo, since the operation is encapsulating the HTTP request, `data` feels a bit more clear.
+- Refactored internal references to "group version" to "api version"
 
 ## [0.2.13] - 2019-06-27
 

@@ -8,7 +8,7 @@ defmodule K8s.Client.Runner.WaitTest do
     %K8s.Operation{
       method: method,
       verb: :get,
-      group_version: "v1",
+      api_version: "v1",
       name: "Pod",
       path_params: [namespace: "test", name: "nginx-pod"]
     }

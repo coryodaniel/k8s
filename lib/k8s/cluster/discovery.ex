@@ -76,8 +76,8 @@ defmodule K8s.Cluster.Discovery do
     Enum.reduce(groups, [], fn %{"groupVersion" => gv, "resources" => resources}, acc ->
       resource_identifiers =
         Enum.map(resources, fn resource ->
-          group_version = resource_group_version(gv, resource)
-          {group_version, resource["kind"], resource["name"]}
+          api_version = resource_api_version(gv, resource)
+          {api_version, resource["kind"], resource["name"]}
         end)
 
       acc ++ resource_identifiers
@@ -88,16 +88,16 @@ defmodule K8s.Cluster.Discovery do
   defp reduce_by_group(groups) do
     Enum.reduce(groups, %{}, fn %{"groupVersion" => gv, "resources" => resources}, acc ->
       Enum.reduce(resources, acc, fn resource, acc ->
-        group_version = resource_group_version(gv, resource)
-        prev_resources_in_group = Map.get(acc, group_version, [])
+        api_version = resource_api_version(gv, resource)
+        prev_resources_in_group = Map.get(acc, api_version, [])
         new_resources_in_group = [resource | prev_resources_in_group]
-        Map.put(acc, group_version, new_resources_in_group)
+        Map.put(acc, api_version, new_resources_in_group)
       end)
     end)
   end
 
-  @spec resource_group_version(binary(), map) :: binary
-  defp resource_group_version(_group_version, %{
+  @spec resource_api_version(binary(), map) :: binary
+  defp resource_api_version(_api_version, %{
          "group" => subresource_group,
          "kind" => _,
          "name" => _,
@@ -105,5 +105,5 @@ defmodule K8s.Cluster.Discovery do
        }),
        do: Path.join(subresource_group, subresource_version)
 
-  defp resource_group_version(group_version, %{"kind" => _, "name" => _}), do: group_version
+  defp resource_api_version(api_version, %{"kind" => _, "name" => _}), do: api_version
 end

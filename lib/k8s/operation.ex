@@ -4,7 +4,7 @@ defmodule K8s.Operation do
   @derive {Jason.Encoder, except: [:path_params]}
 
   @typedoc """
-  * `group_version` - API `groupVersion`, AKA `apiVersion`
+  * `api_version` - API `groupVersion`, AKA `apiVersion`
   * `name` - The name of the REST operation (Kubernets kind/resource/subresource). This is *not* _always_ the same as the `kind` key in the `data` field. e.g: `deployments` when POSTing, GETting a deployment.
   * `data` - HTTP request body to submit when applicable. (POST, PUT, PATCH, etc)
   * `method` - HTTP Method
@@ -21,7 +21,7 @@ defmodule K8s.Operation do
   %K8s.Operation{
     method: :put,
     verb: :update,
-    group_version: "v1", # group version of the "Scale" kind
+    api_version: "v1", # api version of the "Scale" kind
     name: "deployments/scale",
     data: %{"apiVersion" => "v1", "kind" => "Scale"}, # `data` is of kind "Scale"
     path_params: [name: "nginx", namespace: "default"]
@@ -34,7 +34,7 @@ defmodule K8s.Operation do
   %K8s.Operation{
     method: :put,
     verb: :update,
-    group_version: "apps/v1", # group version of the "Deployment" kind
+    api_version: "apps/v1", # api version of the "Deployment" kind
     name: "deployments/status",
     data: %{"apiVersion" => "apps/v1", "kind" => "Deployment"}, # `data` is of kind "Deployment"
     path_params: [name: "nginx", namespace: "default"]
@@ -44,7 +44,7 @@ defmodule K8s.Operation do
   @type t :: %__MODULE__{
           method: atom(),
           verb: atom(),
-          group_version: binary(),
+          api_version: binary(),
           name: binary() | atom(),
           data: map() | nil,
           path_params: keyword(atom())
@@ -60,7 +60,7 @@ defmodule K8s.Operation do
     patch: :patch
   }
 
-  defstruct [:method, :verb, :group_version, :name, :data, :path_params]
+  defstruct [:method, :verb, :api_version, :name, :data, :path_params]
 
   @doc """
   Builds an `Operation` given a verb and a k8s resource.
@@ -68,13 +68,13 @@ defmodule K8s.Operation do
   ## Examples
 
       iex> deploy = %{"apiVersion" => "apps/v1", "kind" => "Deployment", "metadata" => %{"namespace" => "default", "name" => "nginx"}}
-      ...> K8s.Operation.build(:put, deploy)
+      ...> K8s.Operation.build(:update, deploy)
       %K8s.Operation{
         method: :put,
-        verb: :put,
+        verb: :update,
         data: %{"apiVersion" => "apps/v1", "kind" => "Deployment", "metadata" => %{"namespace" => "default", "name" => "nginx"}},
         path_params: [namespace: "default", name: "nginx"],
-        group_version: "apps/v1",
+        api_version: "apps/v1",
         name: "Deployment"
       }
   """
@@ -109,7 +109,9 @@ defmodule K8s.Operation do
   end
 
   @doc """
-  Builds an `Operation` given an verb and a k8s resource info
+  Builds an `Operation` given an verb and a k8s resource info.
+
+  *Note:* The `name` here may be a `Kind` and not a REST resource name in the event that the operation was built using a map. Use `K8s.Cluster.Group.resource_name_for_kind/3` to get the correct REST resource name, given a `kind`.
 
   ## Examples
     Building a GET deployment operation:
@@ -119,7 +121,7 @@ defmodule K8s.Operation do
         verb: :get,
         data: nil,
         path_params: [namespace: "default", name: "nginx"],
-        group_version: "apps/v1",
+        api_version: "apps/v1",
         name: :deployment
       }
 
@@ -130,12 +132,12 @@ defmodule K8s.Operation do
         verb: :get,
         data: nil,
         path_params: [namespace: "default", name: "nginx"],
-        group_version: "apps/v1",
+        api_version: "apps/v1",
         name: "deployments/status"
       }
   """
   @spec build(atom, binary, atom | binary, keyword(), map() | nil) :: __MODULE__.t()
-  def build(verb, group_version, name, path_params, data \\ nil) do
+  def build(verb, api_version, name_or_kind, path_params, data \\ nil) do
     http_method = @verb_map[verb] || verb
 
     http_body =
@@ -148,8 +150,8 @@ defmodule K8s.Operation do
       method: http_method,
       verb: verb,
       data: http_body,
-      group_version: group_version,
-      name: name,
+      api_version: api_version,
+      name: name_or_kind,
       path_params: path_params
     }
   end

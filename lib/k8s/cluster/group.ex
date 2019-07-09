@@ -6,16 +6,25 @@ defmodule K8s.Cluster.Group do
   alias K8s.Cluster.Group.ResourceNaming
 
   @doc """
-  Finds a resource definition by group version and (name or kind).
+  Get the REST resource name for a kubernetes Kind.
+
+  Since `K8s.Operation` is abstracted away from a specific cluster, when working with kubernetes resource `Map`s and specifying `"kind"` the `K8s.Cluster.Path` module isn't
+  able to determine the correct path. (It will generate things like /api/v1/Pod instead of api/v1/pods).
+
+  Also accepts REST resource name in the event they are provided, as it may be known in the event of subresources.
   """
-  @spec find_resource(atom(), binary(), atom() | binary()) ::
-          {:ok, map}
+  @spec resource_name_for_kind(atom(), binary(), binary()) ::
+          {:ok, binary()}
           | {:error, :cluster_not_registered, atom()}
           | {:error, :unsupported_resource, binary()}
-          | {:error, :unsupported_group_version, binary()}
-  def find_resource(cluster, group_version, name_or_kind) do
-    with {:ok, resources} <- resources_by_group(cluster, group_version) do
-      find_resource_by_name(resources, name_or_kind)
+          | {:error, :unsupported_api_version, binary()}
+  def resource_name_for_kind(cluster, api_version, name_or_kind) do
+    case find_resource(cluster, api_version, name_or_kind) do
+      {:ok, %{"name" => name}} ->
+        {:ok, name}
+
+      error ->
+        error
     end
   end
 
@@ -25,19 +34,44 @@ defmodule K8s.Cluster.Group do
   @spec resources_by_group(atom(), binary()) ::
           {:ok, list(map())}
           | {:error, :cluster_not_registered, atom()}
-          | {:error, :unsupported_group_version, binary()}
-  def resources_by_group(cluster, group_version) do
+          | {:error, :unsupported_api_version, binary()}
+  def resources_by_group(cluster, api_version) do
     case :ets.lookup(K8s.Cluster.Group, lookup_key(cluster)) do
       [] ->
         {:error, :cluster_not_registered, cluster}
 
       [{_cluster_key, resources_by_group}] ->
-        case Map.get(resources_by_group, group_version) do
-          nil -> {:error, :unsupported_group_version, group_version}
+        case Map.get(resources_by_group, api_version) do
+          nil -> {:error, :unsupported_api_version, api_version}
           resources -> {:ok, resources}
         end
     end
   end
+
+  @doc """
+  Finds a resource definition by api version and (name or kind).
+  """
+  @spec find_resource(atom(), binary(), atom() | binary()) ::
+          {:ok, map}
+          | {:error, :cluster_not_registered, atom()}
+          | {:error, :unsupported_resource, binary()}
+          | {:error, :unsupported_api_version, binary()}
+  def find_resource(cluster, api_version, name_or_kind) do
+    with {:ok, resources} <- resources_by_group(cluster, api_version) do
+      find_resource_by_name(resources, name_or_kind)
+    end
+  end
+
+  @doc """
+  Insert/Update a cluster's group/resource definitions.
+  """
+  @spec insert_all(atom(), map()) :: boolean()
+  def insert_all(cluster, resources_by_group) do
+    :ets.insert(K8s.Cluster.Group, {lookup_key(cluster), resources_by_group})
+  end
+
+  @spec lookup_key(atom) :: binary
+  defp lookup_key(cluster), do: Atom.to_string(cluster)
 
   @doc false
   @spec find_resource_by_name(list(map), atom() | binary()) ::
@@ -50,15 +84,4 @@ defmodule K8s.Cluster.Group do
       resource -> {:ok, resource}
     end
   end
-
-  @doc """
-  Insert/Update a cluster's group/resource definitions.
-  """
-  @spec insert_all(atom(), map()) :: :ok
-  def insert_all(cluster, resources_by_group) do
-    :ets.insert(K8s.Cluster.Group, {lookup_key(cluster), resources_by_group})
-  end
-
-  @spec lookup_key(atom) :: binary
-  defp lookup_key(cluster), do: Atom.to_string(cluster)
 end

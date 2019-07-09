@@ -10,111 +10,118 @@ defmodule K8s.Cluster.Path do
   def path_params, do: @path_params
 
   @doc """
-  Generates the API path for a given group/version and resource.
+  Generates the API path for a `K8s.Operation`.
 
   ## Examples
 
   Generate a path for a cluster scoped resource:
 
-      iex> resource = %{
-      ...>   "kind" => "CertificateSigningRequest",
-      ...>   "name" => "certificatesigningrequests",
-      ...>   "namespaced" => false,
-      ...>   "verbs" => ["update"]
+      iex> resource = K8s.Resource.build("apps/v1", "CertificateSigningRequest", "foo")
+      ...> operation = %K8s.Operation{
+      ...>  method: :put,
+      ...>  verb: :update,
+      ...>  data: resource,
+      ...>  path_params: [name: "foo"],
+      ...>  api_version: "apps/v1",
+      ...>  name: "certificatesigningrequests"
       ...> }
-      ...> K8s.Cluster.Path.build("apps/v1", resource, :update, [name: "foo"])
+      ...> K8s.Cluster.Path.build(operation)
       {:ok, "/apis/apps/v1/certificatesigningrequests/foo"}
 
   Generate a path for a namespace scoped resource:
 
-      iex> resource = %{
-      ...>   "kind" => "Pod",
-      ...>   "name" => "pods",
-      ...>   "namespaced" => true,
-      ...>   "verbs" => ["update"]
+      iex> resource = K8s.Resource.build("v1", "Pod", "default", "foo")
+      ...> operation = %K8s.Operation{
+      ...>  method: :put,
+      ...>  verb: :update,
+      ...>  data: resource,
+      ...>  path_params: [namespace: "default", name: "foo"],
+      ...>  api_version: "v1",
+      ...>  name: "pods"
       ...> }
-      ...> K8s.Cluster.Path.build("v1", resource, :update, [namespace: "default", name: "foo"])
+      ...> K8s.Cluster.Path.build(operation)
       {:ok, "/api/v1/namespaces/default/pods/foo"}
 
   Generate a path for a namespace scoped resource on the collection: (ie create, list)
 
-      iex> resource = %{
-      ...>   "kind" => "Pod",
-      ...>   "name" => "pods",
-      ...>   "namespaced" => true,
-      ...>   "verbs" => ["create"]
+      iex> resource = K8s.Resource.build("v1", "Pod", "default", "foo")
+      ...> operation = %K8s.Operation{
+      ...>  method: :post,
+      ...>  verb: :create,
+      ...>  data: resource,
+      ...>  path_params: [namespace: "default", name: "foo"],
+      ...>  api_version: "v1",
+      ...>  name: "pods"
       ...> }
-      ...> K8s.Cluster.Path.build("v1", resource, :create, [namespace: "default"])
+      ...> K8s.Cluster.Path.build(operation)
       {:ok, "/api/v1/namespaces/default/pods"}
 
   Generating a listing path for a namespace:
 
-      iex> resource = %{
-      ...>   "kind" => "Pod",
-      ...>   "name" => "pods",
-      ...>   "namespaced" => true,
-      ...>   "verbs" => ["list"]
+      iex> operation = %K8s.Operation{
+      ...>  method: :get,
+      ...>  verb: :list,
+      ...>  data: nil,
+      ...>  path_params: [namespace: "default"],
+      ...>  api_version: "v1",
+      ...>  name: "pods"
       ...> }
-      ...> K8s.Cluster.Path.build("v1", resource, :list, [namespace: "default"])
+      ...> K8s.Cluster.Path.build(operation)
       {:ok, "/api/v1/namespaces/default/pods"}
 
   Generating a listing path for a all namespaces:
 
-      iex> resource = %{
-      ...>   "kind" => "Pod",
-      ...>   "name" => "pods",
-      ...>   "namespaced" => true,
-      ...>   "verbs" => ["list"]
+      iex> operation = %K8s.Operation{
+      ...>  method: :get,
+      ...>  verb: :list_all_namespaces,
+      ...>  data: nil,
+      ...>  path_params: [namespace: "default"],
+      ...>  api_version: "v1",
+      ...>  name: "pods"
       ...> }
-      ...> K8s.Cluster.Path.build("v1", resource, :list_all_namespaces, [])
+      ...> K8s.Cluster.Path.build(operation)
       {:ok, "/api/v1/pods"}
 
   Generating a path for a subresource:
 
-      iex> resource = %{
-      ...>   "kind" => "Pod",
-      ...>   "name" => "pods/status",
-      ...>   "namespaced" => true,
-      ...>   "verbs" => ["get"]
+      iex> operation = %K8s.Operation{
+      ...>  method: :get,
+      ...>  verb: :get,
+      ...>  data: nil,
+      ...>  path_params: [namespace: "default", name: "foo"],
+      ...>  api_version: "v1",
+      ...>  name: "pods/status"
       ...> }
-      ...> K8s.Cluster.Path.build("v1", resource, :get, [namespace: "default", name: "foo"])
+      ...> K8s.Cluster.Path.build(operation)
       {:ok, "/api/v1/namespaces/default/pods/foo/status"}
 
   Deleting a collection:
 
-      iex> resource = %{
-      ...>   "kind" => "Pod",
-      ...>   "name" => "pods",
-      ...>   "namespaced" => true,
-      ...>   "verbs" => [
-      ...>     "deletecollection"
-      ...>   ]
+      iex> operation = %K8s.Operation{
+      ...>  method: :delete,
+      ...>  verb: :deletecollection,
+      ...>  data: nil,
+      ...>  path_params: [namespace: "default"],
+      ...>  api_version: "v1",
+      ...>  name: "pods"
       ...> }
-      ...> K8s.Cluster.Path.build("v1", resource, :deletecollection, [namespace: "default"])
+      ...> K8s.Cluster.Path.build(operation)
       {:ok, "/api/v1/namespaces/default/pods"}
-
   """
-  @spec build(binary, map, atom, keyword(atom)) ::
+  @spec build(K8s.Operation.t()) ::
           {:ok, binary}
-          | {:error, :unsupported_verb}
           | {:error, :missing_required_param, list(atom)}
-  def build(api_version, resource, verb, params) do
-    case resource_supports_verb?(resource, verb) do
-      true ->
-        path_template = to_path(api_version, resource, verb)
-        required_params = K8s.Cluster.Path.find_params(path_template)
-        provided_params = Keyword.keys(params)
+  def build(%K8s.Operation{} = operation) do
+    path_template = to_path(operation)
+    required_params = K8s.Cluster.Path.find_params(path_template)
+    provided_params = Keyword.keys(operation.path_params)
 
-        case required_params -- provided_params do
-          [] ->
-            {:ok, replace_path_vars(path_template, params)}
+    case required_params -- provided_params do
+      [] ->
+        {:ok, replace_path_vars(path_template, operation.path_params)}
 
-          missing_params ->
-            {:error, :missing_required_param, missing_params}
-        end
-
-      false ->
-        {:error, :unsupported_verb}
+      missing_params ->
+        {:error, :missing_required_param, missing_params}
     end
   end
 
@@ -156,20 +163,23 @@ defmodule K8s.Cluster.Path do
     |> Enum.map(fn match -> match |> List.last() |> String.to_existing_atom() end)
   end
 
-  @spec to_path(binary, map, atom) :: binary
-  defp to_path(api_version, %{"namespaced" => ns, "name" => name}, verb) do
+  @spec to_path(K8s.Operation.t()) :: binary
+  defp to_path(%K8s.Operation{path_params: params} = operation) do
+    has_namespace = Keyword.has_key?(params || [], :namespace)
+    namespaced = has_namespace && params[:namespace] != :all
+
     prefix =
-      case String.contains?(api_version, "/") do
-        true -> "/apis/#{api_version}"
-        false -> "/api/#{api_version}"
+      case String.contains?(operation.api_version, "/") do
+        true -> "/apis/#{operation.api_version}"
+        false -> "/api/#{operation.api_version}"
       end
 
     suffix =
-      name
+      operation.name
       |> String.split("/")
-      |> resource_path_suffix(verb)
+      |> resource_path_suffix(operation.verb)
 
-    build_path(prefix, suffix, ns, verb)
+    build_path(prefix, suffix, namespaced, operation.verb)
   end
 
   defp resource_path_suffix([name], verb), do: name_param(name, verb)
@@ -192,13 +202,4 @@ defmodule K8s.Cluster.Path do
   defp build_path(prefix, suffix, true, :list_all_namespaces), do: "#{prefix}/#{suffix}"
   defp build_path(prefix, suffix, true, _), do: "#{prefix}/namespaces/{namespace}/#{suffix}"
   defp build_path(prefix, suffix, false, _), do: "#{prefix}/#{suffix}"
-
-  @spec resource_supports_verb?(map, atom) :: boolean
-  defp resource_supports_verb?(_, :watch), do: false
-
-  defp resource_supports_verb?(%{"verbs" => verbs}, :list_all_namespaces),
-    do: Enum.member?(verbs, "list")
-
-  defp resource_supports_verb?(%{"verbs" => verbs}, verb),
-    do: Enum.member?(verbs, Atom.to_string(verb))
 end

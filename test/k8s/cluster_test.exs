@@ -63,9 +63,9 @@ defmodule K8s.ClusterTest do
     end)
   end
 
-  def group_version(nil, version), do: version
-  def group_version("", version), do: version
-  def group_version(group, version), do: "#{group}/#{version}"
+  def api_version(nil, version), do: version
+  def api_version("", version), do: version
+  def api_version(group, version), do: "#{group}/#{version}"
 
   def fn_to_test(:list, op) do
     case Regex.match?(~r/AllNamespaces/, op["operationId"]) do
@@ -93,23 +93,22 @@ defmodule K8s.ClusterTest do
   def build_operation(path, verb, opts) do
     [_ | components] = String.split(path, "/")
 
-    {group_version, pluralized_kind_maybe_with_subresource} =
-      path_segments_to_operation(components)
+    {api_version, pluralized_kind_maybe_with_subresource} = path_segments_to_operation(components)
 
-    Operation.build(verb, group_version, pluralized_kind_maybe_with_subresource, opts)
+    Operation.build(verb, api_version, pluralized_kind_maybe_with_subresource, opts)
   end
 
   # /apis cluster scoped
   def path_segments_to_operation(["apis", group, version, plural_kind]) do
-    {group_version(group, version), plural_kind}
+    {api_version(group, version), plural_kind}
   end
 
   def path_segments_to_operation(["apis", group, version, plural_kind, "{name}"]) do
-    {group_version(group, version), plural_kind}
+    {api_version(group, version), plural_kind}
   end
 
   def path_segments_to_operation(["apis", group, version, plural_kind, "{name}", subresource]) do
-    {group_version(group, version), "#{plural_kind}/#{subresource}"}
+    {api_version(group, version), "#{plural_kind}/#{subresource}"}
   end
 
   # /apis Namespace scoped
@@ -121,7 +120,7 @@ defmodule K8s.ClusterTest do
         "{namespace}",
         plural_kind
       ]) do
-    {group_version(group, version), plural_kind}
+    {api_version(group, version), plural_kind}
   end
 
   def path_segments_to_operation([
@@ -133,7 +132,7 @@ defmodule K8s.ClusterTest do
         plural_kind,
         "{name}"
       ]) do
-    {group_version(group, version), plural_kind}
+    {api_version(group, version), plural_kind}
   end
 
   def path_segments_to_operation([
@@ -146,25 +145,25 @@ defmodule K8s.ClusterTest do
         "{name}",
         subresource
       ]) do
-    {group_version(group, version), "#{plural_kind}/#{subresource}"}
+    {api_version(group, version), "#{plural_kind}/#{subresource}"}
   end
 
   # /api Cluster scoped
   def path_segments_to_operation(["api", version, plural_kind]) do
-    {group_version(nil, version), plural_kind}
+    {api_version(nil, version), plural_kind}
   end
 
   def path_segments_to_operation(["api", version, plural_kind, "{name}"]) do
-    {group_version(nil, version), plural_kind}
+    {api_version(nil, version), plural_kind}
   end
 
   def path_segments_to_operation(["api", version, plural_kind, "{name}", subresource]) do
-    {group_version(nil, version), "#{plural_kind}/#{subresource}"}
+    {api_version(nil, version), "#{plural_kind}/#{subresource}"}
   end
 
   # /api Namespace scoped
   def path_segments_to_operation(["api", version, "namespaces", "{namespace}", plural_kind]) do
-    {group_version(nil, version), plural_kind}
+    {api_version(nil, version), plural_kind}
   end
 
   def path_segments_to_operation([
@@ -175,7 +174,7 @@ defmodule K8s.ClusterTest do
         plural_kind,
         "{name}"
       ]) do
-    {group_version(nil, version), plural_kind}
+    {api_version(nil, version), plural_kind}
   end
 
   def path_segments_to_operation([
@@ -187,7 +186,7 @@ defmodule K8s.ClusterTest do
         "{name}",
         subresource
       ]) do
-    {group_version(nil, version), "#{plural_kind}/#{subresource}"}
+    {api_version(nil, version), "#{plural_kind}/#{subresource}"}
   end
 
   def path_segments_to_operation(list) do
@@ -199,12 +198,12 @@ defmodule K8s.ClusterTest do
   # https://github.com/coryodaniel/k8s/issues/19
   @tag debugging: true
   test "target specific groupVersion/kind" do
-    group_version = "autoscaling/v1"
+    api_version = "autoscaling/v1"
     name = "replicasets/scale"
     path_params = [namespace: "foo", name: "bar"]
 
     operation = %K8s.Operation{
-      group_version: group_version,
+      api_version: api_version,
       name: name,
       method: :patch,
       path_params: path_params,

@@ -83,7 +83,7 @@ defmodule K8s.Client do
       %K8s.Operation{
         method: :get,
         verb: :get,
-        group_version: "v1",
+        api_version: "v1",
         name: "Pod",
         path_params: [namespace: "test", name: "nginx-pod"],
       }
@@ -104,7 +104,7 @@ defmodule K8s.Client do
       %K8s.Operation{
         method: :get,
         verb: :get,
-        group_version: "apps/v1",
+        api_version: "apps/v1",
         name: "Deployment",
         path_params: [namespace: "test", name: "nginx"]
       }
@@ -114,7 +114,7 @@ defmodule K8s.Client do
       %K8s.Operation{
         method: :get,
         verb: :get,
-        group_version: "apps/v1",
+        api_version: "apps/v1",
         name: :deployment,
         path_params: [namespace: "test", name: "nginx"]}
 
@@ -123,7 +123,7 @@ defmodule K8s.Client do
       %K8s.Operation{
         method: :get,
         verb: :get,
-        group_version: "apps/v1",
+        api_version: "apps/v1",
         name: "deployments/status",
         path_params: [namespace: "test", name: "nginx"]}
 
@@ -132,13 +132,13 @@ defmodule K8s.Client do
       %K8s.Operation{
         method: :get,
         verb: :get,
-        group_version: "v1",
+        api_version: "v1",
         name: "deployments/scale",
         path_params: [namespace: "test", name: "nginx"]}
 
   """
   @spec get(binary, binary | atom, options | nil) :: Operation.t()
-  def get(group_version, kind, opts \\ []), do: Operation.build(:get, group_version, kind, opts)
+  def get(api_version, kind, opts \\ []), do: Operation.build(:get, api_version, kind, opts)
 
   @doc """
   Returns a `GET` operation to list all resources by version, kind, and namespace.
@@ -156,7 +156,7 @@ defmodule K8s.Client do
       %K8s.Operation{
         method: :get,
         verb: :list,
-        group_version: "v1",
+        api_version: "v1",
         name: "Pod",
         path_params: [namespace: "default"]
       }
@@ -165,23 +165,23 @@ defmodule K8s.Client do
       %K8s.Operation{
         method: :get,
         verb: :list_all_namespaces,
-        group_version: "apps/v1",
+        api_version: "apps/v1",
         name: "Deployment",
         path_params: []
       }
 
   """
   @spec list(binary, binary | atom, options | nil) :: Operation.t()
-  def list(group_version, kind, opts \\ [])
+  def list(api_version, kind, opts \\ [])
 
-  def list(group_version, kind, namespace: :all),
-    do: Operation.build(:list_all_namespaces, group_version, kind, [])
+  def list(api_version, kind, namespace: :all),
+    do: Operation.build(:list_all_namespaces, api_version, kind, [])
 
-  def list(group_version, kind, opts),
-    do: Operation.build(:list, group_version, kind, opts)
+  def list(api_version, kind, opts),
+    do: Operation.build(:list, api_version, kind, opts)
 
-  # def list(group_version, kind, namespace: namespace),
-  #   do: Operation.build(:list, group_version, kind, namespace: namespace)
+  # def list(api_version, kind, namespace: namespace),
+  #   do: Operation.build(:list, api_version, kind, namespace: namespace)
 
   @doc """
   Returns a `POST` operation to create the given resource.
@@ -225,7 +225,7 @@ defmodule K8s.Client do
         method: :post,
         path_params: [namespace: "test", name: "nginx"],
         verb: :create,
-        group_version: "apps/v1",
+        api_version: "apps/v1",
         name: "Deployment",
         data: %{
           "apiVersion" => "apps/v1",
@@ -264,20 +264,19 @@ defmodule K8s.Client do
   @spec create(map()) :: Operation.t()
   def create(
         %{
-          "apiVersion" => group_version,
+          "apiVersion" => api_version,
           "kind" => kind,
           "metadata" => %{"namespace" => ns, "name" => name}
         } = resource
       ) do
-    Operation.build(:create, group_version, kind, [namespace: ns, name: name], resource)
+    Operation.build(:create, api_version, kind, [namespace: ns, name: name], resource)
   end
 
   # Support for creating resources that are cluster-scoped, like Namespaces.
   def create(
-        %{"apiVersion" => group_version, "kind" => kind, "metadata" => %{"name" => name}} =
-          resource
+        %{"apiVersion" => api_version, "kind" => kind, "metadata" => %{"name" => name}} = resource
       ) do
-    Operation.build(:create, group_version, kind, [name: name], resource)
+    Operation.build(:create, api_version, kind, [name: name], resource)
   end
 
   @doc """
@@ -326,7 +325,7 @@ defmodule K8s.Client do
       %K8s.Operation{
         method: :patch,
         verb: :patch,
-        group_version: "apps/v1",
+        api_version: "apps/v1",
         name: "Deployment",
         path_params: [namespace: "test", name: "nginx"],
         data: %{
@@ -412,7 +411,7 @@ defmodule K8s.Client do
       %K8s.Operation{
         method: :put,
         verb: :update,
-        group_version: "apps/v1",
+        api_version: "apps/v1",
         name: "Deployment",
         path_params: [namespace: "test", name: "nginx"],
         data: %{
@@ -502,7 +501,7 @@ defmodule K8s.Client do
       %K8s.Operation{
         method: :delete,
         verb: :delete,
-        group_version: "apps/v1",
+        api_version: "apps/v1",
         name: "Deployment",
         path_params: [namespace: "test", name: "nginx"]
       }
@@ -520,14 +519,14 @@ defmodule K8s.Client do
       %K8s.Operation{
         method: :delete,
         verb: :delete,
-        group_version: "apps/v1",
+        api_version: "apps/v1",
         name: "Deployment",
         path_params: [namespace: "test", name: "nginx"]
       }
 
   """
   @spec delete(binary, binary | atom, options | nil) :: Operation.t()
-  def delete(group_version, kind, opts), do: Operation.build(:delete, group_version, kind, opts)
+  def delete(api_version, kind, opts), do: Operation.build(:delete, api_version, kind, opts)
 
   @doc """
   Returns a `DELETE` collection operation for all instances of a cluster scoped resource kind.
@@ -538,7 +537,7 @@ defmodule K8s.Client do
       %K8s.Operation{
         method: :delete,
         verb: :deletecollection,
-        group_version: "extensions/v1beta1",
+        api_version: "extensions/v1beta1",
         name: "PodSecurityPolicy",
         path_params: []
       }
@@ -547,14 +546,14 @@ defmodule K8s.Client do
       %K8s.Operation{
         method: :delete,
         verb: :deletecollection,
-        group_version: "storage.k8s.io/v1",
+        api_version: "storage.k8s.io/v1",
         name: "StorageClass",
         path_params: []
       }
   """
   @spec delete_all(binary(), binary() | atom()) :: Operation.t()
-  def delete_all(group_version, kind) do
-    Operation.build(:deletecollection, group_version, kind, [])
+  def delete_all(api_version, kind) do
+    Operation.build(:deletecollection, api_version, kind, [])
   end
 
   @doc """
@@ -566,7 +565,7 @@ defmodule K8s.Client do
       %K8s.Operation{
         method: :delete,
         verb: :deletecollection,
-        group_version: "apps/v1beta1",
+        api_version: "apps/v1beta1",
         name: "ControllerRevision",
         path_params: [namespace: "default"]
       }
@@ -575,13 +574,13 @@ defmodule K8s.Client do
       %K8s.Operation{
         method: :delete,
         verb: :deletecollection,
-        group_version: "apps/v1",
+        api_version: "apps/v1",
         name: "Deployment",
         path_params: [namespace: "staging"]
       }
   """
   @spec delete_all(binary(), binary() | atom(), namespace: binary()) :: Operation.t()
-  def delete_all(group_version, kind, namespace: namespace) do
-    Operation.build(:deletecollection, group_version, kind, namespace: namespace)
+  def delete_all(api_version, kind, namespace: namespace) do
+    Operation.build(:deletecollection, api_version, kind, namespace: namespace)
   end
 end
