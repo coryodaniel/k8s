@@ -98,10 +98,10 @@ defmodule K8s.Cluster.Path do
           {:ok, binary}
           | {:error, :unsupported_verb}
           | {:error, :missing_required_param, list(atom)}
-  def build(group_version, resource, verb, params) do
+  def build(api_version, resource, verb, params) do
     case resource_supports_verb?(resource, verb) do
       true ->
-        path_template = to_path(group_version, resource, verb)
+        path_template = to_path(api_version, resource, verb)
         required_params = K8s.Cluster.Path.find_params(path_template)
         provided_params = Keyword.keys(params)
 
@@ -157,11 +157,11 @@ defmodule K8s.Cluster.Path do
   end
 
   @spec to_path(binary, map, atom) :: binary
-  defp to_path(group_version, %{"namespaced" => ns, "name" => name}, verb) do
+  defp to_path(api_version, %{"namespaced" => ns, "name" => name}, verb) do
     prefix =
-      case String.contains?(group_version, "/") do
-        true -> "/apis/#{group_version}"
-        false -> "/api/#{group_version}"
+      case String.contains?(api_version, "/") do
+        true -> "/apis/#{api_version}"
+        false -> "/api/#{api_version}"
       end
 
     suffix =

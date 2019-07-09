@@ -227,7 +227,7 @@ defmodule K8s.Client do
         verb: :create,
         group_version: "apps/v1",
         name: "Deployment",
-        resource: %{
+        data: %{
           "apiVersion" => "apps/v1",
           "kind" => "Deployment",
           "metadata" => %{
@@ -329,7 +329,7 @@ defmodule K8s.Client do
         group_version: "apps/v1",
         name: "Deployment",
         path_params: [namespace: "test", name: "nginx"],
-        resource: %{
+        data: %{
           "apiVersion" => "apps/v1",
           "kind" => "Deployment",
           "metadata" => %{
@@ -415,7 +415,7 @@ defmodule K8s.Client do
         group_version: "apps/v1",
         name: "Deployment",
         path_params: [namespace: "test", name: "nginx"],
-        resource: %{
+        data: %{
           "apiVersion" => "apps/v1",
           "kind" => "Deployment",
           "metadata" => %{

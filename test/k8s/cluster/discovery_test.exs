@@ -2,24 +2,6 @@ defmodule K8s.Cluster.DiscoveryTest do
   use ExUnit.Case, async: true
   alias K8s.Cluster.Discovery
 
-  # describe "resource_identifiers_by_group/2" do
-  #   test "" do
-  #     assert false
-  #   end
-  # end
-
-  # describe "api_versions_for_resource/2" do
-  #   test "returns a list of API versions" do
-  #     cluster = :test
-  #     file = "test/support/discovery/sample_api_versions.json"
-
-  #     {:ok, api_versions} =
-  #       K8s.Cluster.Discovery.api_versions_for_resource(cluster, "Deployment", path: file)
-
-  #     assert api_versions == ["apps/v1"]
-  #   end
-  # end
-
   describe "api_version/1" do
     test "returns a list of API versions" do
       cluster = :test

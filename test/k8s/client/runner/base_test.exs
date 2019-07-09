@@ -89,18 +89,18 @@ defmodule K8s.Client.Runner.BaseTest do
       assert {:ok, _} = Base.run(operation, cluster)
     end
 
-    # test "supports subresource operations with custom HTTP bodies", %{cluster: cluster} do
-    #   eviction = %{
-    #     "apiVersion" => "policy/v1beta1",
-    #     "kind" => "Eviction",
-    #     "metadata" => %{
-    #       "name" => "nginx",
-    #       "namespace" => "default"
-    #     }
-    #   }
+    test "supports subresource operations with custom HTTP bodies", %{cluster: cluster} do
+      eviction = %{
+        "apiVersion" => "policy/v1beta1",
+        "kind" => "Eviction",
+        "metadata" => %{
+          "name" => "nginx",
+          "namespace" => "default"
+        }
+      }
 
-    #   operation = K8s.Client.create(eviction)
-    #   assert {:ok, _} = Base.run(operation, cluster)
-    # end
+      operation = K8s.Client.create(eviction)
+      assert {:ok, _} = Base.run(operation, cluster)
+    end
   end
 end

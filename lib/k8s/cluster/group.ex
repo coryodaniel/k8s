@@ -6,13 +6,27 @@ defmodule K8s.Cluster.Group do
   alias K8s.Cluster.Group.ResourceNaming
 
   @doc """
+  Finds a resource definition by group version and (name or kind).
+  """
+  @spec find_resource(atom(), binary(), atom() | binary()) ::
+          {:ok, map}
+          | {:error, :cluster_not_registered, atom()}
+          | {:error, :unsupported_resource, binary()}
+          | {:error, :unsupported_group_version, binary()}
+  def find_resource(cluster, group_version, name_or_kind) do
+    with {:ok, resources} <- resources_by_group(cluster, group_version) do
+      find_resource_by_name(resources, name_or_kind)
+    end
+  end
+
+  @doc """
   Returns a list of all resources in a given groupVersion
   """
-  @spec resource_by_group(atom(), binary()) ::
+  @spec resources_by_group(atom(), binary()) ::
           {:ok, list(map())}
           | {:error, :cluster_not_registered, atom()}
           | {:error, :unsupported_group_version, binary()}
-  def resource_by_group(cluster, group_version) do
+  def resources_by_group(cluster, group_version) do
     case :ets.lookup(K8s.Cluster.Group, lookup_key(cluster)) do
       [] ->
         {:error, :cluster_not_registered, cluster}
@@ -25,24 +39,10 @@ defmodule K8s.Cluster.Group do
     end
   end
 
-  @doc """
-  Finds a resource definition by group version and (name or kind).
-  """
-  @spec find_resource(atom(), binary(), atom() | binary()) ::
-          {:ok, map}
-          | {:error, :cluster_not_registered, atom()}
-          | {:error, :unsupported_resource, binary()}
-          | {:error, :unsupported_group_version, binary()}
-  def find_resource(cluster, group_version, name_or_kind) do
-    with {:ok, resources} <- resource_by_group(cluster, group_version) do
-      find_resource_by_name(resources, name_or_kind)
-    end
-  end
-
   @doc false
   @spec find_resource_by_name(list(map), atom() | binary()) ::
           {:ok, map} | {:error, atom() | binary()}
-  defp find_resource_by_name(resources, name_or_kind) do
+  def find_resource_by_name(resources, name_or_kind) do
     resource = Enum.find(resources, &ResourceNaming.matches?(&1, name_or_kind))
 
     case resource do

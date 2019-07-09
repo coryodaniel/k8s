@@ -208,7 +208,7 @@ defmodule K8s.ClusterTest do
       name: name,
       method: :patch,
       path_params: path_params,
-      resource: nil,
+      data: nil,
       verb: :patch
     }
 
@@ -224,8 +224,16 @@ defmodule K8s.ClusterTest do
       verb = action_to_verb(op["x-kubernetes-action"], op)
       operation = build_operation(path, verb, opts)
 
-      assert {:ok, url} = K8s.Cluster.url_for(operation, :routing_tests)
-      assert String.ends_with?(url, expected)
+      result = K8s.Cluster.url_for(operation, :routing_tests)
+
+      case result do
+        {:ok, url} ->
+          assert String.ends_with?(url, expected)
+
+        {:error, :unsupported_resource, _resource} ->
+          message = "Generated Operation: #{inspect(operation)}"
+          assert false, message
+      end
     end
   end
 end

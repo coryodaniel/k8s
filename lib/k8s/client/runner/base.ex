@@ -77,7 +77,7 @@ defmodule K8s.Client.Runner.Base do
   """
   @spec run(Operation.t(), binary | atom, keyword()) :: result_t
   def run(%Operation{} = operation, cluster_name, opts) when is_list(opts) do
-    run(operation, cluster_name, operation.resource, opts)
+    run(operation, cluster_name, operation.data, opts)
   end
 
   @doc """
