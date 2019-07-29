@@ -5,7 +5,9 @@ defmodule K8s.Cluster.Discovery do
   This module implements `K8s.Cluster.Discovery.Driver` behaviour and delegates function calls
   to the configured `@driver`.
 
-  This defaults to the `K8s.Cluster.Discovery.HTTPDriver`, but can be set with:
+  This defaults to the `K8s.Cluster.Discovery.HTTPDriver`
+
+  The driver can be set with:
 
   ```elixir
   Application.get_env(:k8s, :discovery_driver, MyCustomDiscoveryDriver)
@@ -14,11 +16,6 @@ defmodule K8s.Cluster.Discovery do
 
   @behaviour K8s.Cluster.Discovery.Driver
   @driver Application.get_env(:k8s, :discovery_driver, K8s.Cluster.Discovery.HTTPDriver)
-
-  @typedoc """
-  Resource definition identifier. Format: `{groupVersion, kind, name}`
-  """
-  @type resource_definition_identifier_t :: {binary(), binary(), binary()}
 
   @doc """
   Lists Kubernetes `apiVersion`s
@@ -37,26 +34,31 @@ defmodule K8s.Cluster.Discovery do
   def resource_definitions(cluster, opts \\ []), do: @driver.resource_definitions(cluster, opts)
 
   @doc """
-  Lists identifiers from Kubernetes resource definitions returned from `resource_definitions/2`.
+  Get all resources keyed by groupVersion/apiVersion membership.
   """
-  @spec resource_identifiers(atom(), Keyword.t() | nil) ::
-          {:ok, list(resource_definition_identifier_t)} | {:error, atom()}
-  def resource_identifiers(cluster, opts \\ []) do
-    with {:ok, definitions} <- resource_definitions(cluster, opts) do
-      {:ok, get_identifiers_from_resource_definitions(definitions)}
+  @spec resources_by_group(atom(), Keyword.t() | nil) :: {:ok, map()} | {:error, atom()}
+  def resources_by_group(cluster, opts \\ []) do
+    with {:ok, definitions} <- resource_definitions(cluster, opts),
+         by_group <- reduce_by_group(definitions) do
+      {:ok, by_group}
     end
   end
 
-  @spec get_identifiers_from_resource_definitions(list(map())) ::
-          list(resource_definition_identifier_t)
-  defp get_identifiers_from_resource_definitions(definitions) do
-    Enum.reduce(definitions, [], fn %{"groupVersion" => gv, "resources" => resources}, acc ->
-      resource_identifiers =
-        Enum.map(resources, fn %{"kind" => kind, "name" => name} ->
-          {gv, kind, name}
-        end)
-
-      acc ++ resource_identifiers
+  @spec reduce_by_group(list(map())) :: map()
+  defp reduce_by_group(groups) do
+    Enum.reduce(groups, %{}, fn %{"groupVersion" => gv, "resources" => resources}, acc ->
+      Map.put(acc, gv, resources)
     end)
   end
+
+  @spec resource_api_version(binary(), map) :: binary
+  defp resource_api_version(_api_version, %{
+         "group" => subresource_group,
+         "kind" => _,
+         "name" => _,
+         "version" => subresource_version
+       }),
+       do: Path.join(subresource_group, subresource_version)
+
+  defp resource_api_version(api_version, %{"kind" => _, "name" => _}), do: api_version
 end

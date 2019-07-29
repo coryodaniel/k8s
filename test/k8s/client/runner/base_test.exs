@@ -20,6 +20,26 @@ defmodule K8s.Client.Runner.BaseTest do
     def request(:get, @namespaced_url <> "/test", _body, _headers, _opts) do
       render(nil)
     end
+
+    def request(
+          :get,
+          @base_url <> "/apis/apps/v1/namespaces/default/deployments/nginx/status",
+          _body,
+          _headers,
+          _opts
+        ) do
+      render(nil)
+    end
+
+    def request(
+          :post,
+          @base_url <> "/api/v1/namespaces/default/pods/nginx/eviction",
+          _body,
+          _headers,
+          _opts
+        ) do
+      render(nil)
+    end
   end
 
   setup do
@@ -46,6 +66,11 @@ defmodule K8s.Client.Runner.BaseTest do
       opts = [params: %{"watch" => "true"}]
       assert {:ok, _} = Base.run(operation, cluster, opts)
     end
+
+    test "supports subresource operations", %{cluster: cluster} do
+      operation = Client.get("apps/v1", "deployments/status", name: "nginx", namespace: "default")
+      assert {:ok, _} = Base.run(operation, cluster)
+    end
   end
 
   describe "run/4" do
@@ -71,6 +96,29 @@ defmodule K8s.Client.Runner.BaseTest do
   describe "run" do
     test "request with HTTP 2xx response", %{cluster: cluster} do
       operation = Client.list("v1", "Namespace", [])
+      assert {:ok, _} = Base.run(operation, cluster)
+    end
+
+    test "supports subresource operations with alternate `kind` HTTP bodies", %{cluster: cluster} do
+      pod = %{
+        "apiVersion" => "v1",
+        "kind" => "Pod",
+        "metadata" => %{
+          "name" => "nginx",
+          "namespace" => "default"
+        }
+      }
+
+      eviction = %{
+        "apiVersion" => "policy/v1beta1",
+        "kind" => "Eviction",
+        "metadata" => %{
+          "name" => "nginx",
+          "namespace" => "default"
+        }
+      }
+
+      operation = K8s.Client.create(pod, eviction)
       assert {:ok, _} = Base.run(operation, cluster)
     end
   end

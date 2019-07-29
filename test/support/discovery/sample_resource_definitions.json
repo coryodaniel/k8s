@@ -36,6 +36,39 @@
       {
         "kind": "Namespace",
         "name": "namespaces"
+      },
+      {
+        "categories": [
+          "all"
+        ],
+        "kind": "Pod",
+        "name": "pods",
+        "namespaced": true,
+        "shortNames": [
+          "po"
+        ],
+        "singularName": "",
+        "verbs": [
+          "create",
+          "delete",
+          "deletecollection",
+          "get",
+          "list",
+          "patch",
+          "update",
+          "watch"
+        ]
+      },
+      {
+        "group": "policy",
+        "kind": "Eviction",
+        "name": "pods/eviction",
+        "namespaced": true,
+        "singularName": "",
+        "verbs": [
+          "create"
+        ],
+        "version": "v1beta1"
       }
     ]
   }

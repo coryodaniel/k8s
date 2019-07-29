@@ -25,6 +25,42 @@ defmodule K8s.Resource do
   }
 
   @doc """
+  Helper for building a kubernetes' resource `Map`
+
+  ## Examples
+      iex> K8s.Resource.build("v1", "Pod")
+      %{"apiVersion" => "v1", "kind" => "Pod", "metadata" => %{}}
+
+      iex> K8s.Resource.build("v1", "Namespace", "foo")
+      %{"apiVersion" => "v1", "kind" => "Namespace", "metadata" => %{"name" => "foo"}}
+
+      iex> K8s.Resource.build("v1", "Pod", "default", "foo")
+      %{"apiVersion" => "v1", "kind" => "Pod", "metadata" => %{"namespace" => "default", "name" => "foo"}}
+  """
+  @spec build(binary(), binary()) :: map()
+  def build(api_version, kind) do
+    %{
+      "apiVersion" => api_version,
+      "kind" => kind,
+      "metadata" => %{}
+    }
+  end
+
+  @spec build(binary(), binary(), binary()) :: map()
+  def build(api_version, kind, name) do
+    api_version
+    |> build(kind)
+    |> put_in(["metadata", "name"], name)
+  end
+
+  @spec build(binary(), binary(), binary(), binary()) :: map()
+  def build(api_version, kind, namespace, name) do
+    api_version
+    |> build(kind, name)
+    |> put_in(["metadata", "namespace"], namespace)
+  end
+
+  @doc """
   Create a resource `Map` from a YAML file.
 
   Raises `File.Error` when the file does not exist.
@@ -323,24 +359,4 @@ defmodule K8s.Resource do
         value * mult
     end
   end
-
-  # The serialization format is:
-  #  <quantity> ::= <signedNumber><suffix> (Note that <suffix> may be empty, from the "" case in <decimalSI>.)
-  #  <signedNumber> ::= <number> | <sign><number>
-  #  <sign> ::= "+" | "-"
-  #  <number> ::= <digits> | <digits>.<digits> | <digits>. | .<digits>
-  #  <digit> ::= 0 | 1 | ... | 9
-  #  <digits> ::= <digit> | <digit><digits>
-
-  #  <suffix> ::= <binarySI> | <decimalExponent> | <decimalSI>
-  #  <binarySI> ::= Ki | Mi | Gi | Ti | Pi | Ei
-  #     (International System of units; See: http://physics.nist.gov/cuu/Units/binary.html)
-  #  <decimalSI> ::= m | "" | k | M | G | T | P | E
-  #     (Note that 1024 = 1Ki but 1000 = 1k; I didn't choose the capitalization.)
-
-  #  <decimalExponent> ::= "e" <signedNumber> | "E" <signedNumber>
-  #   No matter which of the three exponent forms is used, no
-  #  quantity may represent a number greater than 2^63-1 in magnitude, nor may
-  #  it have more than 3 decimal places. Numbers larger or more precise will be
-  #  capped or rounded up.
 end

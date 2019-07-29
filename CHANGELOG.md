@@ -15,12 +15,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `K8s.Cluster.Discovery.resource_definitions/1` - queries a cluster for all resource definitions
 - `K8s.Cluster.Discovery.HTTPDriver` for discovery via k8s REST API
 - `K8s.Cluster.Discovery.FileDriver` for discovery via a file, used for testing, shipped to help dependent libraries mock discovery
+- Support for creating subresources
+- Support for getting subresources
+- Support for updating subresources
 
 ### Changed
 
 - Refactored tests on DynamicHTTPProvider
 - Refactored discovery to use `K8s.Cluster.Discovery`
 - Set correct content-type for patch operations (https://github.com/coryodaniel/k8s/issues/32)
+- Refactored Operation.kind -> Operation.name
+- Group.cluster_key/2 -> Group.lookup_key/2
+- K8s.Cluster.Group :ets data structure changed to map
+- K8s.Cluster.Group module encompases access to :ets table
+- Refactored Operation.resource -> Operation.data. The term `resource` is a bit overloaded in this repo, since the operation is encapsulating the HTTP request, `data` feels a bit more clear.
+- Refactored internal references to "group version" to "api version"
 
 ## [0.2.13] - 2019-06-27
 

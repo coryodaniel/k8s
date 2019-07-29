@@ -52,7 +52,7 @@ Most functions are also written using doctests.
 * [K8s.Resource doctests](https://hexdocs.pm/k8s/K8s.Resource.html)
 * [K8s.Version doctests](https://hexdocs.pm/k8s/K8s.Version.html)
 
-## Testing `K8s` operations in your application.
+## Testing `K8s` operations in your application
 
 `K8s` ships with a [`K8s.Client.DynamicHTTPProvider`](./lib/k8s/client/dynamic_http_provider.ex) for stubbing HTTP responses to kubernetes API requests.
 
@@ -109,22 +109,22 @@ make test/${NEW_VERSION_NUMBER}
 
 Mock discovery [responses](.test/support/discovery) exist to simulate runtime API discovery using the [`FileDriver`](./lib/k8s/cluster/discover/file_driver.ex)
 
-If new resources or APIs were added to kubernetes in the new version you will likely see one of these errors: `unsupported_group_version` and `unsupported_kind`.
+If new resources or APIs were added to kubernetes in the new version you will likely see one of these errors: `unsupported_api_version` and `unsupported_resource`.
 
-### Unsupported Group Version errors
+### Unsupported API Version errors
 
 This error occurs when a new API is added to kubernetes.
 
-Example: `{:error, :unsupported_group_version, "scheduling.k8s.io/v1"}`
+Example: `{:error, :unsupported_api_version, "scheduling.k8s.io/v1"}`
 
-Add the `:unsupported_group_version` to [this](test/support/discovery/resource_definitions.json) mock configuration and rerun the test suite.
+Add the `:unsupported_api_version` to [this](test/support/discovery/resource_definitions.json) mock configuration and rerun the test suite.
 
 A config entry looks like:
 
 ```javascript
 // ...
  {
-    "groupVersion": "scheduling.k8s.io/v1", // add the group version name
+    "groupVersion": "scheduling.k8s.io/v1", // add the api version
     "kind": "APIResourceList", // leave as is
     "resources": [ // add a list of resources provided by the new `groupVersion`
       {
@@ -148,7 +148,7 @@ A config entry looks like:
 // ...
 ```
 
-### Unsupported Kind errors
+### Unsupported Resource errors
 
 This error occurs when a new resource type is added to an existing API, similar to above you will need to add the `resource` to the list of `resources`.
 

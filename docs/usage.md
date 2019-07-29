@@ -306,38 +306,58 @@ Custom providers are processed before default providers.
 
 For protocol and behavior implementation examples check out `Certificate`, `Token`, or `AuthProvider` [here](../lib/k8s/conf/auth/).
 
-## Performing "unsupported" sub-resource operations
+## Performing sub-resource operations
 
-Currently sub-resource (eviction|finalize|bindings|binding|approval|scale|status) operations aren't officially supported by the `K8s.Client` API and currently need to be constructed using HTTPoison directly. `K8s.Cluster.url_for/2` can still be used to generate the base URL for the request.
+Subresource (eviction|finalize|bindings|binding|approval|scale|status) operations are created in the same way as standard operations using `K8s.Operation.build/4`, `K8s.Operation.build/5`, or any `K8s.Client` function.
 
-Below is an example `evict/1` function that will evict a pod from a node on the cluster registered as `:default`.
+Getting a deployment's status:
 
 ```elixir
-def evict(%{"metadata" => %{"name" => name, "namespace" => ns}}) do
-  operation = K8s.Operation.build(:get, "v1", :pod, namespace: ns, name: name)
-
-  with {:ok, base_url} <- K8s.Cluster.url_for(operation, :default),
-       {:ok, cluster_connection_config} <- K8s.Cluster.conf(:default),
-       {:ok, request_options} <- K8s.Conf.RequestOptions.generate(cluster_connection_config),
-       {:ok, body} <- eviction_body(ns, name) do
-    eviction_url = "#{base_url}/eviction"
-    headers = request_options.headers ++ [{"Accept", "application/json"}, {"Content-Type", "application/json"}]
-    options = [ssl: request_options.ssl_options]
-
-    HTTPoison.post(eviction_url, body, headers, options)
-  end
-end
-
-defp eviction_body(ns, name) do
-  manifest = %{
-    apiVersion: "policy/v1beta1",
-    kind: "Eviction",
-    metadata: %{
-      name: name,
-      namespace: ns
-    }
-  }
-
-  Jason.encode(manifest)
-end
+cluster = :test
+operation = K8s.Client.get("apps/v1", "deployments/status", name: "nginx", namespace: "default")
+{:ok, scale} = K8s.Client.run(operation, cluster)
 ```
+
+Getting a deployment's scale:
+
+```
+cluster = :test
+operation = K8s.Client.get("apps/v1", "deployments/scale", [name: "nginx", namespace: "default"])
+{:ok, scale} = K8s.Client.run(operation, cluster)
+```
+
+There are two forms for mutating subresources.
+
+Evicting a pod with a Pod map:
+
+```elixir
+cluster = :test
+eviction = %{
+  "apiVersion" => "policy/v1beta1",
+  "kind" => "Eviction",
+  "metadata" => %{
+    "name" => "nginx",
+  }
+}
+
+# Here we use K8s.Resource.build/4 but this k8s resource map could be built manually or retrieved from the k8s API
+subject = K8s.Resource.build("v1", "Pod", "default", "nginx")
+operation = K8s.Client.create(subject, eviction)
+{:ok, resp} = K8s.Client.run(operation, cluster)
+```
+
+Evicting a pod by providing details:
+
+```elixir
+cluster = :test
+eviction = %{
+  "apiVersion" => "policy/v1beta1",
+  "kind" => "Eviction",
+  "metadata" => %{
+    "name" => "nginx",
+  }
+}
+
+subject = K8s.Client.create("v1", "pods/eviction", [namespace: "default", name: "nginx"], eviction)
+operation = K8s.Client.create(subject, eviction)
+{:ok, resp} = K8s.Client.run(operation, cluster)

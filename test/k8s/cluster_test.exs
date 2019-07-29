@@ -8,32 +8,33 @@ defmodule K8s.ClusterTest do
 
   @k8s_spec System.get_env("K8S_SPEC") || "test/support/swagger/1.15.json"
 
-  @swagger @k8s_spec |> File.read!() |> Jason.decode!()
-  @paths @swagger["paths"]
-  @unimplemented_subresources ~r/\/(eviction|finalize|bindings|binding|approval|scale|status)$/
-  @swagger_operations @paths
-                      |> Enum.reduce([], fn {path, ops}, agg ->
-                        operations =
-                          ops
-                          |> Enum.filter(fn {method, op} ->
-                            method != "parameters" &&
-                              Map.has_key?(op, "x-kubernetes-group-version-kind") &&
-                              op["x-kubernetes-action"] != "connect" &&
-                              !Regex.match?(~r/\/watch\//, path) &&
-                              !Regex.match?(@unimplemented_subresources, path)
-                          end)
-                          |> Enum.map(fn {method, op} ->
-                            path_params = @paths[path]["parameters"] || []
-                            op_params = op["parameters"] || []
+  # Create a list of swagger operations to use as input for property tests
+  defp swagger_operations() do
+    swagger = @k8s_spec |> File.read!() |> Jason.decode!()
+    paths = swagger["paths"]
 
-                            op
-                            |> Map.put("http_method", method)
-                            |> Map.put("path", path)
-                            |> Map.put("parameters", path_params ++ op_params)
-                          end)
+    Enum.reduce(paths, [], fn {path, ops}, agg ->
+      operations =
+        ops
+        |> Enum.filter(fn {method, op} ->
+          method != "parameters" &&
+            Map.has_key?(op, "x-kubernetes-group-version-kind") &&
+            op["x-kubernetes-action"] != "connect" &&
+            !Regex.match?(~r/\/watch\//, path)
+        end)
+        |> Enum.map(fn {method, op} ->
+          path_params = paths[path]["parameters"] || []
+          op_params = op["parameters"] || []
 
-                        agg ++ operations
-                      end)
+          op
+          |> Map.put("http_method", method)
+          |> Map.put("path", path)
+          |> Map.put("parameters", path_params ++ op_params)
+        end)
+
+      agg ++ operations
+    end)
+  end
 
   setup_all do
     conf = K8s.Conf.from_file("./test/support/kube-config.yaml")
@@ -62,9 +63,9 @@ defmodule K8s.ClusterTest do
     end)
   end
 
-  def group_version(nil, version), do: version
-  def group_version("", version), do: version
-  def group_version(group, version), do: "#{group}/#{version}"
+  def api_version(nil, version), do: version
+  def api_version("", version), do: version
+  def api_version(group, version), do: "#{group}/#{version}"
 
   def fn_to_test(:list, op) do
     case Regex.match?(~r/AllNamespaces/, op["operationId"]) do
@@ -88,47 +89,41 @@ defmodule K8s.ClusterTest do
     |> fn_to_test(op)
   end
 
-  property "generates valid paths" do
-    check all(op <- member_of(@swagger_operations)) do
-      path = op["path"]
-      expected = expected_path(path)
-
-      opts = path_opts(path)
-      verb = action_to_verb(op["x-kubernetes-action"], op)
-      operation = build_operation(path, verb, opts)
-
-      assert {:ok, url} = K8s.Cluster.url_for(operation, :routing_tests)
-      assert String.ends_with?(url, expected)
-    end
-  end
-
   @spec build_operation(binary, binary, keyword) :: Operation.t()
   def build_operation(path, verb, opts) do
     [_ | components] = String.split(path, "/")
-    {group_version, pluralized_kind_with_subaction} = components_to_operation(components)
 
-    Operation.build(verb, group_version, pluralized_kind_with_subaction, opts)
+    {api_version, pluralized_kind_maybe_with_subresource} = path_segments_to_operation(components)
+
+    Operation.build(verb, api_version, pluralized_kind_maybe_with_subresource, opts)
   end
 
   # /apis cluster scoped
-  def components_to_operation(["apis", group, version, plural_kind]) do
-    {group_version(group, version), plural_kind}
+  def path_segments_to_operation(["apis", group, version, plural_kind]) do
+    {api_version(group, version), plural_kind}
   end
 
-  def components_to_operation(["apis", group, version, plural_kind, "{name}"]) do
-    {group_version(group, version), plural_kind}
+  def path_segments_to_operation(["apis", group, version, plural_kind, "{name}"]) do
+    {api_version(group, version), plural_kind}
   end
 
-  def components_to_operation(["apis", group, version, plural_kind, "{name}", subaction]) do
-    {group_version(group, version), "#{plural_kind}/#{subaction}"}
+  def path_segments_to_operation(["apis", group, version, plural_kind, "{name}", subresource]) do
+    {api_version(group, version), "#{plural_kind}/#{subresource}"}
   end
 
   # /apis Namespace scoped
-  def components_to_operation(["apis", group, version, "namespaces", "{namespace}", plural_kind]) do
-    {group_version(group, version), plural_kind}
+  def path_segments_to_operation([
+        "apis",
+        group,
+        version,
+        "namespaces",
+        "{namespace}",
+        plural_kind
+      ]) do
+    {api_version(group, version), plural_kind}
   end
 
-  def components_to_operation([
+  def path_segments_to_operation([
         "apis",
         group,
         version,
@@ -137,10 +132,10 @@ defmodule K8s.ClusterTest do
         plural_kind,
         "{name}"
       ]) do
-    {group_version(group, version), plural_kind}
+    {api_version(group, version), plural_kind}
   end
 
-  def components_to_operation([
+  def path_segments_to_operation([
         "apis",
         group,
         version,
@@ -148,46 +143,101 @@ defmodule K8s.ClusterTest do
         "{namespace}",
         plural_kind,
         "{name}",
-        subaction
+        subresource
       ]) do
-    {group_version(group, version), "#{plural_kind}/#{subaction}"}
+    {api_version(group, version), "#{plural_kind}/#{subresource}"}
   end
 
   # /api Cluster scoped
-  def components_to_operation(["api", version, plural_kind]) do
-    {group_version(nil, version), plural_kind}
+  def path_segments_to_operation(["api", version, plural_kind]) do
+    {api_version(nil, version), plural_kind}
   end
 
-  def components_to_operation(["api", version, plural_kind, "{name}"]) do
-    {group_version(nil, version), plural_kind}
+  def path_segments_to_operation(["api", version, plural_kind, "{name}"]) do
+    {api_version(nil, version), plural_kind}
   end
 
-  def components_to_operation(["api", version, plural_kind, "{name}", subaction]) do
-    {group_version(nil, version), "#{plural_kind}/#{subaction}"}
+  def path_segments_to_operation(["api", version, plural_kind, "{name}", subresource]) do
+    {api_version(nil, version), "#{plural_kind}/#{subresource}"}
   end
 
   # /api Namespace scoped
-  def components_to_operation(["api", version, "namespaces", "{namespace}", plural_kind]) do
-    {group_version(nil, version), plural_kind}
+  def path_segments_to_operation(["api", version, "namespaces", "{namespace}", plural_kind]) do
+    {api_version(nil, version), plural_kind}
   end
 
-  def components_to_operation(["api", version, "namespaces", "{namespace}", plural_kind, "{name}"]) do
-    {group_version(nil, version), plural_kind}
+  def path_segments_to_operation([
+        "api",
+        version,
+        "namespaces",
+        "{namespace}",
+        plural_kind,
+        "{name}"
+      ]) do
+    {api_version(nil, version), plural_kind}
   end
 
-  def components_to_operation([
+  def path_segments_to_operation([
         "api",
         version,
         "namespaces",
         "{namespace}",
         plural_kind,
         "{name}",
-        subaction
+        subresource
       ]) do
-    {group_version(nil, version), "#{plural_kind}/#{subaction}"}
+    {api_version(nil, version), "#{plural_kind}/#{subresource}"}
   end
 
-  def components_to_operation(list) do
+  def path_segments_to_operation(list) do
     {:error, list}
+  end
+
+  # mix test --only debugging
+  # Useful for when adding new k8s versions to trouble shooting adding to K8s.Cluster.Group.
+  # https://github.com/coryodaniel/k8s/issues/19
+  @tag debugging: true
+  test "target specific groupVersion/kind" do
+    api_version = "v1"
+    name = "pods"
+    path_params = [namespace: "foo", name: "bar"]
+    data = %{}
+
+    operation = %K8s.Operation{
+      api_version: api_version,
+      name: name,
+      method: :patch,
+      path_params: path_params,
+      data: data,
+      verb: :patch
+    }
+
+    assert {:ok, url} = K8s.Cluster.url_for(operation, :routing_tests)
+  end
+
+  property "generates valid paths" do
+    check all(op <- member_of(swagger_operations())) do
+      path = op["path"]
+      expected = expected_path(path)
+
+      opts = path_opts(path)
+      verb = action_to_verb(op["x-kubernetes-action"], op)
+      operation = build_operation(path, verb, opts)
+
+      result = K8s.Cluster.url_for(operation, :routing_tests)
+
+      case result do
+        {:ok, url} ->
+          # File.write!("/tmp/urls.log", "#{url}\n", [:append])
+          assert String.ends_with?(url, expected)
+
+        {:error, :unsupported_resource, _resource} ->
+          message = "Generated operation: #{inspect(operation)}"
+          assert false, message
+
+        error ->
+          assert false, "Unhandled operation: #{inspect(error)}"
+      end
+    end
   end
 end
