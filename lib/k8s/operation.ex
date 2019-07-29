@@ -139,7 +139,7 @@ defmodule K8s.Operation do
         name: "deployments/status"
       }
   """
-  @spec build(atom, binary, atom | binary, keyword(), map() | nil) :: __MODULE__.t()
+  @spec build(atom, binary, name_t(), keyword(), map() | nil) :: __MODULE__.t()
   def build(verb, api_version, name_or_kind, path_params, data \\ nil) do
     http_method = @verb_map[verb] || verb
 
