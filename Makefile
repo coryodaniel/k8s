@@ -1,4 +1,4 @@
-.PHONY: help clean deps all test tdd cov test/all lint analyze get-and-test-master
+.PHONY: help clean deps all test tdd cov test/all test/master lint analyze
 .PHONY: mock.dupes mock.groups
 
 help: ## Show this help
@@ -26,15 +26,14 @@ tdd: ## Run fast test on k8s last stable in a loop
 cov: ## Generate coverage HTML
 	mix coveralls.html
 
-test/all: ## Run full test suite against 1.10+ and master
-test/all: test/1.10 test/1.11 test/1.12 test/1.13 test/1.14 test/1.15
-test/all: get-and-test-master
-
 MASTER_SWAGGER_PATH:=test/support/swagger/master.json
-get-and-test-master:
+test/master: ## Run test suite against master
 	@-rm -f ${MASTER_SWAGGER_PATH}
 	@curl -sSL https://raw.githubusercontent.com/kubernetes/kubernetes/master/api/openapi-spec/swagger.json -o ${MASTER_SWAGGER_PATH}
 	K8S_SPEC=${MASTER_SWAGGER_PATH} mix test
+
+test/all: ## Run full test suite against 1.10+
+test/all: test/1.10 test/1.11 test/1.12 test/1.13 test/1.14 test/1.15	
 
 test/%: ## Run full test suite against a specific k8s version
 	K8S_SPEC=test/support/swagger/$*.json mix test
