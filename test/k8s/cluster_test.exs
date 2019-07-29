@@ -228,7 +228,7 @@ defmodule K8s.ClusterTest do
 
       case result do
         {:ok, url} ->
-          File.write!("/tmp/urls.log", "#{url}\n", [:append])
+          # File.write!("/tmp/urls.log", "#{url}\n", [:append])
           assert String.ends_with?(url, expected)
 
         {:error, :unsupported_resource, _resource} ->
