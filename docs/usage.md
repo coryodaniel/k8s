@@ -315,10 +315,20 @@ Getting a deployment's status:
 ```elixir
 cluster = :test
 operation = K8s.Client.get("apps/v1", "deployments/status", name: "nginx", namespace: "default")
-K8s.Client.run(operation, cluster)
+{:ok, scale} = K8s.Client.run(operation, cluster)
 ```
 
-Evicting a pod:
+Getting a deployment's scale:
+
+```
+cluster = :test
+operation = K8s.Client.get("apps/v1", "deployments/scale", [name: "nginx", namespace: "default"])
+{:ok, scale} = K8s.Client.run(operation, cluster)
+```
+
+There are two forms for mutating subresources.
+
+Evicting a pod with a Pod map:
 
 ```elixir
 cluster = :test
@@ -326,10 +336,28 @@ eviction = %{
   "apiVersion" => "policy/v1beta1",
   "kind" => "Eviction",
   "metadata" => %{
-    "name" => "nginx-3a23b",
-    "namespace" => "default"
+    "name" => "nginx",
   }
 }
-operation = K8s.Client.create(eviction)
+
+# Here we use K8s.Resource.build/4 but this k8s resource map could be built manually or retrieved from the k8s API
+subject = K8s.Resource.build("v1", "Pod", "default", "nginx")
+operation = K8s.Client.create(subject, eviction)
 {:ok, resp} = K8s.Client.run(operation, cluster)
 ```
+
+Evicting a pod by providing details:
+
+```elixir
+cluster = :test
+eviction = %{
+  "apiVersion" => "policy/v1beta1",
+  "kind" => "Eviction",
+  "metadata" => %{
+    "name" => "nginx",
+  }
+}
+
+subject = K8s.Client.create("v1", "pods/eviction", [namespace: "default", name: "nginx"], eviction)
+operation = K8s.Client.create(subject, eviction)
+{:ok, resp} = K8s.Client.run(operation, cluster)

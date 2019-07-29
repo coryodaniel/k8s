@@ -22,7 +22,7 @@ defmodule K8s.Cluster do
     with {:ok, conf} <- Cluster.conf(cluster),
          {:ok, name} <- Cluster.Group.resource_name_for_kind(cluster, api_version, name),
          operation <- Map.put(operation, :name, name),
-         {:ok, path} <- Cluster.Path.build(operation) do
+         {:ok, path} <- Operation.to_path(operation) do
       {:ok, Path.join(conf.url, path)}
     end
   end

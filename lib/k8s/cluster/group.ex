@@ -8,7 +8,7 @@ defmodule K8s.Cluster.Group do
   @doc """
   Get the REST resource name for a kubernetes Kind.
 
-  Since `K8s.Operation` is abstracted away from a specific cluster, when working with kubernetes resource `Map`s and specifying `"kind"` the `K8s.Cluster.Path` module isn't
+  Since `K8s.Operation` is abstracted away from a specific cluster, when working with kubernetes resource `Map`s and specifying `"kind"` the `K8s.Operation.Path` module isn't
   able to determine the correct path. (It will generate things like /api/v1/Pod instead of api/v1/pods).
 
   Also accepts REST resource name in the event they are provided, as it may be known in the event of subresources.

@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `K8s.Cluster.Discovery.resource_definitions/1` - queries a cluster for all resource definitions
 - `K8s.Cluster.Discovery.HTTPDriver` for discovery via k8s REST API
 - `K8s.Cluster.Discovery.FileDriver` for discovery via a file, used for testing, shipped to help dependent libraries mock discovery
+- Support for creating subresources
+- Support for getting subresources
+- Support for updating subresources
 
 ### Changed
 

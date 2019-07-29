@@ -16,6 +16,10 @@ defmodule K8s.Cluster.Group.ResourceNaming do
       Supports case insensitive match on `"name"`
       iex> K8s.Cluster.Group.ResourceNaming.matches?(%{"kind" => "Deployment", "name" => "deployments"}, "Deployments")
       true
+      
+      Supports matching tuples of `{resource, subresource}` kind
+      iex> K8s.Cluster.Group.ResourceNaming.matches?(%{"kind" => "Eviction", "name" => "pods/eviction"}, {"Pod", "Eviction"})
+      true
 
       Supports matching subresources
       iex> K8s.Cluster.Group.ResourceNaming.matches?(%{"kind" => "Deployment", "name" => "deployments/status"}, "deployments/status")
@@ -38,7 +42,7 @@ defmodule K8s.Cluster.Group.ResourceNaming do
       false
 
   """
-  @spec matches?(map(), binary() | atom()) :: boolean()
+  @spec matches?(map(), K8s.Operation.name_t()) :: boolean()
   def matches?(resource, arg) when is_atom(arg), do: matches?(resource, Atom.to_string(arg))
 
   def matches?(resource, arg) when is_binary(arg) do
@@ -48,6 +52,15 @@ defmodule K8s.Cluster.Group.ResourceNaming do
       is_capitalized_name_match?(resource, arg) ||
       no_match(resource, arg)
   end
+
+  # This is not the best match. Its not checking pluralization of the `kind`, so could lead to conflicts
+  # for similarly named resources that have the same types of applicable subresources.
+  def matches?(%{"kind" => subkind, "name" => name} = _subresource, {kind, subkind}) do
+    resource_kind_as_nameish = String.downcase(kind)
+    String.starts_with?(name, resource_kind_as_nameish)
+  end
+
+  def matches?(_map, {_kind, _subkind}), do: false
 
   defp is_exact_name_match?(%{"name" => name}, input), do: name == input
 

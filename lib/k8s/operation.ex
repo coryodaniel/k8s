@@ -3,6 +3,9 @@ defmodule K8s.Operation do
 
   @derive {Jason.Encoder, except: [:path_params]}
 
+  @typedoc "`K8s.Operation` name. May be an atom, string, or tuple of `{resource, subresource}`."
+  @type name_t :: binary() | atom() | {binary(), binary()}
+
   @typedoc """
   * `api_version` - API `groupVersion`, AKA `apiVersion`
   * `name` - The name of the REST operation (Kubernets kind/resource/subresource). This is *not* _always_ the same as the `kind` key in the `data` field. e.g: `deployments` when POSTing, GETting a deployment.
@@ -45,7 +48,7 @@ defmodule K8s.Operation do
           method: atom(),
           verb: atom(),
           api_version: binary(),
-          name: binary() | atom(),
+          name: name_t(),
           data: map() | nil,
           path_params: keyword(atom())
         }
@@ -155,4 +158,9 @@ defmodule K8s.Operation do
       path_params: path_params
     }
   end
+
+  @doc "Converts a `K8s.Operation` into a URL path."
+  @spec to_path(K8s.Operation.t()) ::
+          {:ok, String.t()} | {:error, :missing_required_param, list(atom)}
+  def to_path(%K8s.Operation{} = operation), do: K8s.Operation.Path.build(operation)
 end

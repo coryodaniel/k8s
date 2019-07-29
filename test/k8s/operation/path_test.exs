@@ -1,6 +1,6 @@
-defmodule K8s.Cluster.PathTest do
+defmodule K8s.Operation.PathTest do
   use ExUnit.Case, async: true
-  doctest K8s.Cluster.Path
+  doctest K8s.Operation.Path
 
   describe "build/1" do
     test "when a required param is missing, returns an error" do
@@ -13,7 +13,7 @@ defmodule K8s.Cluster.PathTest do
         name: "pods"
       }
 
-      assert {:error, :missing_required_param, [:name]} = K8s.Cluster.Path.build(operation)
+      assert {:error, :missing_required_param, [:name]} = K8s.Operation.Path.build(operation)
     end
 
     test "given a subresource, when a resource param is missing, returns an error" do
@@ -26,7 +26,7 @@ defmodule K8s.Cluster.PathTest do
         name: "pods/status"
       }
 
-      assert {:error, :missing_required_param, [:name]} = K8s.Cluster.Path.build(operation)
+      assert {:error, :missing_required_param, [:name]} = K8s.Operation.Path.build(operation)
     end
   end
 end

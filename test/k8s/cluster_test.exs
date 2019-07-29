@@ -198,16 +198,17 @@ defmodule K8s.ClusterTest do
   # https://github.com/coryodaniel/k8s/issues/19
   @tag debugging: true
   test "target specific groupVersion/kind" do
-    api_version = "autoscaling/v1"
-    name = "replicasets/scale"
+    api_version = "v1"
+    name = "pods"
     path_params = [namespace: "foo", name: "bar"]
+    data = %{}
 
     operation = %K8s.Operation{
       api_version: api_version,
       name: name,
       method: :patch,
       path_params: path_params,
-      data: nil,
+      data: data,
       verb: :patch
     }
 
@@ -227,11 +228,15 @@ defmodule K8s.ClusterTest do
 
       case result do
         {:ok, url} ->
+          File.write!("/tmp/urls.log", "#{url}\n", [:append])
           assert String.ends_with?(url, expected)
 
         {:error, :unsupported_resource, _resource} ->
-          message = "Generated Operation: #{inspect(operation)}"
+          message = "Generated operation: #{inspect(operation)}"
           assert false, message
+
+        error ->
+          assert false, "Unhandled operation: #{inspect(error)}"
       end
     end
   end
