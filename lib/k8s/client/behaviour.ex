@@ -14,6 +14,6 @@ defmodule K8s.Client.Behaviour do
               {:ok, HTTPoison.Response.t() | HTTPoison.AsyncResponse.t()}
               | {:error, HTTPoison.Error.t()}
             ) ::
-              {:ok, map() | reference()}
+              {:ok, list(map()) | map() | reference() | binary() | list(binary())}
               | {:error, atom | HTTPoison.Response.t() | HTTPoison.Error.t()}
 end

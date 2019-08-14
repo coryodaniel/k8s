@@ -33,6 +33,12 @@ defmodule K8s.Client.HTTPProvider do
       ...> K8s.Client.HTTPProvider.handle_response({:ok, %HTTPoison.Response{status_code: 200, body: body}})
       {:ok, %{"foo" => "bar"}}
 
+  Parses successful JSON responses:
+
+      iex> body = "line 1\\nline 2\\nline 3\\n"
+      ...> K8s.Client.HTTPProvider.handle_response({:ok, %HTTPoison.Response{status_code: 200, body: body, headers: [{"Content-Type", "text/plain"}]}})
+      {:ok, "line 1\\nline 2\\nline 3\\n"}
+
   Handles unauthorized responses:
 
       iex> K8s.Client.HTTPProvider.handle_response({:ok, %HTTPoison.Response{status_code: 401}})
@@ -57,8 +63,10 @@ defmodule K8s.Client.HTTPProvider do
   @impl true
   def handle_response(resp) do
     case resp do
-      {:ok, %HTTPoison.Response{status_code: code, body: body}} when code in 200..299 ->
-        {:ok, decode(body)}
+      {:ok, %HTTPoison.Response{status_code: code, body: body, headers: headers}}
+      when code in 200..299 ->
+        content_type = List.keyfind(headers, "Content-Type", 0)
+        {:ok, decode(body, content_type)}
 
       {:ok, %HTTPoison.AsyncResponse{id: ref}} ->
         {:ok, ref}
@@ -109,8 +117,10 @@ defmodule K8s.Client.HTTPProvider do
     {"Content-Type", "application/json"}
   end
 
-  @spec decode(binary()) :: list | map | nil
-  defp decode(body) do
+  @spec decode(binary(), {binary(), binary()} | nil) :: list | map | nil
+  defp decode(body, {_, "text/plain"}), do: body
+
+  defp decode(body, _default_json_decoder) do
     case Jason.decode(body) do
       {:ok, data} -> data
       {:error, _} -> nil

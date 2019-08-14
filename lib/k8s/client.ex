@@ -437,13 +437,14 @@ defmodule K8s.Client do
   """
   @spec patch(map()) :: Operation.t()
   def patch(%{} = resource), do: Operation.build(:patch, resource)
-  
+
   @doc """
   Returns a `PATCH` operation to patch the given subresource given a resource's details and a subresource map.
-  """    
+  """
   @spec patch(binary, binary | atom, Keyword.t(), map()) :: Operation.t()
-  def patch(api_version, kind, path_params, subresource), do: Operation.build(:patch, api_version, kind, path_params, subresource)  
-  
+  def patch(api_version, kind, path_params, subresource),
+    do: Operation.build(:patch, api_version, kind, path_params, subresource)
+
   @doc """
   Returns a `PATCH` operation to patch the given subresource given a resource map and a subresource map.
   """
@@ -463,7 +464,7 @@ defmodule K8s.Client do
       [namespace: ns, name: name],
       subresource
     )
-  end  
+  end
 
   @doc """
   Returns a `PUT` operation to replace/update the given resource.
@@ -572,13 +573,14 @@ defmodule K8s.Client do
       ...> }
       ...>  K8s.Client.update("apps/v1", "deployments/scale", [namespace: "default", name: "nginx"], scale)
       %K8s.Operation{api_version: "apps/v1", data: %{"apiVersion" => "apps/v1beta1", "kind" => "Scale", "metadata" => %{"name" => "nginx", "namespace" => "default"}, "spec" => %{"replicas" => 3}}, method: :put, name: "deployments/scale", path_params: [namespace: "default", name: "nginx"], verb: :update}
-  """    
+  """
   @spec update(binary, binary | atom, Keyword.t(), map()) :: Operation.t()
-  def update(api_version, kind, path_params, subresource), do: Operation.build(:update, api_version, kind, path_params, subresource)  
-  
+  def update(api_version, kind, path_params, subresource),
+    do: Operation.build(:update, api_version, kind, path_params, subresource)
+
   @doc """
   Returns a `PUT` operation to replace/update the given subresource given a resource map and a subresource map.
-  
+
   Used for updating subresources like `Scale` or `Status`.
 
   ## Examples
