@@ -1,5 +1,4 @@
 defmodule K8s.Selector do
-  # TODO: K8s.Operation should call to_s
   @moduledoc """
   Builds [label selectors](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/) for `K8s.Operation`s
 
