@@ -32,6 +32,17 @@ defmodule K8s.Client.Runner.BaseTest do
     end
 
     def request(
+          :get,
+          @base_url <> "/api/v1/pods",
+          _body,
+          _headers,
+          ssl: _ssl,
+          params: %{labelSelector: "app=nginx"}
+        ) do
+      render(nil)
+    end
+
+    def request(
           :post,
           @base_url <> "/api/v1/namespaces/default/pods/nginx/eviction",
           _body,
@@ -51,6 +62,14 @@ defmodule K8s.Client.Runner.BaseTest do
   end
 
   describe "run/3" do
+    test "running an operation with a K8s.Selector set", %{cluster: cluster} do
+      operation =
+        Client.list("v1", :pods)
+        |> K8s.Selector.label({"app", "nginx"})
+
+      assert {:ok, _} = Base.run(operation, cluster)
+    end
+
     test "running an operation without an HTTP body", %{cluster: cluster} do
       operation = Client.get(make_namespace("test"))
       assert {:ok, _} = Base.run(operation, cluster)

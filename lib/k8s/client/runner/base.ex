@@ -91,7 +91,10 @@ defmodule K8s.Client.Runner.Base do
          {:ok, request_options} <- RequestOptions.generate(conf),
          {:ok, http_body} <- encode(body, operation.method) do
       http_headers = K8s.http_provider().headers(operation.method, request_options)
-      http_opts = Keyword.merge([ssl: request_options.ssl_options], opts)
+
+      http_opts_params = build_http_params(opts[:params], operation.label_selector)
+      opts_with_selector_params = Keyword.put(opts, :params, http_opts_params)
+      http_opts = Keyword.merge([ssl: request_options.ssl_options], opts_with_selector_params)
 
       K8s.http_provider().request(
         operation.method,
@@ -109,4 +112,18 @@ defmodule K8s.Client.Runner.Base do
   end
 
   def encode(_, _), do: {:ok, ""}
+
+  @spec build_http_params(nil | keyword | map, nil | K8s.Selector.t()) :: map()
+  defp build_http_params(nil, nil), do: %{}
+  defp build_http_params(nil, %K8s.Selector{} = s), do: %{labelSelector: K8s.Selector.to_s(s)}
+  defp build_http_params(params, nil), do: params
+
+  defp build_http_params(params, %K8s.Selector{} = s) when is_list(params),
+    do: params |> Enum.into(%{}) |> build_http_params(s)
+
+  # Supplying a `labelSelector` to `run/4 should take precedence
+  defp build_http_params(params, %K8s.Selector{} = s) when is_map(params) do
+    from_operation = %{labelSelector: K8s.Selector.to_s(s)}
+    Map.merge(from_operation, params)
+  end
 end

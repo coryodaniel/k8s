@@ -50,7 +50,8 @@ defmodule K8s.Operation do
           api_version: binary(),
           name: name_t(),
           data: map() | nil,
-          path_params: keyword(atom())
+          path_params: keyword(atom()),
+          label_selector: K8s.Selector.t() | nil
         }
 
   @allow_http_body [:put, :patch, :post]
@@ -63,7 +64,7 @@ defmodule K8s.Operation do
     patch: :patch
   }
 
-  defstruct [:method, :verb, :api_version, :name, :data, :path_params]
+  defstruct [:method, :verb, :api_version, :name, :data, :path_params, :label_selector]
 
   @doc """
   Builds an `Operation` given a verb and a k8s resource.
