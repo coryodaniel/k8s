@@ -198,6 +198,15 @@ operation = K8s.Client.list("apps/v1", "Deployment", namespace: :all)
 
 *Note:* `K8s.Client.list` will return a `map`. The list of resources will be under `"items"`.
 
+### Using `labelSelector` with list operations
+
+```elixir
+K8s.Client.list("apps/v1", :deployments)
+|> K8s.Selector.label({"app", "nginx"})
+|> K8s.Selector.label_in({"environment", ["qa", "prod"]})
+|> K8s.Client.run(:default)
+```
+
 ### Getting a Deployment
 
 ```elixir

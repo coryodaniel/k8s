@@ -50,15 +50,4 @@ defmodule K8s.Cluster.Discovery do
       Map.put(acc, gv, resources)
     end)
   end
-
-  @spec resource_api_version(binary(), map) :: binary
-  defp resource_api_version(_api_version, %{
-         "group" => subresource_group,
-         "kind" => _,
-         "name" => _,
-         "version" => subresource_version
-       }),
-       do: Path.join(subresource_group, subresource_version)
-
-  defp resource_api_version(api_version, %{"kind" => _, "name" => _}), do: api_version
 end
