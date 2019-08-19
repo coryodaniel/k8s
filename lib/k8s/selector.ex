@@ -1,6 +1,6 @@
 defmodule K8s.Selector do
   @moduledoc """
-  Builds [label selectors](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/) for `K8s.Operation`s
+  Builds [label selectors](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/) and [field selectors](https://kubernetes.io/docs/concepts/overview/working-with-objects/field-selectors/) for `K8s.Operation`s
 
   ## Examples
     Parse from a YAML map
@@ -59,12 +59,161 @@ defmodule K8s.Selector do
       %K8s.Operation{data: nil, api_version: "v1", label_selector: %K8s.Selector{match_expressions: [%{"key" => "environment", "operator" => "In", "values" => ["qa", "prod"]}], match_labels: %{"app" => "nginx"}}, method: :get, name: :pods, path_params: [], verb: :get}
   """
 
+  alias K8s.{Operation, Resource}
+
   @type t :: %__MODULE__{
           match_labels: map(),
           match_expressions: list(map())
         }
-  @type selector_or_operation_t :: t() | K8s.Operation.t()
+  @type selector_or_operation_t :: t() | Operation.t()
   defstruct match_labels: %{}, match_expressions: []
+
+  @doc """
+  Checks if a `K8s.Resource` matches all `matchLabels` using a logcal `AND`
+
+  ## Examples
+    Accepts `K8s.Selector`s:
+      iex> labels = %{"env" => "prod", "tier" => "frontend"}
+      ...> selector = %K8s.Selector{match_labels: labels}
+      ...> resource = K8s.Resource.build("v1", "Pod", "default", "test", labels)
+      ...> K8s.Selector.match_labels?(resource, selector)
+      true
+
+    Accepts maps:
+      iex> labels = %{"env" => "prod", "tier" => "frontend"}
+      ...> resource = K8s.Resource.build("v1", "Pod", "default", "test", labels)
+      ...> K8s.Selector.match_labels?(resource, labels)
+      true
+
+    Returns `false` when not matching all labels:
+      iex> not_a_match = %{"env" => "prod", "tier" => "frontend", "nope" => "not-a-match"}
+      ...> resource = K8s.Resource.build("v1", "Pod", "default", "test", %{"env" => "prod", "tier" => "frontend"})
+      ...> K8s.Selector.match_labels?(resource, not_a_match)
+      false
+  """
+  @spec match_labels?(map, map | t) :: boolean
+  def match_labels?(resource, %K8s.Selector{match_labels: labels}),
+    do: match_labels?(resource, labels)
+
+  def match_labels?(resource, %{} = labels) do
+    Enum.all?(labels, fn {k, v} -> match_label?(resource, k, v) end)
+  end
+
+  @doc "Checks if a `K8s.Resource` matches a single label"
+  @spec match_label?(map, binary, binary) :: boolean
+  def match_label?(resource, key, value) do
+    label = Resource.label(resource, key)
+    label == value
+  end
+
+  @doc """
+  Checks if a `K8s.Resource` matches all `matchExpressions` using a logical `AND`
+
+  ## Examples
+    Accepts `K8s.Selector`s:
+      iex> resource = %{"kind" => "Node", "metadata" => %{"labels" => %{"env" => "prod", "tier" => "frontend"}}}
+      ...> expr1 = %{"operator" => "In", "key" => "env", "values" => ["prod", "qa"]}
+      ...> expr2 = %{"operator" => "Exists", "key" => "tier"}
+      ...> selector = %K8s.Selector{match_expressions: [expr1, expr2]}
+      ...> K8s.Selector.match_expressions?(resource, selector)
+      true
+
+    Accepts `map`s:
+
+      iex> resource = %{"kind" => "Node", "metadata" => %{"labels" => %{"env" => "prod", "tier" => "frontend"}}}
+      ...> expr1 = %{"operator" => "In", "key" => "env", "values" => ["prod", "qa"]}
+      ...> expr2 = %{"operator" => "Exists", "key" => "tier"}
+      ...> K8s.Selector.match_expressions?(resource, [expr1, expr2])
+      true
+
+    Returns `false` when not matching all expressions:
+
+      iex> resource = %{"kind" => "Node", "metadata" => %{"labels" => %{"env" => "prod", "tier" => "frontend"}}}
+      ...> expr1 = %{"operator" => "In", "key" => "env", "values" => ["prod", "qa"]}
+      ...> expr2 = %{"operator" => "Exists", "key" => "foo"}
+      ...> K8s.Selector.match_expressions?(resource, [expr1, expr2])
+      false
+  """
+  @spec match_expressions?(map, list(map) | t) :: boolean
+  def match_expressions?(resource, %K8s.Selector{match_expressions: exprs}),
+    do: match_expressions?(resource, exprs)
+
+  def match_expressions?(resource, exprs) do
+    Enum.all?(exprs, fn expr -> match_expression?(resource, expr) end)
+  end
+
+  @doc """
+  Checks whether a resource matches a single selector `matchExpressions`
+
+  ## Examples
+    When an `In` expression matches
+      iex> resource = %{"kind" => "Node", "metadata" => %{"labels" => %{"env" => "prod"}}}
+      ...> expr = %{"operator" => "In", "key" => "env", "values" => ["prod", "qa"]}
+      ...> K8s.Selector.match_expression?(resource, expr)
+      true
+
+    When an `In` expression doesnt match
+      iex> resource = %{"kind" => "Node", "metadata" => %{"labels" => %{"env" => "dev"}}}
+      ...> expr = %{"operator" => "In", "key" => "env", "values" => ["prod", "qa"]}
+      ...> K8s.Selector.match_expression?(resource, expr)
+      false
+
+    When an `NotIn` expression matches
+      iex> resource = %{"kind" => "Node", "metadata" => %{"labels" => %{"env" => "dev"}}}
+      ...> expr = %{"operator" => "NotIn", "key" => "env", "values" => ["prod"]}
+      ...> K8s.Selector.match_expression?(resource, expr)
+      true
+
+    When an `NotIn` expression doesnt match
+      iex> resource = %{"kind" => "Node", "metadata" => %{"labels" => %{"env" => "dev"}}}
+      ...> expr = %{"operator" => "NotIn", "key" => "env", "values" => ["dev"]}
+      ...> K8s.Selector.match_expression?(resource, expr)
+      false
+
+    When an `Exists` expression matches
+      iex> resource = %{"kind" => "Node", "metadata" => %{"labels" => %{"env" => "dev"}}}
+      ...> expr = %{"operator" => "Exists", "key" => "env"}
+      ...> K8s.Selector.match_expression?(resource, expr)
+      true
+
+    When an `Exists` expression doesnt match
+      iex> resource = %{"kind" => "Node", "metadata" => %{"labels" => %{"env" => "dev"}}}
+      ...> expr = %{"operator" => "Exists", "key" => "tier"}
+      ...> K8s.Selector.match_expression?(resource, expr)
+      false
+
+    When an `DoesNotExist` expression matches
+      iex> resource = %{"kind" => "Node", "metadata" => %{"labels" => %{"env" => "dev"}}}
+      ...> expr = %{"operator" => "DoesNotExist", "key" => "tier"}
+      ...> K8s.Selector.match_expression?(resource, expr)
+      true
+
+    When an `DoesNotExist` expression doesnt match
+      iex> resource = %{"kind" => "Node", "metadata" => %{"labels" => %{"env" => "dev"}}}
+      ...> expr = %{"operator" => "DoesNotExist", "key" => "env"}
+      ...> K8s.Selector.match_expression?(resource, expr)
+      false
+  """
+  @spec match_expression?(map(), map()) :: boolean()
+  def match_expression?(resource, %{"operator" => "In", "key" => k, "values" => v}) do
+    label = Resource.label(resource, k)
+    Enum.member?(v, label)
+  end
+
+  def match_expression?(resource, %{"operator" => "NotIn", "key" => k, "values" => v}) do
+    label = Resource.label(resource, k)
+    !Enum.member?(v, label)
+  end
+
+  def match_expression?(resource, %{"operator" => "Exists", "key" => k}) do
+    Resource.has_label?(resource, k)
+  end
+
+  def match_expression?(resource, %{"operator" => "DoesNotExist", "key" => k}) do
+    !Resource.has_label?(resource, k)
+  end
+
+  def match_expression?(_, _), do: false
 
   @doc """
   `matchLabels` helper that creates a composable `K8s.Selector`.
@@ -155,10 +304,10 @@ defmodule K8s.Selector do
   def label_does_not_exist(%{} = selector_or_operation, key),
     do: merge(selector_or_operation, label_does_not_exist(key))
 
-  @spec merge(t | K8s.Operation.t(), t) :: t
-  defp merge(%K8s.Operation{} = op, %__MODULE__{} = next) do
+  @spec merge(t | Operation.t(), t) :: t
+  defp merge(%Operation{} = op, %__MODULE__{} = next) do
     prev = op.label_selector || %__MODULE__{}
-    %K8s.Operation{op | label_selector: merge(prev, next)}
+    %Operation{op | label_selector: merge(prev, next)}
   end
 
   defp merge(%__MODULE__{} = prev, %__MODULE__{} = next) do

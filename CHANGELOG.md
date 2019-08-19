@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.3.2] - 2019-08-15
+
+### Added
+- `K8s.Selector.match_expressions?/2` to check if a resource matches expressions
+- `K8s.Selector.match_labels?/2` to check if a resource matches labels
+
+### Changed
+- `K8s.Resource` functions moved to submodule
+
 ## [0.3.1] - 2019-08-15
 
 ### Added
