@@ -55,7 +55,7 @@ defmodule K8s.Client.Runner.BaseTest do
 
   setup do
     DynamicHTTPProvider.register(self(), __MODULE__.HTTPMock)
-    conf = K8s.Conf.from_file("test/support/kube-config.yaml")
+    conf = K8s.Conn.from_file("test/support/kube-config.yaml")
     {:ok, cluster} = K8s.Cluster.Registry.add(:base_runner_test, conf)
 
     {:ok, cluster: cluster}

@@ -1,7 +1,7 @@
-defmodule K8s.Conf.PKITest do
+defmodule K8s.Conn.PKITest do
   @moduledoc false
   use ExUnit.Case, async: true
-  alias K8s.Conf.PKI
+  alias K8s.Conn.PKI
 
   describe "cert_from_pem/1" do
     test "reads the certificate from a PEM file" do

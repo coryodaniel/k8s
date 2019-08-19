@@ -25,14 +25,14 @@ defmodule K8s.Cluster.Registry do
 
   ## Examples
 
-      iex> conf = K8s.Conf.from_file("./test/support/kube-config.yaml")
+      iex> conf = K8s.Conn.from_file("./test/support/kube-config.yaml")
       ...> K8s.Cluster.Registry.add(:test_cluster, conf)
       {:ok, :test_cluster}
 
   """
-  @spec add(atom(), K8s.Conf.t()) :: {:ok, atom()} | {:error, atom()}
+  @spec add(atom(), K8s.Conn.t()) :: {:ok, atom()} | {:error, atom()}
   def add(cluster, conf) do
-    with true <- :ets.insert(K8s.Conf, {cluster, conf}),
+    with true <- :ets.insert(K8s.Conn, {cluster, conf}),
          {:ok, resources_by_group} <- Discovery.resources_by_group(cluster) do
       K8s.Cluster.Group.insert_all(cluster, resources_by_group)
       K8s.Sys.Event.cluster_registered(%{}, %{cluster: cluster})
@@ -45,12 +45,12 @@ defmodule K8s.Cluster.Registry do
 
   ## Examples
 
-      iex> conf = K8s.Conf.from_file("./test/support/kube-config.yaml")
+      iex> conf = K8s.Conn.from_file("./test/support/kube-config.yaml")
       ...> K8s.Cluster.Registry.add!(:test_cluster, conf)
       :test_cluster
 
   """
-  @spec add!(atom, K8s.Conf.t()) :: any | no_return
+  @spec add!(atom, K8s.Conn.t()) :: any | no_return
   def add!(cluster, conf) do
     case add(cluster, conf) do
       {:ok, _} ->
@@ -97,14 +97,14 @@ defmodule K8s.Cluster.Registry do
       conf =
         case Map.get(details, :conf) do
           nil ->
-            K8s.Conf.from_service_account()
+            K8s.Conn.from_service_account()
 
           %{use_sa: true} ->
-            K8s.Conf.from_service_account()
+            K8s.Conn.from_service_account()
 
           conf_path ->
             opts = details[:conf_opts] || []
-            K8s.Conf.from_file(conf_path, opts)
+            K8s.Conn.from_file(conf_path, opts)
         end
 
       add!(name, conf)

@@ -6,7 +6,7 @@ defmodule K8s.Client.Runner.Base do
   @type result_t :: {:ok, map() | reference()} | {:error, atom} | {:error, binary()}
 
   alias K8s.Cluster
-  alias K8s.Conf.RequestOptions
+  alias K8s.Conn.RequestOptions
   alias K8s.Operation
 
   @doc """

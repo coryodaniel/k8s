@@ -1,4 +1,4 @@
-defprotocol K8s.Conf.RequestOptions do
+defprotocol K8s.Conn.RequestOptions do
   @moduledoc """
   Encapsulates HTTP request options for an authentication provider.
   """
@@ -20,12 +20,12 @@ defprotocol K8s.Conf.RequestOptions do
   def generate(auth)
 end
 
-defimpl K8s.Conf.RequestOptions, for: Map do
-  @spec generate(map()) :: K8s.Conf.RequestOptions.generate_t()
-  def generate(map), do: {:ok, struct(K8s.Conf.RequestOptions, map)}
+defimpl K8s.Conn.RequestOptions, for: Map do
+  @spec generate(map()) :: K8s.Conn.RequestOptions.generate_t()
+  def generate(map), do: {:ok, struct(K8s.Conn.RequestOptions, map)}
 end
 
-defimpl K8s.Conf.RequestOptions, for: Any do
-  @spec generate(any()) :: K8s.Conf.RequestOptions.generate_t()
-  def generate(_), do: {:ok, %K8s.Conf.RequestOptions{}}
+defimpl K8s.Conn.RequestOptions, for: Any do
+  @spec generate(any()) :: K8s.Conn.RequestOptions.generate_t()
+  def generate(_), do: {:ok, %K8s.Conn.RequestOptions{}}
 end

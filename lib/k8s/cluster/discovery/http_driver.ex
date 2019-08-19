@@ -8,8 +8,8 @@ defmodule K8s.Cluster.Discovery.HTTPDriver do
   @core_api_base_path "/api"
   @group_api_base_path "/apis"
 
-  alias K8s.{Cluster, Conf, Config}
-  alias K8s.Conf.RequestOptions
+  alias K8s.{Cluster, Conn, Config}
+  alias K8s.Conn.RequestOptions
 
   @impl true
   def resource_definitions(cluster, opts \\ []) do
@@ -62,7 +62,7 @@ defmodule K8s.Cluster.Discovery.HTTPDriver do
     end)
   end
 
-  @spec get(binary(), Conf.t(), Keyword.t()) ::
+  @spec get(binary(), Conn.t(), Keyword.t()) ::
           {:ok, HTTPoison.Response.t()} | {:error, atom}
   defp get(url, conf, opts) do
     case RequestOptions.generate(conf) do
@@ -77,7 +77,7 @@ defmodule K8s.Cluster.Discovery.HTTPDriver do
     end
   end
 
-  @spec get_resource_definitions(list(binary()), K8s.Conf.t(), Keyword.t()) :: list(map())
+  @spec get_resource_definitions(list(binary()), K8s.Conn.t(), Keyword.t()) :: list(map())
   defp get_resource_definitions(api_versions, conf, opts) do
     timeout = Keyword.get(opts, :timeout) || 5000
 
@@ -90,7 +90,7 @@ defmodule K8s.Cluster.Discovery.HTTPDriver do
     |> List.flatten()
   end
 
-  @spec get_api_version_resources(binary(), K8s.Conf.t(), Keyword.t()) :: Task.t()
+  @spec get_api_version_resources(binary(), K8s.Conn.t(), Keyword.t()) :: Task.t()
   defp get_api_version_resources(api_version, conf, opts) do
     Task.async(fn ->
       base_path =

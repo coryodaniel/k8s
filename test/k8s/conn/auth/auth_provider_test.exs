@@ -1,9 +1,9 @@
-defmodule K8s.Conf.Auth.AuthProviderTest do
+defmodule K8s.Conn.Auth.AuthProviderTest do
   @moduledoc false
   use ExUnit.Case, async: true
 
-  alias K8s.Conf
-  alias K8s.Conf.Auth.AuthProvider
+  alias K8s.Conn
+  alias K8s.Conn.Auth.AuthProvider
 
   describe "create/2" do
     test "creates a AuthProvider struct from auth-provider data" do
@@ -44,8 +44,8 @@ defmodule K8s.Conf.Auth.AuthProviderTest do
       token_key: ["credential", "access_token"]
     }
 
-    {:ok, %Conf.RequestOptions{headers: headers, ssl_options: ssl_options}} =
-      Conf.RequestOptions.generate(provider)
+    {:ok, %Conn.RequestOptions{headers: headers, ssl_options: ssl_options}} =
+      Conn.RequestOptions.generate(provider)
 
     assert headers == [{"Authorization", "Bearer foo"}]
     assert ssl_options == []

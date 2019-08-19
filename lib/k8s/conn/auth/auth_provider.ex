@@ -1,10 +1,10 @@
-defmodule K8s.Conf.Auth.AuthProvider do
+defmodule K8s.Conn.Auth.AuthProvider do
   @moduledoc """
   `auth-provider` authentication support
   """
-  alias K8s.Conf.Auth.AuthProvider
-  alias K8s.Conf.RequestOptions
-  @behaviour K8s.Conf.Auth
+  alias K8s.Conn.Auth.AuthProvider
+  alias K8s.Conn.RequestOptions
+  @behaviour K8s.Conn.Auth
 
   defstruct [:cmd_path, :cmd_args, :token_key, :expiry_key]
 

@@ -1,4 +1,4 @@
-defmodule K8s.Conf.Auth do
+defmodule K8s.Conn.Auth do
   @moduledoc """
   Authorization behaviour
   """
