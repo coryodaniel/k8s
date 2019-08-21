@@ -120,17 +120,17 @@ defmodule K8s.Conn do
   defimpl K8s.Conn.RequestOptions, for: __MODULE__ do
     @doc "Generates HTTP Authorization options for certificate authentication"
     @spec generate(K8s.Conn.t()) :: K8s.Conn.RequestOptions.generate_t()
-    def generate(%K8s.Conn{} = conf) do
-      case RequestOptions.generate(conf.auth) do
+    def generate(%K8s.Conn{} = conn) do
+      case RequestOptions.generate(conn.auth) do
         {:ok, %RequestOptions{headers: headers, ssl_options: auth_options}} ->
           verify_options =
-            case conf.insecure_skip_tls_verify do
+            case conn.insecure_skip_tls_verify do
               true -> [verify: :verify_none]
               _ -> []
             end
 
           ca_options =
-            case conf.ca_cert do
+            case conn.ca_cert do
               nil -> []
               cert -> [cacerts: [cert]]
             end

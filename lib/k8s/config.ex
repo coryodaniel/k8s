@@ -67,24 +67,24 @@ defmodule K8s.Config do
   ## Examples
     Overriding compile time configs
 
-      iex> env = %{"K8S_CLUSTER_CONF_PATH_dev" => "runtime/path/to/dev.conf"}
-      ...> compile_config = %{dev: %{conf: "compiletime/path/to/dev.conf"}}
+      iex> env = %{"K8S_CLUSTER_CONF_PATH_dev" => "runtime/path/to/dev.kubeconfig.yaml"}
+      ...> compile_config = %{dev: %{conn: "compiletime/path/to/dev.kubeconfig.yaml"}}
       ...> K8s.Config.runtime_clusters_config(env, compile_config)
-      %{dev: %{conf: "runtime/path/to/dev.conf"}}
+      %{dev: %{conn: "runtime/path/to/dev.kubeconfig.yaml"}}
 
     Merging compile time configs
 
       iex> env = %{"K8S_CLUSTER_CONF_CONTEXT_dev" => "runtime-context"}
-      ...> compile_config = %{dev: %{conf: "compiletime/path/to/dev.conf"}}
+      ...> compile_config = %{dev: %{conn: "compiletime/path/to/dev.kubeconfig.yaml"}}
       ...> K8s.Config.runtime_clusters_config(env, compile_config)
-      %{dev: %{conf: "compiletime/path/to/dev.conf", conf_opts: [context: "runtime-context"]}}
+      %{dev: %{conn: "compiletime/path/to/dev.kubeconfig.yaml", conn_opts: [context: "runtime-context"]}}
 
     Adding clusters at runtime
 
-      iex> env = %{"K8S_CLUSTER_CONF_PATH_us_east" => "runtime/path/to/us_east.conf", "K8S_CLUSTER_CONF_CONTEXT_us_east" => "east-context"}
-      ...> compile_config = %{us_west: %{conf: "compiletime/path/to/us_west.conf"}}
+      iex> env = %{"K8S_CLUSTER_CONF_PATH_us_east" => "runtime/path/to/us_east.kubeconfig.yaml", "K8S_CLUSTER_CONF_CONTEXT_us_east" => "east-context"}
+      ...> compile_config = %{us_west: %{conn: "compiletime/path/to/us_west.kubeconfig.yaml"}}
       ...> K8s.Config.runtime_clusters_config(env, compile_config)
-      %{us_east: %{conf: "runtime/path/to/us_east.conf", conf_opts: [context: "east-context"]}, us_west: %{conf: "compiletime/path/to/us_west.conf"}}
+      %{us_east: %{conn: "runtime/path/to/us_east.kubeconfig.yaml", conn_opts: [context: "east-context"]}, us_west: %{conn: "compiletime/path/to/us_west.kubeconfig.yaml"}}
   """
   @spec runtime_clusters_config(map, map) :: map
   def runtime_clusters_config(env_vars, config) do
@@ -93,18 +93,18 @@ defmodule K8s.Config do
       acc_cluster_config = Map.get(acc, cluster_name, %{})
 
       {new_key, new_value} = get_config_kv(k, v)
-      updated_cluster_conf = Map.put(acc_cluster_config, new_key, new_value)
+      updated_cluster_conn = Map.put(acc_cluster_config, new_key, new_value)
 
-      Map.put(acc, cluster_name, updated_cluster_conf)
+      Map.put(acc, cluster_name, updated_cluster_conn)
     end)
   end
 
   # given an env var name/value, map the config to the correct cluster
-  defp get_config_kv(@env_var_context_prefix <> _cluster_name, conf_opts_context),
-    do: {:conf_opts, [context: conf_opts_context]}
+  defp get_config_kv(@env_var_context_prefix <> _cluster_name, conn_opts_context),
+    do: {:conn_opts, [context: conn_opts_context]}
 
   # given an env var name/value, map the config to the correct cluster
-  defp get_config_kv(@env_var_path_prefix <> _cluster_name, conf_path), do: {:conf, conf_path}
+  defp get_config_kv(@env_var_path_prefix <> _cluster_name, conn_path), do: {:conn, conn_path}
   defp get_config_kv(@env_var_sa_prefix <> _cluster_name, "true"), do: {:use_sa, true}
   defp get_config_kv(@env_var_sa_prefix <> _cluster_name, "false"), do: {:use_sa, false}
 

@@ -37,8 +37,8 @@ defmodule K8s.ClusterTest do
   end
 
   setup_all do
-    conf = K8s.Conn.from_file("./test/support/kube-config.yaml")
-    K8s.Cluster.Registry.add(:routing_tests, conf)
+    conn = K8s.Conn.from_file("./test/support/kube-config.yaml")
+    K8s.Cluster.Registry.add(:routing_tests, conn)
     :ok
   end
 

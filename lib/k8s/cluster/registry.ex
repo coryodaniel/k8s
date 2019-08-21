@@ -25,14 +25,14 @@ defmodule K8s.Cluster.Registry do
 
   ## Examples
 
-      iex> conf = K8s.Conn.from_file("./test/support/kube-config.yaml")
-      ...> K8s.Cluster.Registry.add(:test_cluster, conf)
+      iex> conn = K8s.Conn.from_file("./test/support/kube-config.yaml")
+      ...> K8s.Cluster.Registry.add(:test_cluster, conn)
       {:ok, :test_cluster}
 
   """
   @spec add(atom(), K8s.Conn.t()) :: {:ok, atom()} | {:error, atom()}
-  def add(cluster, conf) do
-    with true <- :ets.insert(K8s.Conn, {cluster, conf}),
+  def add(cluster, conn) do
+    with true <- :ets.insert(K8s.Conn, {cluster, conn}),
          {:ok, resources_by_group} <- Discovery.resources_by_group(cluster) do
       K8s.Cluster.Group.insert_all(cluster, resources_by_group)
       K8s.Sys.Event.cluster_registered(%{}, %{cluster: cluster})
@@ -62,8 +62,8 @@ defmodule K8s.Cluster.Registry do
   config :k8s,
     clusters: %{
       default: %{
-        conf: "~/.kube/config"
-        conf_opts: [user: "some-user", cluster: "prod-cluster"]
+        conn: "~/.kube/config"
+        conn_opts: [user: "some-user", cluster: "prod-cluster"]
       }
     }
   ```
@@ -73,20 +73,20 @@ defmodule K8s.Cluster.Registry do
     clusters = K8s.Config.clusters()
 
     Enum.each(clusters, fn {name, details} ->
-      conf =
-        case Map.get(details, :conf) do
+      conn =
+        case Map.get(details, :conn) do
           nil ->
             K8s.Conn.from_service_account()
 
           %{use_sa: true} ->
             K8s.Conn.from_service_account()
 
-          conf_path ->
-            opts = details[:conf_opts] || []
-            K8s.Conn.from_file(conf_path, opts)
+          conn_path ->
+            opts = details[:conn_opts] || []
+            K8s.Conn.from_file(conn_path, opts)
         end
 
-      add(name, conf)
+      add(name, conn)
     end)
 
     nil

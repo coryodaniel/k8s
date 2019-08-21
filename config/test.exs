@@ -9,6 +9,6 @@ config :k8s,
   http_provider: K8s.Client.DynamicHTTPProvider,
   clusters: %{
     test: %{
-      conf: "test/support/kube-config.yaml"
+      conn: "test/support/kube-config.yaml"
     }
   }

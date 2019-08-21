@@ -16,9 +16,9 @@ defmodule K8s.Cluster.Discovery.HTTPDriver do
     timeout = Config.discovery_http_timeout(cluster)
     opts = Keyword.merge([timeout: timeout, recv_timeout: timeout], opts)
 
-    with {:ok, conf} <- Cluster.conf(cluster),
+    with {:ok, conn} <- Cluster.conn(cluster),
          {:ok, api_versions} <- api_versions(cluster, opts) do
-      {:ok, get_resource_definitions(api_versions, conf, opts)}
+      {:ok, get_resource_definitions(api_versions, conn, opts)}
     end
   end
 
@@ -33,9 +33,9 @@ defmodule K8s.Cluster.Discovery.HTTPDriver do
   # list Core/Legacy APIs
   @spec api(atom, Keyword.t()) :: {:ok, list(binary())} | {:error, atom()}
   defp api(cluster, opts) do
-    with {:ok, conf} <- Cluster.conf(cluster),
-         url <- Path.join(conf.url, @core_api_base_path),
-         {:ok, response} <- get(url, conf, opts),
+    with {:ok, conn} <- Cluster.conn(cluster),
+         url <- Path.join(conn.url, @core_api_base_path),
+         {:ok, response} <- get(url, conn, opts),
          versions <- Map.get(response, "versions") do
       {:ok, versions}
     end
@@ -44,9 +44,9 @@ defmodule K8s.Cluster.Discovery.HTTPDriver do
   # list Named Group / Custom Resource APIs
   @spec apis(atom, Keyword.t()) :: {:ok, list(binary())} | {:error, atom()}
   defp apis(cluster, opts) do
-    with {:ok, conf} <- Cluster.conf(cluster),
-         url <- Path.join(conf.url, @group_api_base_path),
-         {:ok, response} <- get(url, conf, opts),
+    with {:ok, conn} <- Cluster.conn(cluster),
+         url <- Path.join(conn.url, @group_api_base_path),
+         {:ok, response} <- get(url, conn, opts),
          groups <- Map.get(response, "groups") do
       api_versions = get_api_versions_from_groups(groups)
 
@@ -64,8 +64,8 @@ defmodule K8s.Cluster.Discovery.HTTPDriver do
 
   @spec get(binary(), Conn.t(), Keyword.t()) ::
           {:ok, HTTPoison.Response.t()} | {:error, atom}
-  defp get(url, conf, opts) do
-    case RequestOptions.generate(conf) do
+  defp get(url, conn, opts) do
+    case RequestOptions.generate(conn) do
       {:ok, request_options} ->
         headers = K8s.http_provider().headers(:get, request_options)
         opts = Keyword.merge([ssl: request_options.ssl_options], opts)
@@ -78,12 +78,12 @@ defmodule K8s.Cluster.Discovery.HTTPDriver do
   end
 
   @spec get_resource_definitions(list(binary()), K8s.Conn.t(), Keyword.t()) :: list(map())
-  defp get_resource_definitions(api_versions, conf, opts) do
+  defp get_resource_definitions(api_versions, conn, opts) do
     timeout = Keyword.get(opts, :timeout) || 5000
 
     api_versions
     |> Enum.reduce([], fn api_version, acc ->
-      task = get_api_version_resources(api_version, conf, opts)
+      task = get_api_version_resources(api_version, conn, opts)
       [task | acc]
     end)
     |> Enum.map(fn task -> Task.await(task, timeout) end)
@@ -91,7 +91,7 @@ defmodule K8s.Cluster.Discovery.HTTPDriver do
   end
 
   @spec get_api_version_resources(binary(), K8s.Conn.t(), Keyword.t()) :: Task.t()
-  defp get_api_version_resources(api_version, conf, opts) do
+  defp get_api_version_resources(api_version, conn, opts) do
     Task.async(fn ->
       base_path =
         case String.contains?(api_version, "/") do
@@ -99,9 +99,9 @@ defmodule K8s.Cluster.Discovery.HTTPDriver do
           false -> @core_api_base_path
         end
 
-      url = Path.join([conf.url, base_path, api_version])
+      url = Path.join([conn.url, base_path, api_version])
 
-      case get(url, conf, opts) do
+      case get(url, conn, opts) do
         {:ok, resource_definition} ->
           resource_definition
 

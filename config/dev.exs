@@ -4,7 +4,7 @@ config :k8s,
   auth_providers: [],
   clusters: %{
     dev: %{
-      conf: "~/.kube/config",
-      conf_opts: [context: "docker-for-desktop"]
+      conn: "~/.kube/config",
+      conn_opts: [context: "docker-for-desktop"]
     }
   }

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Renamed `K8s.Conf` to `K8s.Conn`
+- Refactored `:conf` configuration key to `:conn`
 
 ## [0.3.2] - 2019-08-15
 

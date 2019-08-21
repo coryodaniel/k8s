@@ -87,8 +87,8 @@ defmodule K8s.Client.Runner.Base do
   @spec run(Operation.t(), atom, map(), keyword()) :: result_t
   def run(%Operation{} = operation, cluster_name, body, opts \\ []) do
     with {:ok, url} <- Cluster.url_for(operation, cluster_name),
-         {:ok, conf} <- Cluster.conf(cluster_name),
-         {:ok, request_options} <- RequestOptions.generate(conf),
+         {:ok, conn} <- Cluster.conn(cluster_name),
+         {:ok, request_options} <- RequestOptions.generate(conn),
          {:ok, http_body} <- encode(body, operation.method) do
       http_headers = K8s.http_provider().headers(operation.method, request_options)
 
