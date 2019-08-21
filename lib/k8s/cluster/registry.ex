@@ -5,7 +5,6 @@ defmodule K8s.Cluster.Registry do
   use GenServer
   alias K8s.Cluster.Discovery
 
-  @dialyzer {:no_return, add!: 2, auto_register_clusters!: 0, handle_info: 2}
   @five_minutes 5 * 60 * 1000
   @rediscover_interval Application.get_env(:k8s, :rediscover_interval, @five_minutes)
 
@@ -16,6 +15,7 @@ defmodule K8s.Cluster.Registry do
 
   @impl true
   def init(:ok) do
+    auto_register_clusters()
     schedule(@rediscover_interval)
     {:ok, %{}}
   end
@@ -37,27 +37,6 @@ defmodule K8s.Cluster.Registry do
       K8s.Cluster.Group.insert_all(cluster, resources_by_group)
       K8s.Sys.Event.cluster_registered(%{}, %{cluster: cluster})
       {:ok, cluster}
-    end
-  end
-
-  @doc """
-  Add or update a new cluster to use with `K8s.Client`
-
-  ## Examples
-
-      iex> conf = K8s.Conf.from_file("./test/support/kube-config.yaml")
-      ...> K8s.Cluster.Registry.add!(:test_cluster, conf)
-      :test_cluster
-
-  """
-  @spec add!(atom, K8s.Conf.t()) :: any | no_return
-  def add!(cluster, conf) do
-    case add(cluster, conf) do
-      {:ok, _} ->
-        cluster
-
-      {:error, error} ->
-        raise K8s.Cluster.RegistrationException, error
     end
   end
 
@@ -89,8 +68,8 @@ defmodule K8s.Cluster.Registry do
     }
   ```
   """
-  @spec auto_register_clusters! :: no_return
-  def auto_register_clusters! do
+  @spec auto_register_clusters :: nil
+  def auto_register_clusters do
     clusters = K8s.Config.clusters()
 
     Enum.each(clusters, fn {name, details} ->
@@ -107,7 +86,7 @@ defmodule K8s.Cluster.Registry do
             K8s.Conf.from_file(conf_path, opts)
         end
 
-      add!(name, conf)
+      add(name, conf)
     end)
 
     nil
@@ -117,7 +96,7 @@ defmodule K8s.Cluster.Registry do
   @impl GenServer
   @spec handle_info(:auto_register_clusters, Keyword.t()) :: {:noreply, Keyword.t()}
   def handle_info(:auto_register_clusters, state) do
-    auto_register_clusters!()
+    auto_register_clusters()
     schedule(@rediscover_interval)
     {:noreply, state}
   end

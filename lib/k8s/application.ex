@@ -7,7 +7,6 @@ defmodule K8s.Application do
   def start(_type, _args) do
     :ets.new(K8s.Conf, [:set, :public, :named_table])
     :ets.new(K8s.Cluster.Group, [:set, :public, :named_table])
-    K8s.Cluster.Registry.auto_register_clusters!()
 
     children = [{K8s.Cluster.Registry, []}]
 
