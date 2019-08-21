@@ -13,14 +13,14 @@ Kubernetes API resources are auto-discovered at boot time. This library is curre
 The below will register a cluster named `:prod` using `~/.kube.config` to connect. There are many options for loading a config, this will load the user and cluster from the `current-context`.
 
 ```elixir
-conf = K8s.Conf.from_file("~/.kube/config")
+conf = K8s.Conn.from_file("~/.kube/config")
 K8s.Cluster.Registry.add(:prod, conf)
 ```
 
 Registering a cluster using the k8s' ServiceAccount of the pod:
 
 ```elixir
-conf = K8s.Conf.from_service_account()
+conf = K8s.Conn.from_service_account()
 K8s.Cluster.Registry.add(:prod, conf)
 ```
 
@@ -277,14 +277,14 @@ Copying a workloads between two clusters:
 Register a staging cluster:
 
 ```elixir
-staging_conf = K8s.Conf.from_file("~/.kube/config")
+staging_conf = K8s.Conn.from_file("~/.kube/config")
 {:ok, staging} = K8s.Cluster.Registry.add(:staging, staging_conf)
 ```
 
 Register a prod cluster:
 
 ```elixir
-prod_conf = K8s.Conf.from_service_account() # or from_file/2
+prod_conf = K8s.Conn.from_service_account() # or from_file/2
 {:ok, prod} = K8s.Cluster.Registry.add(:prod, staging_conf)
 ```
 

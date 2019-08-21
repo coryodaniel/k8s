@@ -1,10 +1,10 @@
-defmodule K8s.Conf.PKI do
+defmodule K8s.Conn.PKI do
   @moduledoc """
   Retrieves information from certificates
   """
 
-  alias K8s.Conf
-  alias K8s.Conf.PKI
+  alias K8s.Conn
+  alias K8s.Conn.PKI
 
   @private_key_atoms [
     :RSAPrivateKey,
@@ -22,7 +22,7 @@ defmodule K8s.Conf.PKI do
 
   def cert_from_map(%{"certificate-authority" => file_name}, base_path) do
     file_name
-    |> Conf.resolve_file_path(base_path)
+    |> Conn.resolve_file_path(base_path)
     |> PKI.cert_from_pem()
   end
 

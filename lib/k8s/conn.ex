@@ -1,15 +1,15 @@
-defmodule K8s.Conf do
+defmodule K8s.Conn do
   @moduledoc """
   Handles authentication and connection configuration details for a Kubernetes cluster.
   """
 
   alias __MODULE__
-  alias K8s.Conf.{PKI, RequestOptions}
+  alias K8s.Conn.{PKI, RequestOptions}
 
   @providers [
-    K8s.Conf.Auth.Certificate,
-    K8s.Conf.Auth.Token,
-    K8s.Conf.Auth.AuthProvider
+    K8s.Conn.Auth.Certificate,
+    K8s.Conn.Auth.Token,
+    K8s.Conn.Auth.AuthProvider
   ]
 
   @typep auth_t :: nil | struct
@@ -40,7 +40,7 @@ defmodule K8s.Conf do
   * `cluster` set or override the cluster read from the context
   * `user` set or override the user read from the context
   """
-  @spec from_file(binary, keyword) :: K8s.Conf.t()
+  @spec from_file(binary, keyword) :: K8s.Conn.t()
   def from_file(config_file, opts \\ []) do
     abs_config_file = Path.expand(config_file)
     base_path = Path.dirname(abs_config_file)
@@ -55,7 +55,7 @@ defmodule K8s.Conf do
     cluster_name = opts[:cluster] || context["cluster"]
     cluster = find_by_name(config["clusters"], cluster_name, "cluster")
 
-    %Conf{
+    %Conn{
       cluster_name: cluster_name,
       user_name: user_name,
       url: cluster["server"],
@@ -73,21 +73,21 @@ defmodule K8s.Conf do
   [kubernetes.io :: Accessing the API from a Pod](https://kubernetes.io/docs/tasks/access-application-cluster/access-cluster/#accessing-the-api-from-a-pod)
   """
 
-  @spec from_service_account() :: K8s.Conf.t()
+  @spec from_service_account() :: K8s.Conn.t()
   def from_service_account(),
     do: from_service_account("/var/run/secrets/kubernetes.io/serviceaccount")
 
-  @spec from_service_account(String.t()) :: K8s.Conf.t()
+  @spec from_service_account(String.t()) :: K8s.Conn.t()
   def from_service_account(root_sa_path) do
     host = System.get_env("KUBERNETES_SERVICE_HOST")
     port = System.get_env("KUBERNETES_SERVICE_PORT")
     cert_path = Path.join(root_sa_path, "ca.crt")
     token_path = Path.join(root_sa_path, "token")
 
-    %Conf{
+    %Conn{
       url: "https://#{host}:#{port}",
       ca_cert: PKI.cert_from_pem(cert_path),
-      auth: %K8s.Conf.Auth.Token{token: File.read!(token_path)}
+      auth: %K8s.Conn.Auth.Token{token: File.read!(token_path)}
     }
   end
 
@@ -117,10 +117,10 @@ defmodule K8s.Conf do
     Application.get_env(:k8s, :auth_providers, []) ++ @providers
   end
 
-  defimpl K8s.Conf.RequestOptions, for: __MODULE__ do
+  defimpl K8s.Conn.RequestOptions, for: __MODULE__ do
     @doc "Generates HTTP Authorization options for certificate authentication"
-    @spec generate(K8s.Conf.t()) :: K8s.Conf.RequestOptions.generate_t()
-    def generate(%K8s.Conf{} = conf) do
+    @spec generate(K8s.Conn.t()) :: K8s.Conn.RequestOptions.generate_t()
+    def generate(%K8s.Conn{} = conf) do
       case RequestOptions.generate(conf.auth) do
         {:ok, %RequestOptions{headers: headers, ssl_options: auth_options}} ->
           verify_options =

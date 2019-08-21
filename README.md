@@ -48,7 +48,7 @@ Most functions are also written using doctests.
 
 * [K8s.Client doctests](https://hexdocs.pm/k8s/K8s.Client.html)
 * [K8s.Cluster doctests](https://hexdocs.pm/k8s/K8s.Cluster.html)
-* [K8s.Conf doctests](https://hexdocs.pm/k8s/K8s.Conf.html)
+* [K8s.Conn doctests](https://hexdocs.pm/k8s/K8s.Conn.html)
 * [K8s.Resource doctests](https://hexdocs.pm/k8s/K8s.Resource.html)
 * [K8s.Version doctests](https://hexdocs.pm/k8s/K8s.Version.html)
 

@@ -10,7 +10,7 @@ defmodule K8s.Cluster do
 
   ## Examples
 
-      iex> conf = K8s.Conf.from_file("./test/support/kube-config.yaml")
+      iex> conf = K8s.Conn.from_file("./test/support/kube-config.yaml")
       ...> K8s.Cluster.Registry.add(:test_cluster, conf)
       ...> operation = K8s.Operation.build(:get, "apps/v1", :deployments, [namespace: "default", name: "nginx"])
       ...> K8s.Cluster.url_for(operation, :test_cluster)
@@ -32,7 +32,7 @@ defmodule K8s.Cluster do
 
   ## Examples
 
-      iex> conf = K8s.Conf.from_file("./test/support/kube-config.yaml")
+      iex> conf = K8s.Conn.from_file("./test/support/kube-config.yaml")
       ...> K8s.Cluster.Registry.add(:test_cluster, conf)
       ...> K8s.Cluster.base_url(:test_cluster)
       {:ok, "https://localhost:6443"}
@@ -49,15 +49,15 @@ defmodule K8s.Cluster do
 
   ## Example
 
-      iex> config_file = K8s.Conf.from_file("./test/support/kube-config.yaml", [user: "token-user"])
+      iex> config_file = K8s.Conn.from_file("./test/support/kube-config.yaml", [user: "token-user"])
       ...> K8s.Cluster.Registry.add(:test_cluster, config_file)
       ...> {:ok, conf} = K8s.Cluster.conf(:test_cluster)
       ...> conf
-      %K8s.Conf{auth: %K8s.Conf.Auth.Token{token: "just-a-token-user-pun-intended"}, ca_cert: nil, cluster_name: "docker-for-desktop-cluster", insecure_skip_tls_verify: true, url: "https://localhost:6443",user_name: "token-user"}
+      %K8s.Conn{auth: %K8s.Conn.Auth.Token{token: "just-a-token-user-pun-intended"}, ca_cert: nil, cluster_name: "docker-for-desktop-cluster", insecure_skip_tls_verify: true, url: "https://localhost:6443",user_name: "token-user"}
   """
-  @spec conf(atom) :: {:ok, K8s.Conf.t()} | {:error, :cluster_not_registered}
+  @spec conf(atom) :: {:ok, K8s.Conn.t()} | {:error, :cluster_not_registered}
   def conf(cluster_name) do
-    case :ets.lookup(K8s.Conf, cluster_name) do
+    case :ets.lookup(K8s.Conn, cluster_name) do
       [] -> {:error, :cluster_not_registered}
       [{_, conf}] -> {:ok, conf}
     end
@@ -68,7 +68,7 @@ defmodule K8s.Cluster do
   """
   @spec list() :: list(atom)
   def list() do
-    K8s.Conf
+    K8s.Conn
     |> :ets.tab2list()
     |> Keyword.keys()
   end

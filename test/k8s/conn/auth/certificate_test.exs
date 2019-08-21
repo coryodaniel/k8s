@@ -1,9 +1,9 @@
-defmodule K8s.Conf.Auth.CertificateTest do
+defmodule K8s.Conn.Auth.CertificateTest do
   @moduledoc false
   use ExUnit.Case, async: true
 
-  alias K8s.Conf
-  alias K8s.Conf.Auth.Certificate
+  alias K8s.Conn
+  alias K8s.Conn.Auth.Certificate
 
   describe "create/2" do
     test "creates a Certificate struct from a PEM file" do
@@ -32,11 +32,11 @@ defmodule K8s.Conf.Auth.CertificateTest do
   end
 
   test "creates http request signing options" do
-    config = Conf.from_file("test/support/kube-config.yaml", [])
+    config = Conn.from_file("test/support/kube-config.yaml", [])
     assert %Certificate{} = config.auth
 
-    {:ok, %Conf.RequestOptions{headers: headers, ssl_options: ssl_options}} =
-      Conf.RequestOptions.generate(config.auth)
+    {:ok, %Conn.RequestOptions{headers: headers, ssl_options: ssl_options}} =
+      Conn.RequestOptions.generate(config.auth)
 
     assert headers == []
     assert [cert: _, key: _] = ssl_options
