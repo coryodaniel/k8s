@@ -22,8 +22,8 @@ defmodule K8s.Cluster.Discovery.FileDriver do
   defp parse_json(nil), do: {:error, :file_not_found}
 
   defp parse_json(file) do
-    with {:ok, json} <- File.read(file),
-         {:ok, data} <- Jason.decode(json) do
+    with json <- File.read!(file),
+         data <- Jason.decode!(json) do
       {:ok, data}
     end
   end
