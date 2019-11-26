@@ -80,21 +80,42 @@ defmodule K8s.Client.Runner.Base do
     run(operation, cluster_name, operation.data, opts)
   end
 
+  def apply_middlewares(_cluster_name, headers, body) do
+    middlewares = [
+      fn headers, body ->
+        IO.puts("Inspecting some body: #{inspect(body)}")
+        [headers, body]
+      end
+    ]
+
+    state_args = [headers, body]
+
+    Enum.reduce(middlewares, state_args, fn middleware, args ->
+      apply(middleware, args)
+    end)
+  end
+
   @doc """
   Run an operation with an alternative HTTP Body (map) and pass `opts` to HTTPoison.
   See `run/2`
   """
   @spec run(Operation.t(), atom, map(), keyword()) :: result_t
-  def run(%Operation{} = operation, cluster_name, body, opts \\ []) do
-    with {:ok, url} <- Cluster.url_for(operation, cluster_name),
-         {:ok, conn} <- Cluster.conn(cluster_name),
-         {:ok, request_options} <- RequestOptions.generate(conn),
-         {:ok, http_body} <- encode(body, operation.method) do
-      http_headers = K8s.http_provider().headers(operation.method, request_options)
+  def run(%Operation{} = operation, cluster, body, opts \\ []) do
+    with {:ok, url} <- Cluster.url_for(operation, cluster),
+         req <- %K8s.Middleware.Request{cluster: cluster, method: operation.method},
+         {:ok, req} <- K8s.Middleware.Request.Initialize.call(req) do
+      
+      # ^ replace above with apply_middleware(cluster)
+
+      # Operation.data and body are deconstructed above @ L79...
+      [http_headers, raw_body] = apply_middlewares(cluster, req.headers, body)
+
+      {:ok, http_body} = encode(raw_body, operation.method)
 
       http_opts_params = build_http_params(opts[:params], operation.label_selector)
       opts_with_selector_params = Keyword.put(opts, :params, http_opts_params)
-      http_opts = Keyword.merge([ssl: request_options.ssl_options], opts_with_selector_params)
+
+      http_opts = Keyword.merge(req.opts, opts_with_selector_params)
 
       K8s.http_provider().request(
         operation.method,
@@ -107,10 +128,7 @@ defmodule K8s.Client.Runner.Base do
   end
 
   @spec encode(any(), atom()) :: {:ok, binary} | {:error, any}
-  def encode(body, http_method) when http_method in [:put, :patch, :post] do
-    Jason.encode(body)
-  end
-
+  def encode(body, http_method) when http_method in [:put, :patch, :post], do: Jason.encode(body)
   def encode(_, _), do: {:ok, ""}
 
   @spec build_http_params(nil | keyword | map, nil | K8s.Selector.t()) :: map()
