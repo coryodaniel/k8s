@@ -3,7 +3,8 @@ defmodule K8s.Client.Runner.Base do
   Base HTTP processor for `K8s.Client`
   """
 
-  @type result_t :: {:ok, map() | reference()} | {:error, atom} | {:error, binary()}
+  @type result_t ::
+          {:ok, map() | reference()} | {:error, atom | binary() | K8s.Middleware.Error.t()}
 
   alias K8s.Cluster
   alias K8s.Operation
@@ -89,33 +90,9 @@ defmodule K8s.Client.Runner.Base do
   def run(%Operation{} = operation, cluster, body, opts \\ []) do
     with req <- new_request(cluster, operation, body, opts),
          {:ok, url} <- Cluster.url_for(operation, cluster),
-         # TODO: handle error return here type
-         {:ok, req} <- apply_middleware(req) do
+         {:ok, req} <- K8s.Middleware.run(req) do
       K8s.http_provider().request(req.method, url, req.body, req.headers, req.opts)
     end
-  end
-
-  # TODO: handle error return here type
-  @spec apply_middleware(Request.t()) :: {:ok, Request.t()}
-  defp apply_middleware(req) do
-    middlewares = K8s.Middleware.list(:request, req.cluster)
-
-    # TODO: handle error return here type
-    # case( K8s.Middleware.Request | K8s.Middleware.Error(mw, req, actual_error))
-
-    updated_request =
-      Enum.reduce_while(middlewares, req, fn middleware, req ->
-        case apply(middleware, :call, [req]) do
-          {:ok, updated_request} ->
-            {:cont, updated_request}
-
-          # TODO: handle error return here type
-          _error ->
-            {:halt, :handler_error_return_type_here}
-        end
-      end)
-
-    {:ok, updated_request}
   end
 
   @spec new_request(atom(), K8s.Operation.t(), list(map()) | map() | binary() | nil, Keyword.t()) ::

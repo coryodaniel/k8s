@@ -17,12 +17,17 @@ defmodule K8s.Middleware.Request.EncodeBodyTest do
     assert body == ""
   end
 
-  # TODO: handle error return here type
-  # test "failure" do
-  #   data = [should: :fail]
-  #   request = %K8s.Middleware.Request{body: data, method: :post}
-  #   {:ok, %{body: body}} = K8s.Middleware.Request.EncodeBody.call(request)
+  test "returns an error when the body cannot be encoded" do
+    data = [should: :fail]
+    request = %K8s.Middleware.Request{body: data, method: :post}
+    result = K8s.Middleware.Request.EncodeBody.call(request)
 
-  #   assert body == ""
-  # end
+    assert result ==
+             {:error,
+              %Protocol.UndefinedError{
+                description: "Jason.Encoder protocol must always be explicitly implemented",
+                protocol: Jason.Encoder,
+                value: {:should, :fail}
+              }}
+  end
 end

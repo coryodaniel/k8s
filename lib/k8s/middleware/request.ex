@@ -14,6 +14,5 @@ defmodule K8s.Middleware.Request do
   defstruct cluster: nil, method: nil, url: nil, body: nil, headers: [], opts: []
 
   @doc "Request middleware callback"
-  # TODO: handle error return here type
-  @callback call(t()) :: {:ok, t()} | :error
+  @callback call(t()) :: {:ok, t()} | {:error, any()}
 end
