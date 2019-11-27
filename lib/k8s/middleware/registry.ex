@@ -8,7 +8,7 @@ defmodule K8s.Middleware.Registry do
   end
 
   @doc "Adds a middleware to the end of the middleware stack"
-  @spec add(atom, :request | :response, module()) :: :ok
+  @spec add(atom, K8s.Middleware.type_t(), module()) :: :ok
   def add(cluster, type, middleware) do
     Agent.update(__MODULE__, fn registry ->
       cluster_middlewares = Map.get(registry, cluster, %{})
@@ -22,7 +22,7 @@ defmodule K8s.Middleware.Registry do
   end
 
   @doc "Sets/replaces the middleware stack"
-  @spec set(atom, :request | :response, list(module())) :: :ok
+  @spec set(atom, K8s.Middleware.type_t(), list(module())) :: :ok
   def set(cluster, type, middlewares) do
     Agent.update(__MODULE__, fn registry ->
       cluster_middlewares = Map.get(registry, cluster, %{})
@@ -33,7 +33,7 @@ defmodule K8s.Middleware.Registry do
   end
 
   @doc "Returns middleware stack for a cluster and (request or response)"
-  @spec list(atom, :request | :response) :: :ok
+  @spec list(atom, K8s.Middleware.type_t()) :: K8s.Middleware.stack_t()
   def list(cluster, type) do
     registry = Agent.get(__MODULE__, & &1[cluster]) || %{}
     Map.get(registry, type, [])

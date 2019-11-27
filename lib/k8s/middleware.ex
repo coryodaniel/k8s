@@ -3,6 +3,13 @@ defmodule K8s.Middleware do
 
   alias K8s.Middleware.{Error, Request}
 
+  @typedoc "Middleware type"
+  @type type_t :: :request | :response
+
+  @typedoc "List of middlewares"
+  @type stack_t :: list(module())
+
+  @spec defaults(K8s.Middleware.type_t()) :: stack_t
   def defaults(:request) do
     [
       Request.Initialize,
@@ -11,7 +18,7 @@ defmodule K8s.Middleware do
   end
 
   @doc "Retrieve a list of middleware registered to a cluster"
-  @spec list(:request | :response, atom()) :: list(module())
+  @spec list(type_t, atom()) :: stack_t
   def list(:request, _cluster) do
     # TODO interact w/ registry
     defaults(:request)
