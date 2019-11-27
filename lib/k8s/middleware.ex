@@ -10,18 +10,14 @@ defmodule K8s.Middleware do
   @type stack_t :: list(module())
 
   @spec defaults(K8s.Middleware.type_t()) :: stack_t
-  def defaults(:request) do
-    [
-      Request.Initialize,
-      Request.EncodeBody
-    ]
-  end
+  def defaults(:request), do: [Request.Initialize, Request.EncodeBody]
+  def defaults(:response), do: []
 
-  @doc "Retrieve a list of middleware registered to a cluster"
-  @spec list(type_t, atom()) :: stack_t
-  def list(:request, _cluster) do
-    # TODO interact w/ registry
-    defaults(:request)
+  @doc "Initialize a clusters middleware stacks"
+  @spec initialize(atom) :: :ok
+  def initialize(cluster) do
+    K8s.Middleware.Registry.set(cluster, :request, defaults(:request))
+    K8s.Middleware.Registry.set(cluster, :response, defaults(:response))
   end
 
   @doc """
@@ -29,7 +25,7 @@ defmodule K8s.Middleware do
   """
   @spec run(Request.t()) :: {:ok, Request.t()} | {:error, Error.t()}
   def run(req) do
-    middlewares = list(:request, req.cluster)
+    middlewares = K8s.Middleware.Registry.list(req.cluster, :request)
 
     result =
       Enum.reduce_while(middlewares, req, fn middleware, req ->
