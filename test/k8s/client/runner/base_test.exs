@@ -15,7 +15,7 @@ defmodule K8s.Client.Runner.BaseTest do
 
     def request(:get, @namespaced_url, _, _, _), do: render(nil)
 
-    def request(:post, @namespaced_url, _, _, _), do: render(nil)
+    def request(:post, @namespaced_url, body, _, _), do: render(body)
 
     def request(:get, @namespaced_url <> "/test", _body, _headers, _opts) do
       render(nil)
@@ -45,11 +45,11 @@ defmodule K8s.Client.Runner.BaseTest do
     def request(
           :post,
           @base_url <> "/api/v1/namespaces/default/pods/nginx/eviction",
-          _body,
+          body,
           _headers,
           _opts
         ) do
-      render(nil)
+      render(body)
     end
   end
 
@@ -98,7 +98,10 @@ defmodule K8s.Client.Runner.BaseTest do
       labels = %{"env" => "test"}
       body = put_in(make_namespace("test"), ["metadata", "labels"], labels)
 
-      assert {:ok, _} = Base.run(operation, cluster, body)
+      assert {:ok, body} = Base.run(operation, cluster, body)
+
+      assert body ==
+               ~s({"apiVersion":"v1","kind":"Namespace","metadata":{"labels":{"env":"test"},"name":"test"}})
     end
 
     test "running an operation with a custom HTTP body and options", %{

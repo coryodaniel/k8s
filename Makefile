@@ -5,6 +5,9 @@ help: ## Show this help
 help:
 	@grep -E '^[\/a-zA-Z0-9._%-]+:.*?## .*$$' Makefile | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
+quality: ## Run code quality and test targets
+quality: lint test analyze
+
 clean: ## Remove build/doc dirs
 	rm -rf _build
 	rm -rf cover
@@ -33,7 +36,7 @@ test/master: ## Run test suite against master
 	K8S_SPEC=${MASTER_SWAGGER_PATH} mix test
 
 test/all: ## Run full test suite against 1.10+
-test/all: test/1.10 test/1.11 test/1.12 test/1.13 test/1.14 test/1.15	
+test/all: test/1.10 test/1.11 test/1.12 test/1.13 test/1.14 test/1.15
 
 test/%: ## Run full test suite against a specific k8s version
 	K8S_SPEC=test/support/swagger/$*.json mix test

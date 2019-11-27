@@ -1,4 +1,17 @@
-# defmodule K8s.Middleware do
+defmodule K8s.Middleware do
+  @moduledoc "Interface for interacting with cluster middleware"
+
+  @doc "Retrieve a list of middleware registered to a cluster"
+  @spec list(:request | :response, atom()) :: list(module())
+  def list(:request, _cluster) do
+    [
+      K8s.Middleware.Request.Initialize,
+      K8s.Middleware.Request.EncodeBody
+    ]
+  end
+end
+
+# Agent should be in Middleware.Registry
 #   use Agent
 
 #   @doc """
@@ -21,5 +34,5 @@
 
 #   def increment do
 #     Agent.update(__MODULE__, &(&1 + 1))
-#   end  
+#   end
 # end

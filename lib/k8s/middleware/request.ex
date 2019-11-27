@@ -1,7 +1,7 @@
 defmodule K8s.Middleware.Request do
   @moduledoc "HTTP Request middleware"
 
-  @typedoc "MIddleware Request type"
+  @typedoc "Middleware Request type"
   @type t :: %__MODULE__{
           cluster: atom(),
           method: atom(),
@@ -14,5 +14,6 @@ defmodule K8s.Middleware.Request do
   defstruct cluster: nil, method: nil, url: nil, body: nil, headers: [], opts: []
 
   @doc "Request middleware callback"
+  # TODO: handle error return here type
   @callback call(t()) :: {:ok, t()} | :error
 end

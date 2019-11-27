@@ -6,8 +6,8 @@ defmodule K8s.Client.Runner.Base do
   @type result_t :: {:ok, map() | reference()} | {:error, atom} | {:error, binary()}
 
   alias K8s.Cluster
-  alias K8s.Conn.RequestOptions
   alias K8s.Operation
+  alias K8s.Middleware.Request
 
   @doc """
   Runs a `K8s.Operation`.
@@ -72,64 +72,62 @@ defmodule K8s.Client.Runner.Base do
 
   @doc """
   Run an operation and pass `opts` to HTTPoison.
+  Destructures `Operation` data and passes as the HTTP body.
 
   See `run/2`
   """
-  @spec run(Operation.t(), binary | atom, keyword()) :: result_t
+  @spec run(Operation.t(), atom, keyword()) :: result_t
   def run(%Operation{} = operation, cluster_name, opts) when is_list(opts) do
     run(operation, cluster_name, operation.data, opts)
   end
 
-  def apply_middlewares(_cluster_name, headers, body) do
-    middlewares = [
-      fn headers, body ->
-        IO.puts("Inspecting some body: #{inspect(body)}")
-        [headers, body]
-      end
-    ]
-
-    state_args = [headers, body]
-
-    Enum.reduce(middlewares, state_args, fn middleware, args ->
-      apply(middleware, args)
-    end)
-  end
-
   @doc """
-  Run an operation with an alternative HTTP Body (map) and pass `opts` to HTTPoison.
+  Run an operation with an HTTP Body (map) and pass `opts` to HTTPoison.
   See `run/2`
   """
   @spec run(Operation.t(), atom, map(), keyword()) :: result_t
   def run(%Operation{} = operation, cluster, body, opts \\ []) do
-    with {:ok, url} <- Cluster.url_for(operation, cluster),
-         req <- %K8s.Middleware.Request{cluster: cluster, method: operation.method},
-         {:ok, req} <- K8s.Middleware.Request.Initialize.call(req) do
-      
-      # ^ replace above with apply_middleware(cluster)
-
-      # Operation.data and body are deconstructed above @ L79...
-      [http_headers, raw_body] = apply_middlewares(cluster, req.headers, body)
-
-      {:ok, http_body} = encode(raw_body, operation.method)
-
-      http_opts_params = build_http_params(opts[:params], operation.label_selector)
-      opts_with_selector_params = Keyword.put(opts, :params, http_opts_params)
-
-      http_opts = Keyword.merge(req.opts, opts_with_selector_params)
-
-      K8s.http_provider().request(
-        operation.method,
-        url,
-        http_body,
-        http_headers,
-        http_opts
-      )
+    with req <- new_request(cluster, operation, body, opts),
+         {:ok, url} <- Cluster.url_for(operation, cluster),
+         # TODO: handle error return here type
+         {:ok, req} <- apply_middleware(req) do
+      K8s.http_provider().request(req.method, url, req.body, req.headers, req.opts)
     end
   end
 
-  @spec encode(any(), atom()) :: {:ok, binary} | {:error, any}
-  def encode(body, http_method) when http_method in [:put, :patch, :post], do: Jason.encode(body)
-  def encode(_, _), do: {:ok, ""}
+  # TODO: handle error return here type
+  @spec apply_middleware(Request.t()) :: {:ok, Request.t()}
+  defp apply_middleware(req) do
+    middlewares = K8s.Middleware.list(:request, req.cluster)
+
+    # TODO: handle error return here type
+    # case( K8s.Middleware.Request | K8s.Middleware.Error(mw, req, actual_error))
+
+    updated_request =
+      Enum.reduce_while(middlewares, req, fn middleware, req ->
+        case apply(middleware, :call, [req]) do
+          {:ok, updated_request} ->
+            {:cont, updated_request}
+
+          # TODO: handle error return here type
+          _error ->
+            {:halt, :handler_error_return_type_here}
+        end
+      end)
+
+    {:ok, updated_request}
+  end
+
+  @spec new_request(atom(), K8s.Operation.t(), list(map()) | map() | binary() | nil, Keyword.t()) ::
+          Request.t()
+  defp new_request(cluster, %Operation{} = operation, body, opts) do
+    req = %Request{cluster: cluster, method: operation.method, body: body}
+    http_opts_params = build_http_params(opts[:params], operation.label_selector)
+    opts_with_selector_params = Keyword.put(opts, :params, http_opts_params)
+
+    http_opts = Keyword.merge(req.opts, opts_with_selector_params)
+    %Request{req | opts: http_opts}
+  end
 
   @spec build_http_params(nil | keyword | map, nil | K8s.Selector.t()) :: map()
   defp build_http_params(nil, nil), do: %{}
