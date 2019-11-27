@@ -4,11 +4,13 @@ defmodule K8s.Middleware.RegistryTest do
 
   defmodule BarMiddleware do
     @behaviour K8s.Middleware.Request
+    @impl true
     def call(req), do: {:ok, req}
   end
 
   defmodule FooMiddleware do
     @behaviour K8s.Middleware.Request
+    @impl true
     def call(req), do: {:ok, req}
   end
 
