@@ -1,9 +1,21 @@
-# Registry should be the agent... MIddleware should be the API
-# K8s.Middleware.request(cluster_name, ...?)
-# Adds a piece of middleware to the stack
-# K8s.Middleware.Registry.add(cluster_name, :request, func_or_module)
-#
-# K8s.Middleware.Registry.defaults(:request)
-#
-# Replaces the existing stack, including defaults
-# K8s.Middleware.Registry.set(cluster_name, :request, list(func_or_module))
+defmodule K8s.Middleware.Registry do
+  @moduledoc """
+  Cluster middleware registry
+  """
+  use Agent
+
+  @spec start_link(map()) :: :ok
+  def start_link(registry = %{}) do
+    Agent.start_link(fn -> registry end, name: __MODULE__)
+  end
+
+  @doc "Adds a middleware to the end of the middleware stack"
+  @spec add(atom, :request | :response, module()) :: :ok
+  def add(cluster, type, middleware) do
+  end
+
+  @doc "Sets/replaces the middleware stack"
+  @spec set(atom, :request | :response, list(module())) :: :ok
+  def set(cluster, type, middlewares) do
+  end
+end

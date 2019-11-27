@@ -6,7 +6,7 @@ help:
 	@grep -E '^[\/a-zA-Z0-9._%-]+:.*?## .*$$' Makefile | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
 quality: ## Run code quality and test targets
-quality: lint test analyze
+quality: cov lint analyze
 
 clean: ## Remove build/doc dirs
 	rm -rf _build
