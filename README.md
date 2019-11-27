@@ -26,6 +26,7 @@
 * Kube config file parsing
 * Certificate and service account based auth
 * Pluggable auth providers
+* HTTP Request middleware
 * Macro free; fast compile & fast startup
 
 ## Installation
