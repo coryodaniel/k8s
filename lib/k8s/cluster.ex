@@ -18,7 +18,7 @@ defmodule K8s.Cluster do
 
   """
   @spec url_for(Operation.t(), atom) :: {:ok, binary} | {:error, atom(), binary()}
-  def url_for(%Operation{api_version: api_version, name: name, verb: verb} = operation, cluster) do
+  def url_for(%Operation{api_version: api_version, name: name, verb: _verb} = operation, cluster) do
     with {:ok, conn} <- Cluster.conn(cluster),
          {:ok, name} <- Cluster.Group.resource_name_for_kind(cluster, api_version, name),
          operation <- Map.put(operation, :name, name),

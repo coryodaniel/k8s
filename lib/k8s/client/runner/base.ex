@@ -4,7 +4,14 @@ defmodule K8s.Client.Runner.Base do
   """
 
   @type result_t ::
-          {:ok, map() | reference()} | {:error, atom | binary() | K8s.Middleware.Error.t()}
+          {:ok, map() | reference()}
+          # | {:error, atom | binary() | K8s.Middleware.Error.t()}
+          | {:error, K8s.Middleware.Error.t()}
+          | {:error, :cluster_not_registered | :missing_required_param | :unsupported_api_version}
+          | {:error, binary()}
+
+  @typedoc "Acceptable HTTP body types"
+  @type body_t :: list(map()) | map() | binary() | nil
 
   alias K8s.Cluster
   alias K8s.Operation
@@ -88,22 +95,22 @@ defmodule K8s.Client.Runner.Base do
   """
   @spec run(Operation.t(), atom, map(), keyword()) :: result_t
   def run(%Operation{} = operation, cluster, body, opts \\ []) do
-    with req <- new_request(cluster, operation, body, opts),
-         {:ok, url} <- Cluster.url_for(operation, cluster),
+    with {:ok, url} <- Cluster.url_for(operation, cluster),
+         req <- new_request(cluster, url, operation, body, opts),
          {:ok, req} <- K8s.Middleware.run(req) do
-      K8s.http_provider().request(req.method, url, req.body, req.headers, req.opts)
+      K8s.http_provider().request(req.method, req.url, req.body, req.headers, req.opts)
     end
   end
 
-  @spec new_request(atom(), K8s.Operation.t(), list(map()) | map() | binary() | nil, Keyword.t()) ::
+  @spec new_request(atom(), String.t(), K8s.Operation.t(), body_t, Keyword.t()) ::
           Request.t()
-  defp new_request(cluster, %Operation{} = operation, body, opts) do
+  defp new_request(cluster, url, %Operation{} = operation, body, opts) do
     req = %Request{cluster: cluster, method: operation.method, body: body}
     http_opts_params = build_http_params(opts[:params], operation.label_selector)
     opts_with_selector_params = Keyword.put(opts, :params, http_opts_params)
 
     http_opts = Keyword.merge(req.opts, opts_with_selector_params)
-    %Request{req | opts: http_opts}
+    %Request{req | opts: http_opts, url: url}
   end
 
   @spec build_http_params(nil | keyword | map, nil | K8s.Selector.t()) :: map()

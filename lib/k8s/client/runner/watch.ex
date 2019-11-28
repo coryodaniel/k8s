@@ -78,8 +78,8 @@ defmodule K8s.Client.Runner.Watch do
         rv = parse_resource_version(payload)
         {:ok, rv}
 
-      {:error, error} ->
-        {:error, error}
+      error ->
+        error
     end
   end
 

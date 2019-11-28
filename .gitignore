@@ -28,3 +28,7 @@ k8s-*.tar
 
 # Ignore master version as its always pulled w/ make test/all
 test/support/swagger/master.json
+
+# Ignore dialyzer files
+/priv/plts/*.plt
+/priv/plts/*.plt.hash
