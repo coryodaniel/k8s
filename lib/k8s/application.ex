@@ -8,7 +8,11 @@ defmodule K8s.Application do
     :ets.new(K8s.Conn, [:set, :public, :named_table])
     :ets.new(K8s.Cluster.Group, [:set, :public, :named_table])
 
-    children = [{K8s.Cluster.Registry, []}]
+    # TODO: register defaults for each cluster
+    children = [
+      {K8s.Middleware.Registry, []},
+      {K8s.Cluster.Registry, []}
+    ]
 
     opts = [strategy: :one_for_one, name: K8s.Supervisor]
     Supervisor.start_link(children, opts)

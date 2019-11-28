@@ -3,11 +3,19 @@ defmodule K8s.Client.Runner.Base do
   Base HTTP processor for `K8s.Client`
   """
 
-  @type result_t :: {:ok, map() | reference()} | {:error, atom} | {:error, binary()}
+  @type result_t ::
+          {:ok, map() | reference()}
+          # | {:error, atom | binary() | K8s.Middleware.Error.t()}
+          | {:error, K8s.Middleware.Error.t()}
+          | {:error, :cluster_not_registered | :missing_required_param | :unsupported_api_version}
+          | {:error, binary()}
+
+  @typedoc "Acceptable HTTP body types"
+  @type body_t :: list(map()) | map() | binary() | nil
 
   alias K8s.Cluster
-  alias K8s.Conn.RequestOptions
   alias K8s.Operation
+  alias K8s.Middleware.Request
 
   @doc """
   Runs a `K8s.Operation`.
@@ -72,46 +80,38 @@ defmodule K8s.Client.Runner.Base do
 
   @doc """
   Run an operation and pass `opts` to HTTPoison.
+  Destructures `Operation` data and passes as the HTTP body.
 
   See `run/2`
   """
-  @spec run(Operation.t(), binary | atom, keyword()) :: result_t
+  @spec run(Operation.t(), atom, keyword()) :: result_t
   def run(%Operation{} = operation, cluster_name, opts) when is_list(opts) do
     run(operation, cluster_name, operation.data, opts)
   end
 
   @doc """
-  Run an operation with an alternative HTTP Body (map) and pass `opts` to HTTPoison.
+  Run an operation with an HTTP Body (map) and pass `opts` to HTTPoison.
   See `run/2`
   """
   @spec run(Operation.t(), atom, map(), keyword()) :: result_t
-  def run(%Operation{} = operation, cluster_name, body, opts \\ []) do
-    with {:ok, url} <- Cluster.url_for(operation, cluster_name),
-         {:ok, conn} <- Cluster.conn(cluster_name),
-         {:ok, request_options} <- RequestOptions.generate(conn),
-         {:ok, http_body} <- encode(body, operation.method) do
-      http_headers = K8s.http_provider().headers(operation.method, request_options)
-
-      http_opts_params = build_http_params(opts[:params], operation.label_selector)
-      opts_with_selector_params = Keyword.put(opts, :params, http_opts_params)
-      http_opts = Keyword.merge([ssl: request_options.ssl_options], opts_with_selector_params)
-
-      K8s.http_provider().request(
-        operation.method,
-        url,
-        http_body,
-        http_headers,
-        http_opts
-      )
+  def run(%Operation{} = operation, cluster, body, opts \\ []) do
+    with {:ok, url} <- Cluster.url_for(operation, cluster),
+         req <- new_request(cluster, url, operation, body, opts),
+         {:ok, req} <- K8s.Middleware.run(req) do
+      K8s.http_provider().request(req.method, req.url, req.body, req.headers, req.opts)
     end
   end
 
-  @spec encode(any(), atom()) :: {:ok, binary} | {:error, any}
-  def encode(body, http_method) when http_method in [:put, :patch, :post] do
-    Jason.encode(body)
-  end
+  @spec new_request(atom(), String.t(), K8s.Operation.t(), body_t, Keyword.t()) ::
+          Request.t()
+  defp new_request(cluster, url, %Operation{} = operation, body, opts) do
+    req = %Request{cluster: cluster, method: operation.method, body: body}
+    http_opts_params = build_http_params(opts[:params], operation.label_selector)
+    opts_with_selector_params = Keyword.put(opts, :params, http_opts_params)
 
-  def encode(_, _), do: {:ok, ""}
+    http_opts = Keyword.merge(req.opts, opts_with_selector_params)
+    %Request{req | opts: http_opts, url: url}
+  end
 
   @spec build_http_params(nil | keyword | map, nil | K8s.Selector.t()) :: map()
   defp build_http_params(nil, nil), do: %{}

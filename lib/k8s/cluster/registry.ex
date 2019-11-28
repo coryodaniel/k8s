@@ -33,6 +33,7 @@ defmodule K8s.Cluster.Registry do
   @spec add(atom(), K8s.Conn.t()) :: {:ok, atom()} | {:error, atom()}
   def add(cluster, conn) do
     with true <- :ets.insert(K8s.Conn, {cluster, conn}),
+         :ok <- K8s.Middleware.initialize(cluster),
          {:ok, resources_by_group} <- Discovery.resources_by_group(cluster) do
       K8s.Cluster.Group.insert_all(cluster, resources_by_group)
       K8s.Sys.Event.cluster_registered(%{}, %{cluster: cluster})

@@ -1,5 +1,8 @@
 language: elixir
 sudo: false
+cache:
+  directories:
+    - priv/plts
 elixir:
   - 1.8
   - 1.7
