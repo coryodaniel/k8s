@@ -26,7 +26,11 @@ defmodule K8s.Middleware do
   @spec run(Request.t()) :: {:ok, Request.t()} | {:error, Error.t()}
   def run(req) do
     middlewares = K8s.Middleware.Registry.list(req.cluster, :request)
+    run(req, middlewares)
+  end
 
+  @spec run(Request.t(), list(module())) :: {:ok, Request.t()} | {:error, Error.t()}
+  def run(req, middlewares) do
     result =
       Enum.reduce_while(middlewares, req, fn middleware, req ->
         case apply(middleware, :call, [req]) do
