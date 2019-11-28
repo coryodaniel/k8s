@@ -10,24 +10,23 @@
 
 ## Features
 
-* A client API for humans
-* Kubernetes resources, groups, and CRDs are autodiscovered at boot time. No swagger file to include or override.
-* Client supports standard HTTP calls, async batches, wait on status, and watchers
-* Supports multiple clusters
-* Supports multiple authentication credentials
-  * serviceaccount
+* A client API for humans 👩🏼🧑👩🏻👩🏽👩🏾🧑🏻🧑🏽👩👨🧑🧑🏾👨🏼👨🏾👨🏿
+* 🔮 Kubernetes resources, groups, and CRDs are autodiscovered at boot time. No swagger file to include or override.
+* Client supports standard HTTP calls, async batches, wait on status ⏲️, and watchers 👀
+* ⚙️ HTTP Request middleware
+* Multiple clusters ⚓ ⚓ ⚓
+* 🔐 Multiple authentication credentials
+  * 🤖 serviceaccount
   * token
-  * certificate
+  * 📜 certificate
   * auth-provider
-* Supports multiple kubernetes API
-* Tested against kubernetes swagger specs: 1.10+ and master
-* CRD support
-* Kubernetes resource and version helper functions
-* Kube config file parsing
-* Certificate and service account based auth
-* Pluggable auth providers
-* HTTP Request middleware
-* Macro free; fast compile & fast startup
+  * Pluggable auth providers!
+* 🆗 Tested against Kubernetes versions 1.10+ and master
+* 🛠️ CRD support
+* 📈 Integrated with `:telemetry`
+* ℹ️ Kubernetes resource and version helper functions
+* 🧰 Kube config file parsing
+* 🏎️ Macro free; fast compile & fast startup
 
 ## Installation
 
