@@ -1,7 +1,7 @@
 name: Main Workflow
 on: push
 jobs:
-  test:
+  test-matrix:
     runs-on: ubuntu-latest
     name: OTP ${{matrix.otp}} / Elixir ${{matrix.elixir}}
     strategy:
@@ -16,3 +16,15 @@ jobs:
           elixir-version: ${{matrix.elixir}}
       - run: mix deps.get
       - run: make test/all
+  test:
+    runs-on: ubuntu-latest
+    name: Coverage and Dialyzer
+    steps:
+      - uses: actions/checkout@v1.0.0
+      - uses: actions/setup-elixir@v1.0.0
+        with:
+          otp-version: 22.x
+          elixir-version: 1.9.x
+      - run: mix deps.get
+      - run: mix coveralls.travis
+      - run: mix dialyzer
