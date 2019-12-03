@@ -4,6 +4,8 @@ defmodule K8s.Discovery.Driver.File do
 
   # TODO: replace stubs w/ file access
   # One file apiVersion => APIResourceList...
+  # support/discovery/example.json
+  # TODO: update mock docs
 
   @impl true
   def resources(api_version, %K8s.Conn{}) do
