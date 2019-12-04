@@ -5,11 +5,6 @@ config :k8s,
     driver: K8s.Discovery.Driver.File,
     opts: [config: "test/support/discovery/example.json"]
   },
-  discovery_driver: K8s.Cluster.Discovery.FileDriver,
-  discovery_opts: %{
-    api_versions_path: "test/support/discovery/sample_api_versions.json",
-    resource_definitions_path: "test/support/discovery/resource_definitions.json"
-  },
   http_provider: K8s.Client.DynamicHTTPProvider,
   clusters: %{
     test: %{
