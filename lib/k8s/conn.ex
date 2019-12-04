@@ -18,7 +18,9 @@ defmodule K8s.Conn do
             url: "",
             insecure_skip_tls_verify: false,
             ca_cert: nil,
-            auth: nil
+            auth: nil,
+            discovery_driver: nil,
+            discovery_opts: nil
 
   @type t :: %__MODULE__{
           cluster_name: String.t() | nil,
@@ -26,7 +28,9 @@ defmodule K8s.Conn do
           url: String.t(),
           insecure_skip_tls_verify: boolean(),
           ca_cert: String.t() | nil,
-          auth: auth_t
+          auth: auth_t,
+          discovery_driver: module(),
+          discovery_opts: Keyword.t()
         }
 
   @doc """
@@ -39,6 +43,8 @@ defmodule K8s.Conn do
   * `context` sets an alternate context
   * `cluster` set or override the cluster read from the context
   * `user` set or override the user read from the context
+  * `discovery_driver` module name to use for discovery
+  * `discovery_opts` options for discovery module
   """
   @spec from_file(binary, keyword) :: K8s.Conn.t()
   def from_file(config_file, opts \\ []) do
@@ -55,13 +61,18 @@ defmodule K8s.Conn do
     cluster_name = opts[:cluster] || context["cluster"]
     cluster = find_by_name(config["clusters"], cluster_name, "cluster")
 
+    discovery_driver = opts[:discovery_driver] || K8s.Discovery.default_driver()
+    discovery_opts = opts[:discovery_opts] || K8s.Discovery.default_opts()
+
     %Conn{
       cluster_name: cluster_name,
       user_name: user_name,
       url: cluster["server"],
       ca_cert: PKI.cert_from_map(cluster, base_path),
       auth: get_auth(user, base_path),
-      insecure_skip_tls_verify: cluster["insecure-skip-tls-verify"]
+      insecure_skip_tls_verify: cluster["insecure-skip-tls-verify"],
+      discovery_driver: discovery_driver,
+      discovery_opts: discovery_opts
     }
   end
 

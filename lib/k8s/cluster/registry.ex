@@ -34,11 +34,31 @@ defmodule K8s.Cluster.Registry do
   def add(cluster, conn) do
     with true <- :ets.insert(K8s.Conn, {cluster, conn}),
          :ok <- K8s.Middleware.initialize(cluster),
-         {:ok, resources_by_group} <- Discovery.resources_by_group(cluster) do
+         {:ok, resources_by_group} <- resources_by_group(cluster) do
       K8s.Cluster.Group.insert_all(cluster, resources_by_group)
       K8s.Sys.Event.cluster_registered(%{}, %{cluster: cluster})
       {:ok, cluster}
     end
+  end
+
+  @spec resources_by_group(atom(), Keyword.t() | nil) :: {:ok, map()} | {:error, atom()}
+  def resources_by_group(cluster, opts \\ []) do
+    K8s.refactor(__ENV__)
+    {:ok, conn} = K8s.Cluster.conn(cluster)
+
+    merged_opts = Keyword.merge(opts, conn.discovery_opts)
+    {:ok, versions} = conn.discovery_driver.versions(conn, opts)
+
+    r =
+      Enum.reduce(versions, %{}, fn v, agg ->
+        {:ok, resources} = conn.discovery_driver.resources(v, conn, opts)
+
+        list = Map.get(agg, v, [])
+        upd_list = list ++ resources
+        Map.put(agg, v, upd_list)
+      end)
+
+    {:ok, r}
   end
 
   @doc """

@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 - Boot time discovery K8s.Cluster.Discovery
+- K8s.Cluster.base_url/1
 
 
 ## [0.4.0] - 2019-08-29

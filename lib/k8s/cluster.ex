@@ -28,23 +28,6 @@ defmodule K8s.Cluster do
   end
 
   @doc """
-  Retrieve the base URL for a cluster
-
-  ## Examples
-
-      iex> conn = K8s.Conn.from_file("./test/support/kube-config.yaml")
-      ...> K8s.Cluster.Registry.add(:test_cluster, conn)
-      ...> K8s.Cluster.base_url(:test_cluster)
-      {:ok, "https://localhost:6443"}
-  """
-  @spec base_url(atom) :: {:ok, binary()} | {:error, atom} | {:error, binary}
-  def base_url(cluster) do
-    with {:ok, conn} <- Cluster.conn(cluster) do
-      {:ok, conn.url}
-    end
-  end
-
-  @doc """
   Retrieve a cluster's connection configuration.
 
   ## Example
@@ -53,7 +36,7 @@ defmodule K8s.Cluster do
       ...> K8s.Cluster.Registry.add(:test_cluster, config_file)
       ...> {:ok, conn} = K8s.Cluster.conn(:test_cluster)
       ...> conn
-      %K8s.Conn{auth: %K8s.Conn.Auth.Token{token: "just-a-token-user-pun-intended"}, ca_cert: nil, cluster_name: "docker-for-desktop-cluster", insecure_skip_tls_verify: true, url: "https://localhost:6443",user_name: "token-user"}
+      %K8s.Conn{auth: %K8s.Conn.Auth.Token{token: "just-a-token-user-pun-intended"}, ca_cert: nil, cluster_name: "docker-for-desktop-cluster", insecure_skip_tls_verify: true, url: "https://localhost:6443",user_name: "token-user", discovery_driver: K8s.Discovery.Driver.File, discovery_opts: [config: "test/support/discovery/example.json"]}
   """
   @spec conn(atom) :: {:ok, K8s.Conn.t()} | {:error, :cluster_not_registered}
   def conn(cluster_name) do

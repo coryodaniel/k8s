@@ -39,7 +39,7 @@ defmodule K8s.Cluster.Group do
     K8s.refactor(__ENV__)
 
     {:ok, conn} = K8s.Cluster.conn(cluster)
-    {:ok, resources} = K8s.default_driver().resources(api_version, conn)
+    {:ok, resources} = conn.discovery_driver.resources(api_version, conn)
     {:ok, resources}
     # case :ets.lookup(K8s.Cluster.Group, lookup_key(cluster)) do
     #   [] ->
@@ -76,9 +76,6 @@ defmodule K8s.Cluster.Group do
     # :ets.insert(K8s.Cluster.Group, {lookup_key(cluster), resources_by_group})
     true
   end
-
-  @spec lookup_key(atom) :: binary
-  defp lookup_key(cluster), do: Atom.to_string(cluster)
 
   @doc false
   @spec find_resource_by_name(list(map), atom() | binary()) ::
