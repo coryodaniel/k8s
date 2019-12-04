@@ -1,5 +1,5 @@
 {
-  "batch/v1": [
+  "v1": [
     {
       "kind": "Namespace",
       "name": "namespaces",

@@ -1,11 +1,11 @@
 defmodule K8s.Client.DynamicHTTPProvider do
   @moduledoc """
-  Allows for registration of `K8s.Client.Behaviour` handlers per-process.
+  Allows for registration of `K8s.Client.Provider` handlers per-process.
 
-  Used internally by the test suite for testing/mocking kubernetes responses.
+  Used internally by the test suite for testing/mocking Kubernetes responses.
   """
   use GenServer
-  @behaviour K8s.Client.Behaviour
+  @behaviour K8s.Client.Provider
 
   @impl true
   defdelegate headers(method, request_options), to: K8s.Client.HTTPProvider

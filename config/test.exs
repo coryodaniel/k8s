@@ -1,6 +1,10 @@
 use Mix.Config
 
 config :k8s,
+  discovery: %{
+    driver: K8s.Discovery.Driver.File,
+    opts: [config: "test/support/discovery/example.json"]
+  },
   discovery_driver: K8s.Cluster.Discovery.FileDriver,
   discovery_opts: %{
     api_versions_path: "test/support/discovery/sample_api_versions.json",

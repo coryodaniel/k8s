@@ -1,5 +1,5 @@
 # credo:disable-for-this-file
-defmodule K8s.Discover.Driver.HTTPTest do
+defmodule K8s.Discovery.Driver.HTTPTest do
   use ExUnit.Case, async: true
   alias K8s.Client.DynamicHTTPProvider
 
