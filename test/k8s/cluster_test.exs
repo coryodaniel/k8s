@@ -194,7 +194,7 @@ defmodule K8s.ClusterTest do
   end
 
   # mix test --only debugging
-  # Useful for when adding new k8s versions to trouble shooting adding to K8s.Cluster.Group.
+  # Useful for when adding new k8s versions to troubleshooting adding to K8s.Cluster.Group.
   # https://github.com/coryodaniel/k8s/issues/19
   @tag debugging: true
   test "target specific groupVersion/kind" do

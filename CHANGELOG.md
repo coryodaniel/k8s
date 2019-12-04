@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Request middleware support
+- Just in time discovery: K8s.Discovery
+
+### Removed
+- Boot time discovery K8s.Cluster.Discovery
+
 
 ## [0.4.0] - 2019-08-29
 

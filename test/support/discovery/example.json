@@ -15,6 +15,21 @@
       ]
     },
     {
+      "kind": "Service",
+      "name": "services",
+      "namespaced": true,
+      "verbs": [
+        "create",
+        "delete",
+        "deletecollection",
+        "get",
+        "list",
+        "patch",
+        "update",
+        "watch"
+      ]
+    },
+    {
       "kind": "Pod",
       "name": "pods",
       "namespaced": true,

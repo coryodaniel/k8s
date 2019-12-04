@@ -38,8 +38,8 @@ defmodule K8s.Cluster.GroupTest do
     end
 
     test "returns the REST resoruce name given a subresource name" do
-      {:ok, name} = K8s.Cluster.Group.resource_name_for_kind(:test, "v1", "pods/status")
-      assert name == "pods/status"
+      {:ok, name} = K8s.Cluster.Group.resource_name_for_kind(:test, "v1", "pods/eviction")
+      assert name == "pods/eviction"
     end
   end
 

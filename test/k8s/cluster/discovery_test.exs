@@ -6,46 +6,12 @@ defmodule K8s.Cluster.DiscoveryTest do
     test "returns resources group by API version" do
       cluster = :test
       file = "test/support/discovery/example.json"
-      {:ok, actual} = Discovery.resources_by_group(cluster, config: file)
+      {:ok, resources_by_group} = Discovery.resources_by_group(cluster, config: file)
 
-      assert_lists_equal(actual["apps/v1"], [
-        %{
-          "kind" => "DaemonSet",
-          "name" => "daemonsets",
-          "namespaced" => true,
-          "verbs" => [
-            "create",
-            "delete",
-            "deletecollection",
-            "get",
-            "list",
-            "patch",
-            "update",
-            "watch"
-          ]
-        },
-        %{
-          "kind" => "Deployment",
-          "name" => "deployments",
-          "namespaced" => true,
-          "verbs" => [
-            "create",
-            "delete",
-            "deletecollection",
-            "get",
-            "list",
-            "patch",
-            "update",
-            "watch"
-          ]
-        },
-        %{
-          "kind" => "Deployment",
-          "name" => "deployments/status",
-          "namespaced" => true,
-          "verbs" => ["get", "patch", "update"]
-        }
-      ])
+      core_resources = resources_by_group["v1"]
+      core_resource_names = Enum.map(core_resources, & &1["name"])
+      core_resource_names_sorted = Enum.sort(core_resource_names)
+      assert core_resource_names_sorted == ["namespaces", "pods", "pods/eviction", "services"]
     end
 
     test "includes subresources" do
@@ -54,37 +20,14 @@ defmodule K8s.Cluster.DiscoveryTest do
       {:ok, actual} = Discovery.resources_by_group(cluster, config: file)
       core_v1 = actual["v1"]
 
-      assert_lists_equal(core_v1, [
-        %{
-          "kind" => "Namespace",
-          "name" => "namespaces",
-          "namespaced" => false,
-          "verbs" => ["create", "delete", "get", "list", "patch", "update", "watch"]
-        },
-        %{
-          "kind" => "Pod",
-          "name" => "pods",
-          "namespaced" => true,
-          "verbs" => [
-            "create",
-            "delete",
-            "deletecollection",
-            "get",
-            "list",
-            "patch",
-            "update",
-            "watch"
-          ]
-        },
-        %{
-          "group" => "policy",
-          "kind" => "Eviction",
-          "name" => "pods/eviction",
-          "namespaced" => true,
-          "verbs" => ["create"],
-          "version" => "v1beta1"
-        }
-      ])
+      assert Enum.member?(core_v1, %{
+               "group" => "policy",
+               "kind" => "Eviction",
+               "name" => "pods/eviction",
+               "namespaced" => true,
+               "verbs" => ["create"],
+               "version" => "v1beta1"
+             })
     end
   end
 

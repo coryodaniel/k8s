@@ -36,16 +36,21 @@ defmodule K8s.Cluster.Group do
           | {:error, :cluster_not_registered, atom()}
           | {:error, :unsupported_api_version, binary()}
   def resources_by_group(cluster, api_version) do
-    case :ets.lookup(K8s.Cluster.Group, lookup_key(cluster)) do
-      [] ->
-        {:error, :cluster_not_registered, cluster}
+    K8s.refactor(__ENV__)
 
-      [{_cluster_key, resources_by_group}] ->
-        case Map.get(resources_by_group, api_version) do
-          nil -> {:error, :unsupported_api_version, api_version}
-          resources -> {:ok, resources}
-        end
-    end
+    {:ok, conn} = K8s.Cluster.conn(cluster)
+    {:ok, resources} = K8s.default_driver().resources(api_version, conn)
+    {:ok, resources}
+    # case :ets.lookup(K8s.Cluster.Group, lookup_key(cluster)) do
+    #   [] ->
+    #     {:error, :cluster_not_registered, cluster}
+
+    #   [{_cluster_key, resources_by_group}] ->
+    #     case Map.get(resources_by_group, api_version) do
+    #       nil -> {:error, :unsupported_api_version, api_version}
+    #       resources -> {:ok, resources}
+    #     end
+    # end
   end
 
   @doc """
@@ -67,7 +72,9 @@ defmodule K8s.Cluster.Group do
   """
   @spec insert_all(atom(), map()) :: boolean()
   def insert_all(cluster, resources_by_group) do
-    :ets.insert(K8s.Cluster.Group, {lookup_key(cluster), resources_by_group})
+    K8s.refactor(__ENV__)
+    # :ets.insert(K8s.Cluster.Group, {lookup_key(cluster), resources_by_group})
+    true
   end
 
   @spec lookup_key(atom) :: binary

@@ -22,4 +22,9 @@ defmodule K8s do
     config = Application.get_env(:k8s, :discovery, %{})
     Map.get(config, :opts, [])
   end
+
+  def refactor(e) do
+    {name, arity} = e.function
+    IO.puts("TODO: Refactored out, remove. #{e.module}.#{name}/#{arity}")
+  end
 end
