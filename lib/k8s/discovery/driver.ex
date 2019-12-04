@@ -23,8 +23,9 @@ defmodule K8s.Discovery.Driver do
       ...> K8s.Discovery.Driver.HTTP.api(conn)
       {:ok, ["v1"]}
   """
-  @callback versions(K8s.Conn.t()) :: {:ok, list(String.t())} | driver_error_t
-  @callback versions(K8s.Conn.t(), Keyword.t()) :: {:ok, list(String.t())} | driver_error_t
+  @callback versions(conn :: K8s.Conn.t()) :: {:ok, list(String.t())} | driver_error_t
+  @callback versions(conn :: K8s.Conn.t(), opts :: Keyword.t()) ::
+              {:ok, list(String.t())} | driver_error_t
 
   @doc """
   List of Kubernetes `APIResourceList`s
@@ -47,7 +48,8 @@ defmodule K8s.Discovery.Driver do
                }
              ]}
   """
-  @callback resources(String.t(), K8s.Conn.t()) :: {:ok, list(map())} | driver_error_t
-  @callback resources(String.t(), K8s.Conn.t(), Keyword.t()) ::
+  @callback resources(api_version :: String.t(), conn :: K8s.Conn.t()) ::
+              {:ok, list(map())} | driver_error_t
+  @callback resources(api_version :: String.t(), conn :: K8s.Conn.t(), opts :: Keyword.t()) ::
               {:ok, list(map())} | driver_error_t
 end
