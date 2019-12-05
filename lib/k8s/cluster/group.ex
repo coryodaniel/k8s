@@ -37,20 +37,9 @@ defmodule K8s.Cluster.Group do
           | {:error, :unsupported_api_version, binary()}
   def resources_by_group(cluster, api_version) do
     K8s.refactor(__ENV__)
-
     {:ok, conn} = K8s.Cluster.conn(cluster)
     {:ok, resources} = conn.discovery_driver.resources(api_version, conn)
     {:ok, resources}
-    # case :ets.lookup(K8s.Cluster.Group, lookup_key(cluster)) do
-    #   [] ->
-    #     {:error, :cluster_not_registered, cluster}
-
-    #   [{_cluster_key, resources_by_group}] ->
-    #     case Map.get(resources_by_group, api_version) do
-    #       nil -> {:error, :unsupported_api_version, api_version}
-    #       resources -> {:ok, resources}
-    #     end
-    # end
   end
 
   @doc """
