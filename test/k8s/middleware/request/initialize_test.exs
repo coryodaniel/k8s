@@ -3,7 +3,7 @@ defmodule K8s.Middleware.Request.InitializeTest do
 
   test "initializes a request headers from K8s.Conn.RequestOptions" do
     conn = K8s.Conn.from_file("./test/support/kube-config.yaml")
-    request = %K8s.Middleware.Request{conn: :conn}
+    request = %K8s.Middleware.Request{conn: conn}
 
     {:ok, %{headers: headers}} = K8s.Middleware.Request.Initialize.call(request)
 
@@ -12,7 +12,7 @@ defmodule K8s.Middleware.Request.InitializeTest do
 
   test "initializes a HTTPoison options from K8s.Conn.RequestOptions" do
     conn = K8s.Conn.from_file("./test/support/kube-config.yaml")
-    request = %K8s.Middleware.Request{conn: :conn}
+    request = %K8s.Middleware.Request{conn: conn}
 
     {:ok, %{opts: opts}} = K8s.Middleware.Request.Initialize.call(request)
 

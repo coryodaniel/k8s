@@ -101,7 +101,7 @@ defmodule K8s.Client.Runner.Base do
   See `run/2`
   """
   @spec run(Operation.t(), atom, map(), keyword()) :: result_t
-  def run(%Operation{} = operation, cluster_name, body, opts) do
+  def run(%Operation{} = operation, cluster_name, body, opts) when is_atom(cluster_name) do
     with {:ok, conn} <- Conn.lookup(cluster_name) do
       run(operation, conn, body, opts)
     end
