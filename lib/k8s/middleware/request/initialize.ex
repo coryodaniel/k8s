@@ -7,7 +7,7 @@ defmodule K8s.Middleware.Request.Initialize do
 
   @impl true
   def call(%Request{cluster: cluster, method: method, headers: headers, opts: opts} = req) do
-    with {:ok, conn} <- K8s.Cluster.conn(cluster),
+    with {:ok, conn} <- K8s.Conn.lookup(cluster),
          {:ok, request_options} <- K8s.Conn.RequestOptions.generate(conn) do
       request_option_headers = K8s.http_provider().headers(method, request_options)
       updated_headers = Keyword.merge(headers, request_option_headers)

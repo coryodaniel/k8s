@@ -3,7 +3,7 @@ defmodule K8s.Middleware.Request do
 
   @typedoc "Middleware Request type"
   @type t :: %__MODULE__{
-          cluster: atom(),
+          conn: K8s.Conn.t(),
           method: atom(),
           url: String.t(),
           body: String.t() | map() | list(map()) | nil,
@@ -11,7 +11,7 @@ defmodule K8s.Middleware.Request do
           opts: Keyword.t() | nil
         }
 
-  defstruct cluster: nil, method: nil, url: nil, body: nil, headers: [], opts: []
+  defstruct conn: nil, cluster: nil, method: nil, url: nil, body: nil, headers: [], opts: []
 
   @doc "Request middleware callback"
   @callback call(t()) :: {:ok, t()} | {:error, any()}

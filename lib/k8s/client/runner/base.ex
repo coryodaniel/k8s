@@ -5,15 +5,20 @@ defmodule K8s.Client.Runner.Base do
 
   @type result_t ::
           {:ok, map() | reference()}
-          # | {:error, atom | binary() | K8s.Middleware.Error.t()}
           | {:error, K8s.Middleware.Error.t()}
-          | {:error, :cluster_not_registered | :missing_required_param | :unsupported_api_version}
+          | {:error, :connection_not_registered}
+          | {:error, :missing_required_param}
+          | {:error, :unsupported_api_version}
           | {:error, binary()}
 
   @typedoc "Acceptable HTTP body types"
   @type body_t :: list(map()) | map() | binary() | nil
 
+  @typedoc "Connection cluster name or `K8s.Conn`"
+  @type cluster_or_conn_t :: atom() | K8s.Conn.t()
+
   alias K8s.Cluster
+  alias K8s.Conn
   alias K8s.Operation
   alias K8s.Middleware.Request
 
@@ -22,7 +27,7 @@ defmodule K8s.Client.Runner.Base do
 
   ## Examples
 
-  *Note:* Examples assume a cluster was registered named :test_cluster, see `K8s.Cluster.Registry.add/2`.
+  *Note:* Examples assume a `K8s.Conn` was configured named `:test_cluster`. See `K8s.Conn.Config`.
 
   Running a list pods operation:
 
@@ -74,9 +79,9 @@ defmodule K8s.Client.Runner.Base do
   :ok = K8s.Client.Runner.Base.run(operation, :test_cluster, opts)
   ```
   """
-  @spec run(Operation.t(), atom | nil) :: result_t
-  def run(%Operation{} = operation, cluster_name \\ :default),
-    do: run(operation, cluster_name, [])
+  @spec run(Operation.t(), cluster_or_conn_t | nil) :: result_t
+  def run(%Operation{} = operation, cluster_name_or_conn \\ :default),
+    do: run(operation, cluster_name_or_conn, [])
 
   @doc """
   Run an operation and pass `opts` to HTTPoison.
@@ -84,28 +89,41 @@ defmodule K8s.Client.Runner.Base do
 
   See `run/2`
   """
-  @spec run(Operation.t(), atom, keyword()) :: result_t
-  def run(%Operation{} = operation, cluster_name, opts) when is_list(opts) do
-    run(operation, cluster_name, operation.data, opts)
+  @spec run(Operation.t(), cluster_or_conn_t, keyword()) :: result_t
+  def run(%Operation{} = operation, cluster_name_or_conn, opts) when is_list(opts) do
+    run(operation, cluster_name_or_conn, operation.data, opts)
   end
+
+  def run(operation, cluster_name_or_conn, body, opts \\ [])
 
   @doc """
   Run an operation with an HTTP Body (map) and pass `opts` to HTTPoison.
   See `run/2`
   """
   @spec run(Operation.t(), atom, map(), keyword()) :: result_t
-  def run(%Operation{} = operation, cluster, body, opts \\ []) do
-    with {:ok, url} <- Cluster.url_for(operation, cluster),
-         req <- new_request(cluster, url, operation, body, opts),
+  def run(%Operation{} = operation, cluster_name, body, opts) do
+    with {:ok, conn} <- Conn.lookup(cluster_name) do
+      run(operation, conn, body, opts)
+    end
+  end
+
+  @doc """
+  Run an operation with an HTTP Body (map) and pass `opts` to HTTPoison.
+  See `run/2`
+  """
+  @spec run(Operation.t(), Conn.t(), map(), keyword()) :: result_t
+  def run(%Operation{} = operation, %Conn{} = conn, body, opts) do
+    with {:ok, url} <- Cluster.url_for(operation, conn),
+         req <- new_request(conn, url, operation, body, opts),
          {:ok, req} <- K8s.Middleware.run(req) do
       K8s.http_provider().request(req.method, req.url, req.body, req.headers, req.opts)
     end
   end
 
-  @spec new_request(atom(), String.t(), K8s.Operation.t(), body_t, Keyword.t()) ::
+  @spec new_request(Conn.t(), String.t(), K8s.Operation.t(), body_t, Keyword.t()) ::
           Request.t()
-  defp new_request(cluster, url, %Operation{} = operation, body, opts) do
-    req = %Request{cluster: cluster, method: operation.method, body: body}
+  defp new_request(conn, url, %Operation{} = operation, body, opts) do
+    req = %Request{conn: conn, method: operation.method, body: body}
     http_opts_params = build_http_params(opts[:params], operation.label_selector)
     opts_with_selector_params = Keyword.put(opts, :params, http_opts_params)
 

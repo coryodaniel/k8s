@@ -83,6 +83,7 @@ defmodule K8s.Client.Runner.Stream do
     request_params = Map.merge(default_params || %{}, pagination_params)
     opts = Keyword.put(request.opts, :params, request_params)
 
+    # TODO: replace cluster w/ conn
     response = Base.run(request.operation, request.cluster, opts)
 
     case response do

@@ -18,8 +18,8 @@ defmodule K8s.Cluster.Group do
           | {:error, :cluster_not_registered, atom()}
           | {:error, :unsupported_resource, binary()}
           | {:error, :unsupported_api_version, binary()}
-  def resource_name_for_kind(cluster, api_version, name_or_kind) do
-    case find_resource(cluster, api_version, name_or_kind) do
+  def resource_name_for_kind(conn, api_version, name_or_kind) do
+    case find_resource(conn, api_version, name_or_kind) do
       {:ok, %{"name" => name}} ->
         {:ok, name}
 
@@ -35,11 +35,9 @@ defmodule K8s.Cluster.Group do
           {:ok, list(map())}
           | {:error, :cluster_not_registered, atom()}
           | {:error, :unsupported_api_version, binary()}
-  def resources_by_group(cluster, api_version) do
+  def resources_by_group(conn, api_version) do
     K8s.refactor(__ENV__)
-    {:ok, conn} = K8s.Cluster.conn(cluster)
-    {:ok, resources} = conn.discovery_driver.resources(api_version, conn)
-    {:ok, resources}
+    conn.discovery_driver.resources(api_version, conn)
   end
 
   @doc """
@@ -50,20 +48,10 @@ defmodule K8s.Cluster.Group do
           | {:error, :cluster_not_registered, atom()}
           | {:error, :unsupported_resource, binary()}
           | {:error, :unsupported_api_version, binary()}
-  def find_resource(cluster, api_version, name_or_kind) do
-    with {:ok, resources} <- resources_by_group(cluster, api_version) do
+  def find_resource(conn, api_version, name_or_kind) do
+    with {:ok, resources} <- resources_by_group(conn, api_version) do
       find_resource_by_name(resources, name_or_kind)
     end
-  end
-
-  @doc """
-  Insert/Update a cluster's group/resource definitions.
-  """
-  @spec insert_all(atom(), map()) :: boolean()
-  def insert_all(cluster, resources_by_group) do
-    K8s.refactor(__ENV__)
-    # :ets.insert(K8s.Cluster.Group, {lookup_key(cluster), resources_by_group})
-    true
   end
 
   @doc false
