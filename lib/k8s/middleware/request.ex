@@ -11,7 +11,7 @@ defmodule K8s.Middleware.Request do
           opts: Keyword.t() | nil
         }
 
-  defstruct conn: nil, cluster: nil, method: nil, url: nil, body: nil, headers: [], opts: []
+  defstruct conn: nil, method: nil, url: nil, body: nil, headers: [], opts: []
 
   @doc "Request middleware callback"
   @callback call(t()) :: {:ok, t()} | {:error, any()}

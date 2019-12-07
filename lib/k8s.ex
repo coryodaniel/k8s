@@ -9,6 +9,6 @@ defmodule K8s do
 
   def refactor(e) do
     {name, arity} = e.function
-    IO.puts("TODO: Refactored out, remove. #{e.module}.#{name}/#{arity}")
+    IO.puts("TODO: Remove #{e.module}.#{name}/#{arity}")
   end
 end

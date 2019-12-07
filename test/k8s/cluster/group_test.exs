@@ -33,12 +33,14 @@ defmodule K8s.Cluster.GroupTest do
 
   describe "resource_name_for_kind/3" do
     test "returns the REST resource name given a kubernetes kind" do
-      {:ok, name} = K8s.Cluster.Group.resource_name_for_kind(:test, "v1", "Pod")
+      {:ok, conn} = K8s.Conn.lookup(:test)
+      {:ok, name} = K8s.Cluster.Group.resource_name_for_kind(conn, "v1", "Pod")
       assert name == "pods"
     end
 
     test "returns the REST resoruce name given a subresource name" do
-      {:ok, name} = K8s.Cluster.Group.resource_name_for_kind(:test, "v1", "pods/eviction")
+      {:ok, conn} = K8s.Conn.lookup(:test)
+      {:ok, name} = K8s.Cluster.Group.resource_name_for_kind(conn, "v1", "pods/eviction")
       assert name == "pods/eviction"
     end
   end

@@ -140,8 +140,8 @@ defmodule K8s.Conn do
   [kubernetes.io :: Accessing the API from a Pod](https://kubernetes.io/docs/tasks/access-application-cluster/access-cluster/#accessing-the-api-from-a-pod)
   """
 
-  @spec from_service_account(cluster_name :: atom()) :: K8s.Conn.t()
-  def from_service_account(cluster_name \\ :default),
+  @spec from_service_account(atom()) :: K8s.Conn.t()
+  def from_service_account(cluster_name),
     do: from_service_account(cluster_name, "/var/run/secrets/kubernetes.io/serviceaccount")
 
   @spec from_service_account(atom, String.t()) :: K8s.Conn.t()

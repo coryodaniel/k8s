@@ -1,36 +1,48 @@
 defmodule K8s.Middleware do
-  @moduledoc "Interface for interacting with cluster middleware"
+  @moduledoc """
+  Interface for interacting with cluster middleware
+
+  While middlewares are applied to `K8s.Middleware.Request`s they are registerd by a _cluster name_ which is an atom.
+
+  This allows multiple connections to be used (different credentials) with the same middleware stack.
+
+  Any cluster name that has _not_ been initialized, will automatically have the default stack applied.
+
+  ## Examples
+    Using default middleware
+      iex> conn = %K8s.Conn{}
+      ...> req = %K8s.Middlware.Request{}
+      ...> K8s.Middleware.run(req)
+
+    Adding middlware to a cluster
+      iex> conn = %K8s.Conn{cluster_name: :foo}
+      ...> K8s.Middleware.add(:foo, :request, MyMiddlewareModule)
+      ...> req = %K8s.Middlware.Request{}
+      ...> K8s.Middleware.run(req)
+
+    Setting/Replacing middleware on a cluster
+      iex> conn = %K8s.Conn{cluster_name: :foo}
+      ...> K8s.Middleware.set(:foo, :request, [MyMiddlewareModule, OtherModule])
+      ...> req = %K8s.Middlware.Request{}
+      ...> K8s.Middleware.run(req)
+  """
 
   alias K8s.Middleware.{Error, Request}
 
   @typedoc "Middleware type"
   @type type_t :: :request | :response
 
-  @typedoc "List of middlewares"
-  @type stack_t :: list(module())
-
-  @spec defaults(K8s.Middleware.type_t()) :: stack_t
-  def defaults(:request), do: [Request.Initialize, Request.EncodeBody]
-  def defaults(:response), do: []
-
-  @doc "Initialize a clusters middleware stacks"
-  @spec initialize(atom) :: :ok
-  def initialize(cluster) do
-    K8s.Middleware.Registry.set(cluster, :request, defaults(:request))
-    K8s.Middleware.Registry.set(cluster, :response, defaults(:response))
-  end
-
   @doc """
   Applies middlewares registered to a `K8s.Cluster` to a `K8s.Middleware.Request`
   """
   @spec run(Request.t()) :: {:ok, Request.t()} | {:error, Error.t()}
-  def run(req) do
-    middlewares = K8s.Middleware.Registry.list(req.cluster, :request)
+  def run(%Request{conn: conn} = req) do
+    middlewares = K8s.Middleware.Registry.list(conn.cluster_name, :request)
     run(req, middlewares)
   end
 
   @spec run(Request.t(), list(module())) :: {:ok, Request.t()} | {:error, Error.t()}
-  def run(req, middlewares) do
+  def run(%Request{} = req, middlewares) do
     result =
       Enum.reduce_while(middlewares, req, fn middleware, req ->
         case apply(middleware, :call, [req]) do
@@ -49,7 +61,7 @@ defmodule K8s.Middleware do
   end
 
   @spec error(module(), Request.t(), any()) :: Error.t()
-  defp error(middleware, req, error) do
+  defp error(middleware, %Request{} = req, error) do
     %K8s.Middleware.Error{
       middleware: middleware,
       error: error,

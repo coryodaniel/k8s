@@ -15,8 +15,7 @@ defmodule K8s.ConnTest do
 
   describe "lookup/1" do
     test "returns a conn by name" do
-      {:ok, conn} = K8s.Conn.lookup(:test)
-      assert conn = %K8s.Conn{}
+      assert {:ok, %K8s.Conn{}} = K8s.Conn.lookup(:test)
     end
 
     test "returns an error when no connection was registered" do
