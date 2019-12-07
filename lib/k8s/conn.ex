@@ -27,7 +27,7 @@ defmodule K8s.Conn do
             discovery_opts: nil
 
   @type t :: %__MODULE__{
-          cluster_name: String.t() | nil,
+          cluster_name: atom(),
           user_name: String.t() | nil,
           url: String.t(),
           insecure_skip_tls_verify: boolean(),
@@ -157,7 +157,9 @@ defmodule K8s.Conn do
       cluster_name: cluster_name,
       url: "https://#{host}:#{port}",
       ca_cert: PKI.cert_from_pem(cert_path),
-      auth: %K8s.Conn.Auth.Token{token: File.read!(token_path)}
+      auth: %K8s.Conn.Auth.Token{token: File.read!(token_path)},
+      discovery_driver: K8s.Discovery.default_driver(),
+      discovery_opts: K8s.Discovery.default_opts()
     }
   end
 

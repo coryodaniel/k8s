@@ -5,6 +5,8 @@ defmodule K8s.Discovery.ResourceFinder do
 
   alias K8s.Discovery.ResourceNaming
 
+  @type error_t :: {:error, :unsupported_resource, binary}
+
   @doc """
   Get the REST resource name for a kubernetes `Kind`.
 
@@ -13,9 +15,9 @@ defmodule K8s.Discovery.ResourceFinder do
 
   Also accepts REST resource name in the event they are provided, as it may be known in the event of subresources.
   """
-  @spec resource_name_for_kind(atom(), binary(), binary()) ::
+  @spec resource_name_for_kind(K8s.Conn.t(), binary(), binary()) ::
           {:ok, binary()}
-          | {:error, :unsupported_resource, binary()}
+          | error_t
   def resource_name_for_kind(conn, api_version, name_or_kind) do
     case find_resource(conn, api_version, name_or_kind) do
       {:ok, %{"name" => name}} ->
@@ -29,9 +31,9 @@ defmodule K8s.Discovery.ResourceFinder do
   @doc """
   Finds a resource definition by api version and (name or kind).
   """
-  @spec find_resource(atom(), binary(), atom() | binary()) ::
+  @spec find_resource(K8s.Conn.t(), binary(), atom() | binary()) ::
           {:ok, map}
-          | {:error, :unsupported_resource, binary()}
+          | error_t
   def find_resource(conn, api_version, name_or_kind) do
     with {:ok, resources} <- conn.discovery_driver.resources(api_version, conn) do
       find_resource_by_name(resources, name_or_kind)
@@ -40,7 +42,7 @@ defmodule K8s.Discovery.ResourceFinder do
 
   @doc false
   @spec find_resource_by_name(list(map), atom() | binary()) ::
-          {:ok, map} | {:error, atom() | binary()}
+          {:ok, map} | error_t
   def find_resource_by_name(resources, name_or_kind) do
     resource = Enum.find(resources, &ResourceNaming.matches?(&1, name_or_kind))
 
