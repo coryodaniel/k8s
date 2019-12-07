@@ -1,5 +1,7 @@
 # Usage
 
+__Note:__ Docs are currently for 0.4.
+
 ## Registering Connections
 
 `K8s.Conn`s can be registered via `config.exs` or environment variables. `K8s.Conn`s may also be built programmaticaly.

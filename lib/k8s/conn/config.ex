@@ -28,11 +28,12 @@ defmodule K8s.Conn.Config do
   @doc """
   Returns runtime and compile time cluster configuration merged together.
   """
-  @spec all() :: map
+  @spec all() :: map()
   def all() do
     merge_configs(runtime_cluster_configs(), compiletime_cluster_configs())
   end
 
+  @spec compiletime_cluster_configs() :: map()
   def compiletime_cluster_configs() do
     Application.get_env(:k8s, :clusters, %{})
   end

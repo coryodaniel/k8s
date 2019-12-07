@@ -7,11 +7,8 @@ defmodule K8s.Conn do
   Connections can also be dynaically built during application runtime.
   """
 
-  # TODO: break from_ into Parser module from_kubeconfig, from_serviceaccount
-
   alias __MODULE__
   alias K8s.Conn.{PKI, RequestOptions, Config}
-  alias K8s.Operation
 
   @providers [
     K8s.Conn.Auth.Certificate,
@@ -51,6 +48,7 @@ defmodule K8s.Conn do
   [%K8s.Conn{ca_cert: nil, auth: %K8s.Conn.Auth{}, cluster_name: :"docker-for-desktop-cluster", discovery_driver: K8s.Discovery.Driver.File, discovery_opts: [config: "test/support/discovery/example.json"], insecure_skip_tls_verify: true, url: "https://localhost:6443", user_name: "docker-for-desktop"}]
   ```
   """
+  @spec list() :: list(K8s.Conn.t())
   def list() do
     Enum.reduce(Config.all(), [], fn {cluster_name, conf}, agg ->
       conn = config_to_conn(conf, cluster_name)
@@ -125,9 +123,6 @@ defmodule K8s.Conn do
     discovery_opts = opts[:discovery_opts] || K8s.Discovery.default_opts()
 
     %Conn{
-      # TODO:
-      # atomizing the cluster names could be problematic for the case that
-      # conns are being programmatically generated...
       cluster_name: String.to_atom(cluster_name),
       user_name: user_name,
       url: cluster["server"],
