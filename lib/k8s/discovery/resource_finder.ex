@@ -1,12 +1,12 @@
-defmodule K8s.Cluster.Group do
+defmodule K8s.Discovery.ResourceFinder do
   @moduledoc """
   Kubernetes API Groups
   """
 
-  alias K8s.Cluster.Group.ResourceNaming
+  alias K8s.Discovery.ResourceNaming
 
   @doc """
-  Get the REST resource name for a kubernetes Kind.
+  Get the REST resource name for a kubernetes `Kind`.
 
   Since `K8s.Operation` is abstracted away from a specific cluster, when working with kubernetes resource `Map`s and specifying `"kind"` the `K8s.Operation.Path` module isn't
   able to determine the correct path. (It will generate things like /api/v1/Pod instead of api/v1/pods).
@@ -15,9 +15,7 @@ defmodule K8s.Cluster.Group do
   """
   @spec resource_name_for_kind(atom(), binary(), binary()) ::
           {:ok, binary()}
-          | {:error, :cluster_not_registered, atom()}
           | {:error, :unsupported_resource, binary()}
-          | {:error, :unsupported_api_version, binary()}
   def resource_name_for_kind(conn, api_version, name_or_kind) do
     case find_resource(conn, api_version, name_or_kind) do
       {:ok, %{"name" => name}} ->
@@ -29,27 +27,13 @@ defmodule K8s.Cluster.Group do
   end
 
   @doc """
-  Returns a list of all resources in a given groupVersion
-  """
-  @spec resources_by_group(atom(), binary()) ::
-          {:ok, list(map())}
-          | {:error, :cluster_not_registered, atom()}
-          | {:error, :unsupported_api_version, binary()}
-  def resources_by_group(conn, api_version) do
-    K8s.refactor(__ENV__)
-    conn.discovery_driver.resources(api_version, conn)
-  end
-
-  @doc """
   Finds a resource definition by api version and (name or kind).
   """
   @spec find_resource(atom(), binary(), atom() | binary()) ::
           {:ok, map}
-          | {:error, :cluster_not_registered, atom()}
           | {:error, :unsupported_resource, binary()}
-          | {:error, :unsupported_api_version, binary()}
   def find_resource(conn, api_version, name_or_kind) do
-    with {:ok, resources} <- resources_by_group(conn, api_version) do
+    with {:ok, resources} <- conn.discovery_driver.resources(api_version, conn) do
       find_resource_by_name(resources, name_or_kind)
     end
   end

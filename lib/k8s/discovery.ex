@@ -1,4 +1,28 @@
 defmodule K8s.Discovery do
+  @moduledoc "Kubernetes API Discovery"
+  alias K8s.{Conn, Operation}
+
+  @doc """
+  Discovery the URL for a `K8s.Conn` and `K8s.Operation`
+
+  ## Examples
+
+      iex> conn = K8s.Conn.from_file("./test/support/kube-config.yaml")
+      ...> op = K8s.Operation.build(:get, "apps/v1", :deployments, [namespace: "default", name: "nginx"])
+      ...> K8s.Discovery.url_for(conn, op)
+      {:ok, "https://localhost:6443/apis/apps/v1/namespaces/default/deployments/nginx"}
+
+  """
+  @spec url_for(Conn.t(), Operation.t()) :: {:ok, String.t()} | {:error, atom(), binary()}
+  def url_for(%Conn{} = conn, %Operation{api_version: api_version, name: name, verb: _} = op) do
+    with {:ok, name} <-
+           K8s.Discovery.ResourceFinder.resource_name_for_kind(conn, api_version, name),
+         op <- Map.put(op, :name, name),
+         {:ok, path} <- Operation.to_path(op) do
+      {:ok, Path.join(conn.url, path)}
+    end
+  end
+
   @doc """
   Override the _default_ driver for discovery.
 

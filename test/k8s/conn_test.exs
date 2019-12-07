@@ -1,6 +1,7 @@
 defmodule K8s.ConnTest do
   @moduledoc false
   use ExUnit.Case, async: true
+  doctest K8s.Conn
   alias K8s.Conn
   alias K8s.Conn.Auth.{Certificate, Token, AuthProvider}
   alias K8s.Conn.RequestOptions

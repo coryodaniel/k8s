@@ -8,13 +8,11 @@ defmodule K8s.Client.Runner.Base do
           | {:error, K8s.Middleware.Error.t()}
           | {:error, :connection_not_registered}
           | {:error, :missing_required_param}
-          | {:error, :unsupported_api_version}
           | {:error, binary()}
 
   @typedoc "Acceptable HTTP body types"
   @type body_t :: list(map()) | map() | binary() | nil
 
-  alias K8s.Cluster
   alias K8s.Conn
   alias K8s.Operation
   alias K8s.Middleware.Request
@@ -99,7 +97,7 @@ defmodule K8s.Client.Runner.Base do
   """
   @spec run(Operation.t(), Conn.t(), map(), keyword()) :: result_t
   def run(%Operation{} = operation, %Conn{} = conn, body, opts \\ []) do
-    with {:ok, url} <- Cluster.url_for(operation, conn),
+    with {:ok, url} <- K8s.Discovery.url_for(conn, operation),
          req <- new_request(conn, url, operation, body, opts),
          {:ok, req} <- K8s.Middleware.run(req) do
       K8s.http_provider().request(req.method, req.url, req.body, req.headers, req.opts)

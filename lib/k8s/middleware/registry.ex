@@ -41,7 +41,7 @@ defmodule K8s.Middleware.Registry do
   end
 
   @doc "Returns middleware stack for a cluster and (request or response)"
-  @spec list(atom, K8s.Middleware.type_t()) :: K8s.Middleware.stack_t()
+  @spec list(atom, K8s.Middleware.type_t()) :: stack_t()
   def list(cluster, type) do
     registry = Agent.get(__MODULE__, & &1[cluster]) || %{}
     Map.get(registry, type, defaults(type))

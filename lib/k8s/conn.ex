@@ -11,6 +11,7 @@ defmodule K8s.Conn do
 
   alias __MODULE__
   alias K8s.Conn.{PKI, RequestOptions, Config}
+  alias K8s.Operation
 
   @providers [
     K8s.Conn.Auth.Certificate,
@@ -44,8 +45,11 @@ defmodule K8s.Conn do
   Connections are registered via Mix.Config or env variables.
 
   ## Examples
-    iex> K8s.Conn.list()
-    [%K8s.Conn{}]
+
+  ```elixir
+  K8s.Conn.list()
+  [%K8s.Conn{ca_cert: nil, auth: %K8s.Conn.Auth{}, cluster_name: :"docker-for-desktop-cluster", discovery_driver: K8s.Discovery.Driver.File, discovery_opts: [config: "test/support/discovery/example.json"], insecure_skip_tls_verify: true, url: "https://localhost:6443", user_name: "docker-for-desktop"}]
+  ```
   """
   def list() do
     Enum.reduce(Config.all(), [], fn {cluster_name, conf}, agg ->
@@ -58,8 +62,11 @@ defmodule K8s.Conn do
   Lookup a registered connection by name. See `K8s.Conn.Config`.
 
   ## Examples
-    iex> K8s.Conn.lookup(:test)
-    %K8s.Conn{}
+
+  ```elixir
+  K8s.Conn.lookup(:test)
+  {:ok, %K8s.Conn{ca_cert: nil, auth: %K8s.Conn.Auth{}, cluster_name: :"docker-for-desktop-cluster", discovery_driver: K8s.Discovery.Driver.File, discovery_opts: [config: "test/support/discovery/example.json"], insecure_skip_tls_verify: true, url: "https://localhost:6443", user_name: "docker-for-desktop"}}
+  ```
   """
   @spec lookup(atom()) :: {:ok, K8s.Conn.t()} | {:error, :connection_not_registered}
   def lookup(cluster_name) do
