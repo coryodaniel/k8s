@@ -1,7 +1,5 @@
 defmodule K8s do
-  @moduledoc """
-  Kubernetes API Client for Elixir
-  """
+  @moduledoc "Kubernetes API Client for Elixir"
 
   @doc false
   @spec http_provider() :: module()

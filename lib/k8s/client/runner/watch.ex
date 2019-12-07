@@ -16,19 +16,21 @@ defmodule K8s.Client.Runner.Watch do
   ## Examples
 
   ```elixir
+  conn = K8s.Conn.lookup(:test)
   operation = K8s.Client.list("v1", "Namespace")
-  {:ok, reference} = Watch.run(operation, :test, stream_to: self())
+  {:ok, reference} = Watch.run(operation, conn, stream_to: self())
   ```
 
   ```elixir
+  conn = K8s.Conn.lookup(:test)
   operation = K8s.Client.get("v1", "Namespace", [name: "test"])
-  {:ok, reference} = Watch.run(operation, :test, stream_to: self())
+  {:ok, reference} = Watch.run(operation, conn, stream_to: self())
   ```
   """
-  @spec run(Operation.t(), atom, keyword(atom)) :: Base.result_t()
-  def run(%Operation{method: :get} = operation, cluster_name, opts) do
-    case get_resource_version(operation, cluster_name) do
-      {:ok, rv} -> run(operation, cluster_name, rv, opts)
+  @spec run(Operation.t(), K8s.Conn.t(), keyword(atom)) :: Base.result_t()
+  def run(%Operation{method: :get} = operation, conn, opts) do
+    case get_resource_version(operation, conn) do
+      {:ok, rv} -> run(operation, conn, rv, opts)
       error -> error
     end
   end
@@ -42,38 +44,40 @@ defmodule K8s.Client.Runner.Watch do
   ## Examples
 
   ```elixir
+  conn = K8s.Conn.lookup(:test)
   operation = K8s.Client.list("v1", "Namespace")
   resource_version = 3003
-  {:ok, reference} = Watch.run(operation, :test, resource_version, stream_to: self())
+  {:ok, reference} = Watch.run(operation, conn, resource_version, stream_to: self())
   ```
 
   ```elixir
+  conn = K8s.Conn.lookup(:test)
   operation = K8s.Client.get("v1", "Namespace", [name: "test"])
   resource_version = 3003
-  {:ok, reference} = Watch.run(operation, :test, resource_version, stream_to: self())
+  {:ok, reference} = Watch.run(operation, conn, resource_version, stream_to: self())
   ```
   """
-  @spec run(Operation.t(), atom, binary, keyword(atom)) :: Base.result_t()
-  def run(%Operation{method: :get, verb: verb} = operation, cluster_name, rv, opts)
+  @spec run(Operation.t(), K8s.Conn.t(), binary, keyword(atom)) :: Base.result_t()
+  def run(%Operation{method: :get, verb: verb} = operation, conn, rv, opts)
       when verb in [:list, :list_all_namespaces] do
     opts_w_watch_params = add_watch_params_to_opts(opts, rv)
-    Base.run(operation, cluster_name, opts_w_watch_params)
+    Base.run(operation, conn, opts_w_watch_params)
   end
 
-  def run(%Operation{method: :get, verb: :get} = operation, cluster_name, rv, opts) do
+  def run(%Operation{method: :get, verb: :get} = operation, conn, rv, opts) do
     {list_op, field_selector_param} = get_to_list(operation)
 
     params = Map.merge(opts[:params] || %{}, field_selector_param)
     opts = Keyword.put(opts, :params, params)
-    run(list_op, cluster_name, rv, opts)
+    run(list_op, conn, rv, opts)
   end
 
   def run(op, _, _, _),
     do: {:error, "Only HTTP GET operations (list, get) are supported. #{inspect(op)}"}
 
-  @spec get_resource_version(Operation.t(), atom) :: {:ok, binary} | {:error, binary}
-  defp get_resource_version(%Operation{} = operation, cluster_name) do
-    case Base.run(operation, cluster_name) do
+  @spec get_resource_version(Operation.t(), K8s.Conn.t()) :: {:ok, binary} | {:error, binary}
+  defp get_resource_version(%Operation{} = operation, conn) do
+    case Base.run(operation, conn) do
       {:ok, payload} ->
         rv = parse_resource_version(payload)
         {:ok, rv}

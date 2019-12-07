@@ -1,10 +1,14 @@
 defmodule K8s.Conn do
   @moduledoc """
   Handles authentication and connection configuration details for a Kubernetes cluster.
+
+  `Conn`ections can be registered via Mix.Config or environment variables.
+
+  Connections can also be dynaically built during application runtime.
   """
 
   alias __MODULE__
-  alias K8s.Conn.{PKI, RequestOptions}
+  alias K8s.Conn.{PKI, RequestOptions, Config}
 
   @providers [
     K8s.Conn.Auth.Certificate,
@@ -18,16 +22,74 @@ defmodule K8s.Conn do
             url: "",
             insecure_skip_tls_verify: false,
             ca_cert: nil,
-            auth: nil
+            auth: nil,
+            discovery_driver: nil,
+            discovery_opts: nil
 
   @type t :: %__MODULE__{
-          cluster_name: String.t() | nil,
+          cluster_name: atom(),
           user_name: String.t() | nil,
           url: String.t(),
           insecure_skip_tls_verify: boolean(),
           ca_cert: String.t() | nil,
-          auth: auth_t
+          auth: auth_t,
+          discovery_driver: module(),
+          discovery_opts: Keyword.t()
         }
+
+  @doc """
+  List of all registered connections.
+  Connections are registered via Mix.Config or env variables.
+
+  ## Examples
+
+  ```elixir
+  K8s.Conn.list()
+  [%K8s.Conn{ca_cert: nil, auth: %K8s.Conn.Auth{}, cluster_name: :"docker-for-desktop-cluster", discovery_driver: K8s.Discovery.Driver.File, discovery_opts: [config: "test/support/discovery/example.json"], insecure_skip_tls_verify: true, url: "https://localhost:6443", user_name: "docker-for-desktop"}]
+  ```
+  """
+  @spec list() :: list(K8s.Conn.t())
+  def list() do
+    Enum.reduce(Config.all(), [], fn {cluster_name, conf}, agg ->
+      conn = config_to_conn(conf, cluster_name)
+      [conn | agg]
+    end)
+  end
+
+  @doc """
+  Lookup a registered connection by name. See `K8s.Conn.Config`.
+
+  ## Examples
+
+  ```elixir
+  K8s.Conn.lookup(:test)
+  {:ok, %K8s.Conn{ca_cert: nil, auth: %K8s.Conn.Auth{}, cluster_name: :"docker-for-desktop-cluster", discovery_driver: K8s.Discovery.Driver.File, discovery_opts: [config: "test/support/discovery/example.json"], insecure_skip_tls_verify: true, url: "https://localhost:6443", user_name: "docker-for-desktop"}}
+  ```
+  """
+  @spec lookup(atom()) :: {:ok, K8s.Conn.t()} | {:error, :connection_not_registered}
+  def lookup(cluster_name) do
+    config = Map.get(Config.all(), cluster_name)
+
+    case config do
+      nil -> {:error, :connection_not_registered}
+      config -> {:ok, config_to_conn(config, cluster_name)}
+    end
+  end
+
+  @spec config_to_conn(map, atom) :: K8s.Conn.t()
+  defp config_to_conn(config, cluster_name) do
+    case Map.get(config, :conn) do
+      nil ->
+        K8s.Conn.from_service_account(cluster_name)
+
+      %{use_sa: true} ->
+        K8s.Conn.from_service_account(cluster_name)
+
+      conn_path ->
+        opts = config[:conn_opts] || []
+        K8s.Conn.from_file(conn_path, opts)
+    end
+  end
 
   @doc """
   Reads configuration details from a kubernetes config file.
@@ -39,6 +101,8 @@ defmodule K8s.Conn do
   * `context` sets an alternate context
   * `cluster` set or override the cluster read from the context
   * `user` set or override the user read from the context
+  * `discovery_driver` module name to use for discovery
+  * `discovery_opts` options for discovery module
   """
   @spec from_file(binary, keyword) :: K8s.Conn.t()
   def from_file(config_file, opts \\ []) do
@@ -55,13 +119,18 @@ defmodule K8s.Conn do
     cluster_name = opts[:cluster] || context["cluster"]
     cluster = find_by_name(config["clusters"], cluster_name, "cluster")
 
+    discovery_driver = opts[:discovery_driver] || K8s.Discovery.default_driver()
+    discovery_opts = opts[:discovery_opts] || K8s.Discovery.default_opts()
+
     %Conn{
-      cluster_name: cluster_name,
+      cluster_name: String.to_atom(cluster_name),
       user_name: user_name,
       url: cluster["server"],
       ca_cert: PKI.cert_from_map(cluster, base_path),
       auth: get_auth(user, base_path),
-      insecure_skip_tls_verify: cluster["insecure-skip-tls-verify"]
+      insecure_skip_tls_verify: cluster["insecure-skip-tls-verify"],
+      discovery_driver: discovery_driver,
+      discovery_opts: discovery_opts
     }
   end
 
@@ -73,21 +142,24 @@ defmodule K8s.Conn do
   [kubernetes.io :: Accessing the API from a Pod](https://kubernetes.io/docs/tasks/access-application-cluster/access-cluster/#accessing-the-api-from-a-pod)
   """
 
-  @spec from_service_account() :: K8s.Conn.t()
-  def from_service_account(),
-    do: from_service_account("/var/run/secrets/kubernetes.io/serviceaccount")
+  @spec from_service_account(atom()) :: K8s.Conn.t()
+  def from_service_account(cluster_name),
+    do: from_service_account(cluster_name, "/var/run/secrets/kubernetes.io/serviceaccount")
 
-  @spec from_service_account(String.t()) :: K8s.Conn.t()
-  def from_service_account(root_sa_path) do
+  @spec from_service_account(atom, String.t()) :: K8s.Conn.t()
+  def from_service_account(cluster_name, root_sa_path) do
     host = System.get_env("KUBERNETES_SERVICE_HOST")
     port = System.get_env("KUBERNETES_SERVICE_PORT")
     cert_path = Path.join(root_sa_path, "ca.crt")
     token_path = Path.join(root_sa_path, "token")
 
     %Conn{
+      cluster_name: cluster_name,
       url: "https://#{host}:#{port}",
       ca_cert: PKI.cert_from_pem(cert_path),
-      auth: %K8s.Conn.Auth.Token{token: File.read!(token_path)}
+      auth: %K8s.Conn.Auth.Token{token: File.read!(token_path)},
+      discovery_driver: K8s.Discovery.default_driver(),
+      discovery_opts: K8s.Discovery.default_opts()
     }
   end
 

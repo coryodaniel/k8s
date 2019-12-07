@@ -1,4 +1,4 @@
-defmodule K8s.Config do
+defmodule K8s.Conn.Config do
   @moduledoc """
   Add runtime cluster configuration with environment variables.
 
@@ -24,40 +24,18 @@ defmodule K8s.Config do
   @env_var_sa_prefix "K8S_CLUSTER_CONF_SA_"
   @env_var_path_prefix "K8S_CLUSTER_CONF_PATH_"
   @env_var_context_prefix "K8S_CLUSTER_CONF_CONTEXT_"
-  @env_var_discovery_timeout_prefix "K8S_DISCOVERY_TIMEOUT_"
-
-  @default_discover_timeout_ms 10_000
 
   @doc """
   Returns runtime and compile time cluster configuration merged together.
   """
-  @spec clusters() :: map
-  def clusters() do
-    compile_time_clusters_config = Application.get_env(:k8s, :clusters, %{})
-    runtime_clusters_config(env(), compile_time_clusters_config)
+  @spec all() :: map()
+  def all() do
+    merge_configs(runtime_cluster_configs(), compiletime_cluster_configs())
   end
 
-  @doc """
-  Discovery HTTP call timeouts in ms for each API endpoint. API endpoints are discovered in parallel. This controls the timeout for any given HTTP request.
-
-  ## Examples
-    ```shell
-    export K8S_DISCOVERY_TIMEOUT_us_central=10000
-    ```
-  """
-  @spec discovery_http_timeout(atom | binary) :: pos_integer
-  def discovery_http_timeout(cluster_name) do
-    "#{@env_var_discovery_timeout_prefix}#{cluster_name}"
-    |> System.get_env()
-    |> parse_discovery_http_timeout
-  end
-
-  @spec parse_discovery_http_timeout(nil | binary | {pos_integer, any}) :: pos_integer
-  defp parse_discovery_http_timeout(nil), do: @default_discover_timeout_ms
-  defp parse_discovery_http_timeout({ms, _}), do: ms
-
-  defp parse_discovery_http_timeout(ms) when is_binary(ms) do
-    ms |> Integer.parse() |> parse_discovery_http_timeout
+  @spec compiletime_cluster_configs() :: map()
+  def compiletime_cluster_configs() do
+    Application.get_env(:k8s, :clusters, %{})
   end
 
   @doc """
@@ -65,29 +43,39 @@ defmodule K8s.Config do
   To be merged over `Application.get_env(:k8s, :clusters)`.
 
   ## Examples
+    Only specifying compiletime configs
+      iex> config = %{dev: %{conn: "runtime/path/to/dev.kubeconfig.yaml"}}
+      ...> K8s.Conn.Config.merge_configs(%{}, config)
+      %{dev: %{conn: "runtime/path/to/dev.kubeconfig.yaml"}}
+
+    Only specifying runtime configs
+      iex> env = %{"K8S_CLUSTER_CONF_PATH_dev" => "runtime/path/to/dev.kubeconfig.yaml"}
+      ...> K8s.Conn.Config.merge_configs(env, %{})
+      %{dev: %{conn: "runtime/path/to/dev.kubeconfig.yaml"}}
+
     Overriding compile time configs
 
       iex> env = %{"K8S_CLUSTER_CONF_PATH_dev" => "runtime/path/to/dev.kubeconfig.yaml"}
       ...> compile_config = %{dev: %{conn: "compiletime/path/to/dev.kubeconfig.yaml"}}
-      ...> K8s.Config.runtime_clusters_config(env, compile_config)
+      ...> K8s.Conn.Config.merge_configs(env, compile_config)
       %{dev: %{conn: "runtime/path/to/dev.kubeconfig.yaml"}}
 
     Merging compile time configs
 
       iex> env = %{"K8S_CLUSTER_CONF_CONTEXT_dev" => "runtime-context"}
       ...> compile_config = %{dev: %{conn: "compiletime/path/to/dev.kubeconfig.yaml"}}
-      ...> K8s.Config.runtime_clusters_config(env, compile_config)
+      ...> K8s.Conn.Config.merge_configs(env, compile_config)
       %{dev: %{conn: "compiletime/path/to/dev.kubeconfig.yaml", conn_opts: [context: "runtime-context"]}}
 
     Adding clusters at runtime
 
       iex> env = %{"K8S_CLUSTER_CONF_PATH_us_east" => "runtime/path/to/us_east.kubeconfig.yaml", "K8S_CLUSTER_CONF_CONTEXT_us_east" => "east-context"}
       ...> compile_config = %{us_west: %{conn: "compiletime/path/to/us_west.kubeconfig.yaml"}}
-      ...> K8s.Config.runtime_clusters_config(env, compile_config)
+      ...> K8s.Conn.Config.merge_configs(env, compile_config)
       %{us_east: %{conn: "runtime/path/to/us_east.kubeconfig.yaml", conn_opts: [context: "east-context"]}, us_west: %{conn: "compiletime/path/to/us_west.kubeconfig.yaml"}}
   """
-  @spec runtime_clusters_config(map, map) :: map
-  def runtime_clusters_config(env_vars, config) do
+  @spec merge_configs(map, map) :: map
+  def merge_configs(env_vars, config) do
     Enum.reduce(env_vars, config, fn {k, v}, acc ->
       cluster_name = k |> cluster_name() |> String.to_atom()
       acc_cluster_config = Map.get(acc, cluster_name, %{})
@@ -113,9 +101,9 @@ defmodule K8s.Config do
   defp cluster_name(@env_var_path_prefix <> cluster_name), do: cluster_name
   defp cluster_name(@env_var_sa_prefix <> cluster_name), do: cluster_name
 
-  @spec env() :: map
-  @doc "Subset of env vars applicable to k8s"
-  def env(), do: Map.take(System.get_env(), env_keys())
+  @spec runtime_cluster_configs() :: map
+  @doc "Parses ENV variables to runtime cluster configs"
+  def runtime_cluster_configs(), do: Map.take(System.get_env(), env_keys())
 
   @spec env_keys() :: list(binary)
   defp env_keys() do

@@ -1,7 +1,7 @@
 {
   "skip_files": [
     "test/support/",
-    "lib/k8s/sys/logger.ex"
+    "lib/k8s/sys/"
   ],
   "default_stop_words": [
     "defdelegate",
@@ -14,6 +14,6 @@
   ],
   "coverage_options": {
     "treat_no_relevant_lines_as_covered": true,
-    "minimum_coverage": 88
+    "minimum_coverage": 89
   }
 }

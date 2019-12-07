@@ -5,6 +5,7 @@ defmodule K8s.Client.Runner.Stream do
 
   alias K8s.Client.Runner.Base
   alias K8s.Operation
+  alias K8s.Conn
   alias K8s.Client.Runner.Stream.ListRequest
 
   @typedoc "List of items and pagination request"
@@ -16,13 +17,13 @@ defmodule K8s.Client.Runner.Stream do
   @doc """
   Validates operation type before calling `stream/3`. Only supports verbs: `list_all_namespaces` and `list`.
   """
-  @spec run(Operation.t(), atom, keyword()) :: {:ok, Enumerable.t()} | {:error, atom}
-  def run(operation, cluster, opts \\ [])
+  @spec run(Operation.t(), Conn.t(), keyword()) :: {:ok, Enumerable.t()} | {:error, atom}
+  def run(operation, conn, opts \\ [])
 
-  def run(%Operation{verb: :list_all_namespaces} = op, cluster, opts),
-    do: {:ok, stream(op, cluster, opts)}
+  def run(%Operation{verb: :list_all_namespaces} = op, conn, opts),
+    do: {:ok, stream(op, conn, opts)}
 
-  def run(%Operation{verb: :list} = op, cluster, opts), do: {:ok, stream(op, cluster, opts)}
+  def run(%Operation{verb: :list} = op, conn, opts), do: {:ok, stream(op, conn, opts)}
 
   def run(_, _, _), do: {:error, :unsupported_operation}
 
@@ -34,10 +35,10 @@ defmodule K8s.Client.Runner.Stream do
   Encountering an HTTP error mid-stream will halt the stream.
   """
   @spec stream(Operation.t(), atom, keyword | nil) :: Enumerable.t()
-  def stream(%Operation{} = op, cluster, opts \\ []) do
+  def stream(%Operation{} = op, conn, opts \\ []) do
     request = %ListRequest{
       operation: op,
-      cluster: cluster,
+      conn: conn,
       opts: opts
     }
 
@@ -82,8 +83,7 @@ defmodule K8s.Client.Runner.Stream do
     pagination_params = %{limit: request.limit, continue: request.continue}
     request_params = Map.merge(default_params || %{}, pagination_params)
     opts = Keyword.put(request.opts, :params, request_params)
-
-    response = Base.run(request.operation, request.cluster, opts)
+    response = Base.run(request.operation, request.conn, opts)
 
     case response do
       {:ok, response} ->

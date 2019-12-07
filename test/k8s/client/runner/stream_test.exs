@@ -51,22 +51,22 @@ defmodule K8s.Client.Runner.StreamTest do
 
   setup do
     DynamicHTTPProvider.register(self(), __MODULE__.HTTPMock)
+    {:ok, conn} = K8s.Conn.lookup(:test)
+    {:ok, %{conn: conn}}
   end
 
   describe "run/3" do
-    test "when the initial request has no results" do
+    test "when the initial request has no results", %{conn: conn} do
       operation = K8s.Client.list("v1", "Service", namespace: "stream-empty-test")
-      cluster = :test
-      assert {:ok, stream} = Stream.run(operation, cluster)
+      assert {:ok, stream} = Stream.run(operation, conn)
 
       services = Enum.into(stream, [])
       assert services == []
     end
 
-    test "puts HTTPProvider error tuples into the stream when HTTP errors are encountered" do
+    test "puts error tuples into the stream when HTTP errors are encountered", %{conn: conn} do
       operation = K8s.Client.list("v1", "Service", namespace: "stream-failure-test")
-      cluster = :test
-      assert {:ok, stream} = Stream.run(operation, cluster)
+      assert {:ok, stream} = Stream.run(operation, conn)
 
       services = Enum.into(stream, [])
 
@@ -80,10 +80,9 @@ defmodule K8s.Client.Runner.StreamTest do
              ]
     end
 
-    test "returns an enumerable stream of k8s resources" do
+    test "returns an enumerable stream of k8s resources", %{conn: conn} do
       operation = K8s.Client.list("v1", "Service", namespace: "stream-runner-test")
-      cluster = :test
-      assert {:ok, stream} = Stream.run(operation, cluster)
+      assert {:ok, stream} = Stream.run(operation, conn)
 
       services = Enum.into(stream, [])
 

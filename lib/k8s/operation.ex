@@ -1,6 +1,7 @@
 defmodule K8s.Operation do
   @moduledoc "Encapsulates Kubernetes REST API operations."
 
+  alias K8s.Operation
   @derive {Jason.Encoder, except: [:path_params]}
 
   @typedoc "`K8s.Operation` name. May be an atom, string, or tuple of `{resource, subresource}`."
@@ -115,7 +116,8 @@ defmodule K8s.Operation do
   @doc """
   Builds an `Operation` given an verb and a k8s resource info.
 
-  *Note:* The `name` here may be a `Kind` and not a REST resource name in the event that the operation was built using a map. Use `K8s.Cluster.Group.resource_name_for_kind/3` to get the correct REST resource name, given a `kind`.
+  *Note:* The `name` here may be a `Kind` and not a REST resource name in the event that the operation was built using a map.
+  Use `K8s.Discovery.ResourceFinder.resource_name_for_kind/3` to get the correct REST resource name, given a `kind`.
 
   ## Examples
     Building a GET deployment operation:
@@ -161,7 +163,7 @@ defmodule K8s.Operation do
   end
 
   @doc "Converts a `K8s.Operation` into a URL path."
-  @spec to_path(K8s.Operation.t()) ::
+  @spec to_path(Operation.t()) ::
           {:ok, String.t()} | {:error, :missing_required_param, list(atom)}
-  def to_path(%K8s.Operation{} = operation), do: K8s.Operation.Path.build(operation)
+  def to_path(%Operation{} = operation), do: Operation.Path.build(operation)
 end

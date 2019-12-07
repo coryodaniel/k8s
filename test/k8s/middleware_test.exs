@@ -14,8 +14,10 @@ defmodule K8s.MiddlewareTest do
 
   describe "run/2" do
     test "Applies middleware to a request" do
+      conn = K8s.Conn.lookup(:test)
+
       req = %K8s.Middleware.Request{
-        cluster: :foo,
+        conn: conn,
         url: "http://example.com",
         method: :post,
         body: %{"metadata" => %{"name" => "nginx"}}

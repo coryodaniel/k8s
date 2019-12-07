@@ -1,28 +1,16 @@
 # Usage
 
-## Registering Clusters
+__Note:__ Docs are currently for 0.4.
 
-Clusters can be registered via `config.exs` or directly with `K8s.Cluster.Registry.add/2`.
+## Registering Connections
 
-Clusters are referenced by name (`:default` below) when using a `K8s.Client`. Multiple clusters can be registered via config or at runtime.
+`K8s.Conn`s can be registered via `config.exs` or environment variables. `K8s.Conn`s may also be built programmaticaly.
 
-Kubernetes API resources are auto-discovered at boot time. This library is currently tested against k8s OpenAPI specs: 1.1x and master.
+Connections are referenced by cluster name (`:default` below) when using a `K8s.Client`. Multiple clusters can be registered via config or at runtime.
 
-### Registering Clusters at Run Time
+Kubernetes API resources are discovered pre-request and resource definitions are cached (configurable). This library is currently tested against k8s OpenAPI specs: 1.1x and master.
 
-The below will register a cluster named `:prod` using `~/.kube.config` to connect. There are many options for loading a config, this will load the user and cluster from the `current-context`.
-
-```elixir
-conn = K8s.Conn.from_file("~/.kube/config")
-K8s.Cluster.Registry.add(:prod, conn)
-```
-
-Registering a cluster using the k8s' ServiceAccount of the pod:
-
-```elixir
-conn = K8s.Conn.from_service_account()
-K8s.Cluster.Registry.add(:prod, conn)
-```
+See `K8s.Conn.Config`.
 
 ### Registering Clusters at Compile Time (config.exs)
 
@@ -105,6 +93,10 @@ export K8S_CLUSTER_CONF_CONTEXT_us_east="east"
 export K8S_CLUSTER_CONF_PATH_us_west="west.yaml"
 export K8S_CLUSTER_CONF_CONTEXT_us_west="west"
 ```
+
+### Building `K8s.Conn`s programmatically
+
+*TODO*
 
 ## Running an operation
 

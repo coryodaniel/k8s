@@ -8,7 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 ### Added
-- Request middleware support
+- #42 Request middleware support
+- #43 Just in time discovery: K8s.Discovery
+- #44 Support for ad-hoc connections. K8s.Conn based functions. Build your own Conn at runtime or config mix/env vars. No more Cluster registry.
+
+### Removed
+- Boot time discovery K8s.Cluster.Discovery
+- K8s.Cluster.base_url/1
+- Remove K8s.Cluster*
 
 ## [0.4.0] - 2019-08-29
 

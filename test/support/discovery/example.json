@@ -1,0 +1,100 @@
+{
+  "v1": [
+    {
+      "kind": "Namespace",
+      "name": "namespaces",
+      "namespaced": false,
+      "verbs": [
+        "create",
+        "delete",
+        "get",
+        "list",
+        "patch",
+        "update",
+        "watch"
+      ]
+    },
+    {
+      "kind": "Service",
+      "name": "services",
+      "namespaced": true,
+      "verbs": [
+        "create",
+        "delete",
+        "deletecollection",
+        "get",
+        "list",
+        "patch",
+        "update",
+        "watch"
+      ]
+    },
+    {
+      "kind": "Pod",
+      "name": "pods",
+      "namespaced": true,
+      "verbs": [
+        "create",
+        "delete",
+        "deletecollection",
+        "get",
+        "list",
+        "patch",
+        "update",
+        "watch"
+      ]
+    },
+    {
+      "group": "policy",
+      "kind": "Eviction",
+      "name": "pods/eviction",
+      "namespaced": true,
+      "verbs": [
+        "create"
+      ],
+      "version": "v1beta1"
+    }
+  ],
+  "apps/v1": [
+    {
+      "kind": "DaemonSet",
+      "name": "daemonsets",
+      "namespaced": true,
+      "verbs": [
+        "create",
+        "delete",
+        "deletecollection",
+        "get",
+        "list",
+        "patch",
+        "update",
+        "watch"
+      ]
+    },
+    {
+      "kind": "Deployment",
+      "name": "deployments",
+      "namespaced": true,
+      "verbs": [
+        "create",
+        "delete",
+        "deletecollection",
+        "get",
+        "list",
+        "patch",
+        "update",
+        "watch"
+      ]
+    },
+    {
+      "kind": "Deployment",
+      "name": "deployments/status",
+      "namespaced": true,
+      "verbs": [
+        "get",
+        "patch",
+        "update"
+      ]
+    }
+  ]
+}

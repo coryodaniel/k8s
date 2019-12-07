@@ -1,4 +1,4 @@
-defmodule K8s.Cluster.Group.ResourceNaming do
+defmodule K8s.Discovery.ResourceNaming do
   @moduledoc false
 
   @doc """
@@ -6,39 +6,39 @@ defmodule K8s.Cluster.Group.ResourceNaming do
 
   ## Examples
       Supports atom inputs
-      iex> K8s.Cluster.Group.ResourceNaming.matches?(%{"kind" => "Deployment", "name" => "deployments"}, :deployment)
+      iex> K8s.Discovery.ResourceNaming.matches?(%{"kind" => "Deployment", "name" => "deployments"}, :deployment)
       true
 
       Supports singular form match on `"kind"`
-      iex> K8s.Cluster.Group.ResourceNaming.matches?(%{"kind" => "Deployment", "name" => "deployments"}, "Deployment")
+      iex> K8s.Discovery.ResourceNaming.matches?(%{"kind" => "Deployment", "name" => "deployments"}, "Deployment")
       true
 
       Supports case insensitive match on `"name"`
-      iex> K8s.Cluster.Group.ResourceNaming.matches?(%{"kind" => "Deployment", "name" => "deployments"}, "Deployments")
+      iex> K8s.Discovery.ResourceNaming.matches?(%{"kind" => "Deployment", "name" => "deployments"}, "Deployments")
       true
-      
+
       Supports matching tuples of `{resource, subresource}` kind
-      iex> K8s.Cluster.Group.ResourceNaming.matches?(%{"kind" => "Eviction", "name" => "pods/eviction"}, {"Pod", "Eviction"})
+      iex> K8s.Discovery.ResourceNaming.matches?(%{"kind" => "Eviction", "name" => "pods/eviction"}, {"Pod", "Eviction"})
       true
 
       Supports matching subresources
-      iex> K8s.Cluster.Group.ResourceNaming.matches?(%{"kind" => "Deployment", "name" => "deployments/status"}, "deployments/status")
+      iex> K8s.Discovery.ResourceNaming.matches?(%{"kind" => "Deployment", "name" => "deployments/status"}, "deployments/status")
       true
 
       Supports matching subresources
-      iex> K8s.Cluster.Group.ResourceNaming.matches?(%{"kind" => "Scale", "name" => "deployments/scale"}, "deployments/scale")
+      iex> K8s.Discovery.ResourceNaming.matches?(%{"kind" => "Scale", "name" => "deployments/scale"}, "deployments/scale")
       true
 
       Does not select subresources when `"kind"` matches
-      iex> K8s.Cluster.Group.ResourceNaming.matches?(%{"kind" => "Deployment", "name" => "deployments/status"}, :deployment)
+      iex> K8s.Discovery.ResourceNaming.matches?(%{"kind" => "Deployment", "name" => "deployments/status"}, :deployment)
       false
 
       Does not select subresources when `"kind"` matches
-      iex> K8s.Cluster.Group.ResourceNaming.matches?(%{"kind" => "Deployment", "name" => "deployments/status"}, "Deployment")
+      iex> K8s.Discovery.ResourceNaming.matches?(%{"kind" => "Deployment", "name" => "deployments/status"}, "Deployment")
       false
 
       Does not select subresources when `"kind"` matches
-      iex> K8s.Cluster.Group.ResourceNaming.matches?(%{"kind" => "Deployment", "name" => "deployments/status"}, "Deployments")
+      iex> K8s.Discovery.ResourceNaming.matches?(%{"kind" => "Deployment", "name" => "deployments/status"}, "Deployments")
       false
 
   """

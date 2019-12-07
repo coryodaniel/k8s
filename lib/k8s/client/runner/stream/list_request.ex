@@ -1,5 +1,5 @@
 defmodule K8s.Client.Runner.Stream.ListRequest do
-  @moduledoc "`:list` `K8s.Operation` encapsulated with pagination and cluster details"
+  @moduledoc "`:list` `K8s.Operation` encapsulated with pagination and `K8s.Conn`"
   @limit 10
 
   @typedoc "opts for `Base.run/3`"
@@ -11,12 +11,12 @@ defmodule K8s.Client.Runner.Stream.ListRequest do
   @typedoc "List operation as a Stream data type"
   @type t :: %__MODULE__{
           operation: K8s.Operation.t(),
-          cluster: atom,
+          conn: K8s.Conn.t(),
           continue: continue_t,
           limit: pos_integer,
           opts: opts_t
         }
-  defstruct operation: nil, cluster: nil, continue: nil, opts: [], limit: @limit
+  defstruct operation: nil, conn: nil, continue: nil, opts: [], limit: @limit
 
   @doc """
   Creates a `ListRequest` struct for the next HTTP request from the previous HTTP response
