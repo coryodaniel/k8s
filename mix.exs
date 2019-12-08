@@ -18,7 +18,15 @@ defmodule K8s.MixProject do
         "coveralls.travis": :test
       ],
       docs: [
-        extras: ["README.md", "docs/usage.md"],
+        extras: [
+          "README.md",
+          "guides/usage.md",
+          "guides/connections.md",
+          "guides/operations.md",
+          "guides/middleware.md",
+          "guides/auth-providers.md",
+          "guides/testing.md"
+        ],
         main: "readme"
       ],
       package: package(),

@@ -1,6 +1,53 @@
 # Usage
 
-__Note:__ Docs are currently for 0.4.
+* [Connections (`K8s.Conn`)](./guides/connections.md)
+* [Operations](./guides/operations.md)
+* [Custom Middleware](./guides/middleware.md)
+* [Custom Auth Providers](./guides/auth-providers.md)
+* [Testing](./guides/testing.md)
+
+
+## Configuration
+
+config :k8s,
+  auth_providers: [],
+  discovery_driver: K8s.Discovery.Driver.File,
+  discovery_opts: [config: "test/support/discovery/example.json"],
+  clusters: %{
+    dev: %{
+      conn: "~/.kube/config",
+      conn_opts: [context: "docker-for-desktop"]
+    },
+    test: %{
+      conn: "test/support/kube-config.yaml",
+      conn_opts: [
+        discovery_driver: K8s.Discovery.Driver.File,
+        discovery_opts: [config: "test/support/discovery/example.json"]
+      ]
+    }
+  }
+
+
+config :k8s,
+  discovery: %{
+    driver: K8s.Discovery.Driver.File,
+    opts: %{config: "test/support/discovery/example.json"}
+  },
+  conns: %{
+    dev: %{
+      config_path: "~/.kube/config",
+      #service_account_path: "/var/run/..."
+      #use_service_account: true,
+      opts: %{
+        context: "docker-for-desktop",
+        discovery: %{
+          driver: K8s.Discovery.Driver.HTTP,
+          opts: %{cache: false}
+        }
+      }
+    }
+  }
+
 
 ## Registering Connections
 
