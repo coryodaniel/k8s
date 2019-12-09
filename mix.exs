@@ -10,32 +10,11 @@ defmodule K8s.MixProject do
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       test_coverage: [tool: ExCoveralls],
-      preferred_cli_env: [
-        coveralls: :test,
-        "coveralls.detail": :test,
-        "coveralls.post": :test,
-        "coveralls.html": :test,
-        "coveralls.travis": :test
-      ],
-      docs: [
-        extras: [
-          "README.md",
-          "guides/usage.md",
-          "guides/connections.md",
-          "guides/operations.md",
-          "guides/middleware.md",
-          "guides/auth-providers.md",
-          "guides/testing.md"
-        ],
-        main: "readme"
-      ],
+      preferred_cli_env: cli_env(),
+      docs: docs(),
       package: package(),
       elixirc_paths: elixirc_paths(Mix.env()),
-      dialyzer: [
-        plt_add_apps: [:mix, :eex],
-        ignore_warnings: ".dialyzer_ignore.exs",
-        plt_file: {:no_warn, "priv/plts/k8s.plt"}
-      ]
+      dialyzer: dialyzer()
     ]
   end
 
@@ -77,6 +56,40 @@ defmodule K8s.MixProject do
       links: %{
         "GitHub" => "https://github.com/coryodaniel/k8s"
       }
+    ]
+  end
+
+  defp docs do
+    [
+      extras: [
+        "README.md",
+        "guides/usage.md",
+        "guides/connections.md",
+        "guides/operations.md",
+        "guides/middleware.md",
+        "guides/authentication.md",
+        "guides/testing.md",
+        "guides/discovery.md"
+      ],
+      main: "readme"
+    ] 
+  end  
+    
+  defp cli_env do
+    [
+      coveralls: :test,
+      "coveralls.detail": :test,
+      "coveralls.post": :test,
+      "coveralls.html": :test,
+      "coveralls.travis": :test
+    ]
+  end
+
+  defp dialyzer do
+    [
+      plt_add_apps: [:mix, :eex],
+      ignore_warnings: ".dialyzer_ignore.exs",
+      plt_file: {:no_warn, "priv/plts/k8s.plt"}
     ]
   end
 end
