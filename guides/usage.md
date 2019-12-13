@@ -5,11 +5,6 @@
 * [Discovery (`K8s.Discovery`)](./discovery.md)
 * [Middleware (`K8s.Middleware`)](./middleware.md)
 * [Authentication (`K8s.Conn.Auth`)](./authentication.md)
-* [Local Development and Testing](./testing.md)
-  
-TODO:
-* module docs
-* a few readme examples
 
 Kubernetes API resources are discovered pre-request and resource definitions are cached (configurable). This library is currently tested against k8s OpenAPI specs: 1.1x and master.
 
