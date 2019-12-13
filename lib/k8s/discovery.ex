@@ -2,6 +2,18 @@ defmodule K8s.Discovery do
   @moduledoc "Kubernetes API Discovery"
   alias K8s.{Conn, Operation}
 
+  @behaviour K8s.Discovery.Driver
+
+  @impl true
+  def resources(api_version, %K8s.Conn{discovery_driver: driver} = conn, opts \\ []) do
+    driver.resources(api_version, conn, opts)
+  end
+
+  @impl true
+  def versions(%K8s.Conn{discovery_driver: driver} = conn, opts \\ []) do
+    driver.versions(conn, opts)
+  end  
+
   @doc """
   Discovery the URL for a `K8s.Conn` and `K8s.Operation`
 

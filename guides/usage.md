@@ -1,166 +1,17 @@
 # Usage
 
 * [Connections (`K8s.Conn`)](./connections.md)
-<!-- * [Operations](./operations.md)
-* [Custom Middleware](./middleware.md)
-* [Custom Auth Providers](./authentication.md)
-* [Testing](./testing.md) -->
+* [Operations (`K8s.Operation`)](./operations.md)
+* [Discovery (`K8s.Discovery`)](./discovery.md)
+* [Middleware (`K8s.Middleware`)](./middleware.md)
+* [Authentication (`K8s.Conn.Auth`)](./authentication.md)
+* [Local Development and Testing](./testing.md)
+  
+TODO:
+* module docs
+* a few readme examples
 
 Kubernetes API resources are discovered pre-request and resource definitions are cached (configurable). This library is currently tested against k8s OpenAPI specs: 1.1x and master.
-
-
-## Running an operation
-
-Many more client examples exist in the `K8s.Client` docs.
-
-### Creating a Deployment from a Map
-
-```elixir
-resource = %{
-  "apiVersion" => "apps/v1",
-  "kind" => "Deployment",
-  "metadata" => %{
-    "labels" => %{"app" => "nginx"},
-    "name" => "nginx-deployment",
-    "namespace" => "default"
-  },
-  "spec" => %{
-    "replicas" => 3,
-    "selector" => %{"matchLabels" => %{"app" => "nginx"}},
-    "template" => %{
-      "metadata" => %{"labels" => %{"app" => "nginx"}},
-      "spec" => %{
-        "containers" => [
-          %{
-            "image" => "nginx:1.7.9",
-            "name" => "nginx",
-            "ports" => [%{"containerPort" => 80}]
-          }
-        ]
-      }
-    }
-  }
-}
-
-operation = K8s.Client.create(resource)
-{:ok, response} = K8s.Client.run(operation, :dev)
-```
-
-### Creating a Deployment from a YAML file
-
-Given the YAML file `priv/deployment.yaml`:
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: <%= name %>-deployment
-  namespace: <%= namespace %>
-  labels:
-    app: <%= name %>
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: <%= name %>
-  template:
-    metadata:
-      labels:
-        app: <%= name %>
-    spec:
-      containers:
-      - name: <%= name %>
-        image: <%= image %>
-        ports:
-        - containerPort: 80
-```
-
-```elixir
-opts = [namespace: "default", name: "nginx", image: "nginx:nginx:1.7.9"]
-resource = K8s.Resource.from_file!("priv/deployment.yaml", opts)
-
-operation = K8s.Client.create(resource)
-{:ok, deployment} = K8s.Client.run(operation, :dev)
-```
-
-### Listing Deployments
-
-In a given namespace:
-
-```elixir
-operation = K8s.Client.list("apps/v1", "Deployment", namespace: "prod")
-{:ok, deployments} = K8s.Client.run(operation, :dev)
-```
-
-Across all namespaces:
-
-```elixir
-operation = K8s.Client.list("apps/v1", "Deployment", namespace: :all)
-{:ok, deployments} = K8s.Client.run(operation, :dev)
-```
-
-*Note:* `K8s.Client.list` will return a `map`. The list of resources will be under `"items"`.
-
-### Using `labelSelector` with list operations
-
-```elixir
-K8s.Client.list("apps/v1", :deployments)
-|> K8s.Selector.label({"app", "nginx"})
-|> K8s.Selector.label_in({"environment", ["qa", "prod"]})
-|> K8s.Client.run(:default)
-```
-
-### Getting a Deployment
-
-```elixir
-operation = K8s.Client.get("apps/v1", :deployment, [namespace: "default", name: "nginx-deployment"])
-{:ok, deployment} = K8s.Client.run(operation, :dev)
-```
-
-## Watch Operations
-
-```elixir
-operation = K8s.Client.list("apps/v1", :deployment, namespace: :all)
-{:ok, reference} = K8s.Client.watch(operation, :dev, stream_to: self())
-```
-
-Kubernetes Watch API added, modified, and deleted events will be streamed as they occur.
-
-## Wait on a Resource
-
-This will wait 60 seconds for the field `status.succeeded` to equal `1`. `:find` and `:eval` also accept functions to apply to check success.
-
-```elixir
-operation = K8s.Client.get("batch/v1", :job, namespace: "default", name: "database-migrator")
-wait_opts = [find: ["status", "succeeded"], eval: 1, timeout: 60]
-{:ok, job} = K8s.Client.wait(op, cluster_name, wait_opts)
-```
-
-## Batch Operations
-
-Fetching two pods at once.
-
-```elixir
-operation1 = K8s.Client.get("v1", "Pod", namespace: "default", name: "pod-1")
-operation2 = K8s.Client.get("v1", "Pod", namespace: "default", name: "pod-2")
-
-# results will be a list of :ok and :error tuples
-results = K8s.Client.async([operation1, operation2], :dev)
-```
-
-*Note*: all operations are fired async and their results are returned. Processing does not halt if an error occurs for one operation.
-
-## List operations as a Elixir Streams
-
-```elixir
-operation = K8s.Client.list("v1", "Pod", namespace: :all)
-
-operation
-|> K8s.Client.stream()
-|> Stream.filter(&my_filter_function?/1)
-|> Stream.map(&my_map_function?/1)
-|> Enum.into([])
-```
 
 ## Custom Resource Definitions
 

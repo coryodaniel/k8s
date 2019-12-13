@@ -20,7 +20,7 @@ defmodule K8s.Discovery.Driver.HTTP do
   end
 
   @impl true
-  def versions(conn, _opts \\ []) do
+  def versions(%K8s.Conn{} = conn, _opts \\ []) do
     with {:ok, api_versions} <- api(conn), {:ok, apis_versions} <- apis(conn) do
       versions = Enum.concat(api_versions, apis_versions)
       {:ok, versions}
@@ -44,6 +44,7 @@ defmodule K8s.Discovery.Driver.HTTP do
     end
   end
 
+  @spec groups_to_versions(list(map)) :: list(String.t())
   defp groups_to_versions(groups) do
     Enum.reduce(groups, [], fn group, acc ->
       group["versions"]
