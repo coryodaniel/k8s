@@ -1,12 +1,13 @@
 # K8s
 
-[K8s](https://hexdocs.pm/k8s/readme.html) - Kubernetes API Client for Elixir
+[K8s](https://hexdocs.pm/k8s/usage.html) - Kubernetes API Client for Elixir
 
 [![Build Status](https://travis-ci.org/coryodaniel/k8s.svg?branch=master)](https://travis-ci.org/coryodaniel/k8s)
 [![Coverage Status](https://coveralls.io/repos/github/coryodaniel/k8s/badge.svg?branch=master)](https://coveralls.io/github/coryodaniel/k8s?branch=master)
 [![Hex.pm](http://img.shields.io/hexpm/v/k8s.svg?style=flat)](https://hex.pm/packages/k8s)
 [![Documentation](https://img.shields.io/badge/documentation-on%20hexdocs-green.svg)](https://hexdocs.pm/k8s/)
 ![Hex.pm](https://img.shields.io/hexpm/l/k8s.svg?style=flat)
+
 
 ## Features
 
