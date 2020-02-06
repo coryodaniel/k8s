@@ -8,6 +8,7 @@ defmodule K8s.Client.Runner.Base do
           | {:error, K8s.Middleware.Error.t()}
           | {:error, :connection_not_registered}
           | {:error, :missing_required_param}
+          | {:error, atom()}
           | {:error, binary()}
 
   @typedoc "Acceptable HTTP body types"
