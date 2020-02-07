@@ -102,7 +102,7 @@ defmodule K8s.Client.Runner.Watch do
   defp get_to_list(get_op) do
     list_op = %{get_op | verb: :list, path_params: []}
     name = get_op.path_params[:name]
-    params = %{"fieldSelector" => "metadata.name%3D#{name}"}
+    params = %{"fieldSelector" => "metadata.name=#{name}"}
     {list_op, params}
   end
 end
