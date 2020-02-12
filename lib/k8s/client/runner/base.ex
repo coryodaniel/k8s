@@ -27,7 +27,7 @@ defmodule K8s.Client.Runner.Base do
   Running a list pods operation:
 
   ```elixir
-  conn = K8s.Conn.lookup(:test)
+  {:ok, conn} = K8s.Conn.lookup(:test)
   operation = K8s.Client.list("v1", "Pod", namespace: :all)
   {:ok, %{"items" => pods}} = K8s.Client.run(operation, conn)
   ```
@@ -69,7 +69,7 @@ defmodule K8s.Client.Runner.Base do
   }
 
   operation = K8s.Client.create(deployment)
-  conn = K8s.Conn.lookup(:tes)
+  {:ok, conn} = K8s.Conn.lookup(:test)
 
   # opts is passed to HTTPoison as opts.
   opts = [params: %{"dryRun" => "all"}]
