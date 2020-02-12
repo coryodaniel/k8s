@@ -16,13 +16,13 @@ defmodule K8s.Client.Runner.Watch do
   ## Examples
 
   ```elixir
-  conn = K8s.Conn.lookup(:test)
+  {:ok, conn} = K8s.Conn.lookup(:test)
   operation = K8s.Client.list("v1", "Namespace")
   {:ok, reference} = Watch.run(operation, conn, stream_to: self())
   ```
 
   ```elixir
-  conn = K8s.Conn.lookup(:test)
+  {:ok, conn} = K8s.Conn.lookup(:test)
   operation = K8s.Client.get("v1", "Namespace", [name: "test"])
   {:ok, reference} = Watch.run(operation, conn, stream_to: self())
   ```
@@ -44,14 +44,14 @@ defmodule K8s.Client.Runner.Watch do
   ## Examples
 
   ```elixir
-  conn = K8s.Conn.lookup(:test)
+  {:ok, conn} = K8s.Conn.lookup(:test)
   operation = K8s.Client.list("v1", "Namespace")
   resource_version = 3003
   {:ok, reference} = Watch.run(operation, conn, resource_version, stream_to: self())
   ```
 
   ```elixir
-  conn = K8s.Conn.lookup(:test)
+  {:ok, conn} = K8s.Conn.lookup(:test)
   operation = K8s.Client.get("v1", "Namespace", [name: "test"])
   resource_version = 3003
   {:ok, reference} = Watch.run(operation, conn, resource_version, stream_to: self())
