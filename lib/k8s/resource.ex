@@ -1,6 +1,6 @@
 defmodule K8s.Resource do
   @moduledoc """
-  Manifest attribute helpers
+  Kubernetes manifest attribute helpers
   """
 
   defdelegate kind(resource), to: K8s.Resource.FieldAccessors
@@ -14,7 +14,6 @@ defmodule K8s.Resource do
   defdelegate annotation(resource, name), to: K8s.Resource.FieldAccessors
   defdelegate has_label?(resource, name), to: K8s.Resource.FieldAccessors
   defdelegate has_annotation?(resource, name), to: K8s.Resource.FieldAccessors
-
   defdelegate cpu(value), to: K8s.Resource.Utilization
   defdelegate memory(value), to: K8s.Resource.Utilization
 

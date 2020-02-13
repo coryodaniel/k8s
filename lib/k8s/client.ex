@@ -1,7 +1,7 @@
 defmodule K8s.Client do
   @moduledoc """
-  An experimental k8s client.
-
+  Kubernetes API Client.
+  
   Functions return `K8s.Operation`s that represent kubernetes operations.
 
   To run operations pass them to: `run/2`, `run/3`, or `run/4`.
