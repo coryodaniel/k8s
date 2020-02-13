@@ -44,3 +44,5 @@ This would result in authentication attemps in the following order:
 3. K8s.Conn.Auth.Certificate
 4. K8s.Conn.Auth.Token
 5. K8s.Conn.Auth.AuthProvider
+
+For protocol and behavior implementation examples check out `Certificate`, `Token`, or `AuthProvider` [here](../lib/k8s/conn/auth/).

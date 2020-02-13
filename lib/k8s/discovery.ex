@@ -12,7 +12,7 @@ defmodule K8s.Discovery do
   @impl true
   def versions(%K8s.Conn{discovery_driver: driver} = conn, opts \\ []) do
     driver.versions(conn, opts)
-  end  
+  end
 
   @doc """
   Discovery the URL for a `K8s.Conn` and `K8s.Operation`

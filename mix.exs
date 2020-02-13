@@ -72,9 +72,9 @@ defmodule K8s.MixProject do
         "guides/discovery.md"
       ],
       main: "readme"
-    ] 
-  end  
-    
+    ]
+  end
+
   defp cli_env do
     [
       coveralls: :test,
