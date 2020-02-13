@@ -30,6 +30,9 @@ jobs:
   coverage:
     runs-on: ubuntu-latest
     name: Coverage
+    env:
+      COVERALLS_REPO_TOKEN: "${{ secrets.COVERALLS_REPO_TOKEN }}"
+      COVERALLS_GIT_BRANCH: "${{ github.ref }}"
     steps:
       - uses: actions/checkout@v1.0.0
       - uses: actions/setup-elixir@v1.0.0
