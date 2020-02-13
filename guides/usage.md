@@ -6,7 +6,7 @@
 * [Middleware (`K8s.Middleware`)](./middleware.html)
 * [Authentication (`K8s.Conn.Auth`)](./authentication.html)
 * [Testing](./testing.html)
-* [Advanced](./advanced.html) - CRDs, Multiple Clusters, and Subresource Requests
+* [Advanced Topics](./advanced.html) - CRDs, Multiple Clusters, and Subresource Requests
 
 ## tl;dr Examples
 
