@@ -1,15 +1,13 @@
-# Travis is just here for the badge.
+# Travis is here for the badge and coverage
 language: elixir
 sudo: false
 cache:
   directories:
     - priv/plts
 elixir:
-  - 1.8
-  - 1.7
+  - 1.9
 otp_release:
-  - 20.3
-  - 18.2.1
+  - 22.3
 before_script:
   - mix deps.get
 script: make test/all
@@ -18,3 +16,7 @@ env:
 notifications:
   recipients:
     - travis@coryodaniel.com
+jobs:
+  include:
+    - stage: coverage
+      script: mix coveralls.travis
