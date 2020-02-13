@@ -1,4 +1,3 @@
-# Travis is here for the badge and coverage
 language: elixir
 sudo: false
 cache:
@@ -7,7 +6,7 @@ cache:
 elixir:
   - 1.9
 otp_release:
-  - 22.3
+  - 22.2
 before_script:
   - mix deps.get
 script: make test/all
