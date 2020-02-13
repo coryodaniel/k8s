@@ -5,6 +5,7 @@
 * [Discovery (`K8s.Discovery`)](./discovery.html)
 * [Middleware (`K8s.Middleware`)](./middleware.html)
 * [Authentication (`K8s.Conn.Auth`)](./authentication.html)
+* [Testing](./testing.html)
 * [Advanced](./advanced.html) - CRDs, Multiple Clusters, and Subresource Requests
 
 ## tl;dr Examples

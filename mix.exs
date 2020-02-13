@@ -69,7 +69,8 @@ defmodule K8s.MixProject do
         "guides/middleware.md",
         "guides/authentication.md",
         "guides/testing.md",
-        "guides/discovery.md"
+        "guides/discovery.md",
+        "guides/advanced.md",
       ],
       main: "readme"
     ]
