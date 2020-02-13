@@ -18,7 +18,7 @@ jobs:
       - run: make test/all
   dialyzer:
     runs-on: ubuntu-latest
-    name: Coverage and Dialyzer
+    name: Dialyzer
     steps:
       - uses: actions/checkout@v1.0.0
       - uses: actions/setup-elixir@v1.0.0
@@ -29,7 +29,7 @@ jobs:
       - run: mix dialyzer
   coverage:
     runs-on: ubuntu-latest
-    name: Coverage and Dialyzer
+    name: Coverage
     steps:
       - uses: actions/checkout@v1.0.0
       - uses: actions/setup-elixir@v1.0.0
