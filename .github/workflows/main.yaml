@@ -27,14 +27,14 @@ jobs:
           elixir-version: 1.9.x
       - run: mix deps.get
       - run: mix dialyzer
-  # coverage:
-  #   runs-on: ubuntu-latest
-  #   name: Coverage and Dialyzer
-  #   steps:
-  #     - uses: actions/checkout@v1.0.0
-  #     - uses: actions/setup-elixir@v1.0.0
-  #       with:
-  #         otp-version: 22.x
-  #         elixir-version: 1.9.x
-  #     - run: mix deps.get
-  #     - run: mix coveralls.travis
+  coverage:
+    runs-on: ubuntu-latest
+    name: Coverage and Dialyzer
+    steps:
+      - uses: actions/checkout@v1.0.0
+      - uses: actions/setup-elixir@v1.0.0
+        with:
+          otp-version: 22.x
+          elixir-version: 1.9.x
+      - run: mix deps.get
+      - run: mix coveralls.travis

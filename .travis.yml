@@ -1,3 +1,4 @@
+# Travis is just here for the badge.
 language: elixir
 sudo: false
 cache:
@@ -17,9 +18,3 @@ env:
 notifications:
   recipients:
     - travis@coryodaniel.com
-jobs:
-  include:
-    - stage: dialyzer
-      script: mix dialyzer
-    - stage: coverage
-      script: mix coveralls.travis
