@@ -1,6 +1,6 @@
 defmodule K8s.Resource do
   @moduledoc """
-  Manifest attribute helpers
+  Kubernetes manifest attribute helpers
   """
 
   defdelegate kind(resource), to: K8s.Resource.FieldAccessors
@@ -14,7 +14,6 @@ defmodule K8s.Resource do
   defdelegate annotation(resource, name), to: K8s.Resource.FieldAccessors
   defdelegate has_label?(resource, name), to: K8s.Resource.FieldAccessors
   defdelegate has_annotation?(resource, name), to: K8s.Resource.FieldAccessors
-
   defdelegate cpu(value), to: K8s.Resource.Utilization
   defdelegate memory(value), to: K8s.Resource.Utilization
 
@@ -106,7 +105,48 @@ defmodule K8s.Resource do
   end
 
   @doc """
-  Create a list of resource `Map`s from a YAML file with multi object annotation.
+  Create a resource `Map` from a YAML file.
+
+  ## Examples
+
+      iex> opts = [namespace: "default", name: "nginx", image: "nginx:nginx:1.7.9"]
+      ...> K8s.Resource.from_file("test/support/deployment.yaml", opts)
+      {:ok, %{
+        "apiVersion" => "apps/v1",
+        "kind" => "Deployment",
+        "metadata" => %{
+          "labels" => %{"app" => "nginx"},
+          "name" => "nginx-deployment",
+          "namespace" => "default"
+        },
+        "spec" => %{
+          "replicas" => 3,
+          "selector" => %{"matchLabels" => %{"app" => "nginx"}},
+          "template" => %{
+            "metadata" => %{"labels" => %{"app" => "nginx"}},
+            "spec" => %{
+              "containers" => [
+                %{
+                  "image" => "nginx:nginx:1.7.9",
+                  "name" => "nginx",
+                  "ports" => [%{"containerPort" => 80}]
+                }
+              ]
+            }
+          }
+        }
+      }}
+  """
+  @spec from_file(String.t(), keyword()) :: {:ok, map()} | {:error, atom() | map()}
+  def from_file(path, assigns \\ []) do
+    with {:ok, template} <- File.read(path),
+         interpolated_template <- EEx.eval_string(template, assigns) do
+      YamlElixir.read_from_string(interpolated_template)
+    end
+  end
+
+  @doc """
+  Create a list of resource `Map`s from a YAML file containing a YAML stream.
 
   Raises `File.Error` when the file does not exist.
 
@@ -148,11 +188,61 @@ defmodule K8s.Resource do
       ]
   """
   @spec all_from_file!(String.t(), keyword()) :: list(map) | no_return
-  def all_from_file!(path, assigns) do
+  def all_from_file!(path, assigns \\ []) do
     path
     |> File.read!()
     |> EEx.eval_string(assigns)
     |> YamlElixir.read_all_from_string!()
     |> Enum.filter(&(&1 != %{}))
+  end
+
+  @doc """
+  Create a list of resource `Map`s from a YAML file containing a YAML stream.
+
+  ## Examples
+
+      iex> opts = [namespace: "default", name: "nginx", image: "nginx:nginx:1.7.9"]
+      ...> K8s.Resource.all_from_file("test/support/helm-chart.yaml", opts)
+      {:ok, [
+        %{
+          "apiVersion" => "v1",
+          "kind" => "Namespace",
+          "metadata" => %{"name" => "default"}
+        },
+        %{
+          "apiVersion" => "apps/v1",
+          "kind" => "Deployment",
+          "metadata" => %{
+            "labels" => %{"app" => "nginx"},
+            "name" => "nginx-deployment",
+            "namespace" => "default"
+          },
+          "spec" => %{
+            "replicas" => 3,
+            "selector" => %{"matchLabels" => %{"app" => "nginx"}},
+            "template" => %{
+              "metadata" => %{"labels" => %{"app" => "nginx"}},
+              "spec" => %{
+                "containers" => [
+                  %{
+                    "image" => "nginx:nginx:1.7.9",
+                    "name" => "nginx",
+                    "ports" => [%{"containerPort" => 80}]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ]}
+  """
+  @spec all_from_file(String.t(), keyword()) :: {:ok, list(map)} | {:error, atom() | map()}
+  def all_from_file(path, assigns \\ []) do
+    with {:ok, template} <- File.read(path),
+         interpolated_template <- EEx.eval_string(template, assigns),
+         {:ok, items} <- YamlElixir.read_all_from_string(interpolated_template),
+         no_empty_maps = Enum.filter(items, &(&1 != %{})) do
+      {:ok, no_empty_maps}
+    end
   end
 end

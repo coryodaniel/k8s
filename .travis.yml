@@ -4,11 +4,9 @@ cache:
   directories:
     - priv/plts
 elixir:
-  - 1.8
-  - 1.7
+  - 1.9
 otp_release:
-  - 20.3
-  - 18.2.1
+  - 22.2
 before_script:
   - mix deps.get
 script: make test/all
@@ -19,7 +17,5 @@ notifications:
     - travis@coryodaniel.com
 jobs:
   include:
-    - stage: dialyzer
-      script: mix dialyzer
     - stage: coverage
       script: mix coveralls.travis

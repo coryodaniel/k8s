@@ -1,8 +1,5 @@
 {
-  "skip_files": [
-    "test/support/",
-    "lib/k8s/sys/"
-  ],
+  "skip_files": ["test/support/", "lib/k8s/sys/"],
   "default_stop_words": [
     "defdelegate",
     "defmodule",
@@ -10,10 +7,10 @@
     "defrecord",
     "defstruct",
     "defimpl",
-    "def.+(.+\/\/.+).+do"
+    "def.+(.+//.+).+do"
   ],
   "coverage_options": {
     "treat_no_relevant_lines_as_covered": true,
-    "minimum_coverage": 89
+    "minimum_coverage": 85
   }
 }

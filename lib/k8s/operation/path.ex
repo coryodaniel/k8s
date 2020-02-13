@@ -1,7 +1,5 @@
 defmodule K8s.Operation.Path do
-  @moduledoc """
-  Generates Kubernetes REST API Paths
-  """
+  @moduledoc "Generates Kubernetes REST API Paths"
 
   @path_params [:namespace, :name, :path, :logpath]
 
