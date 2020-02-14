@@ -30,16 +30,18 @@ prod_conn = K8s.Conn.from_service_account() # or from_file/2
 Get a list of all deployments in the `default` prod namespace:
 
 ```elixir
+prod_conn = K8s.Conn.from_service_account() # or from_file/2
 operation = K8s.Client.list("apps/v1", :deployment, namespace: "default")
-{:ok, deployments} = K8s.Client.run(operation, :prod)
+{:ok, deployments} = K8s.Client.run(operation, prod_conn)
 ```
 
 Map the deployments to operations and async create on staging:
 
 ```elixir
+prod_conn = K8s.Conn.from_service_account() # or from_file/2
 deployments
 |> Enum.map(fn(deployment) -> K8s.Client.create(deployment) end)
-|> K8s.Client.async(:staging)
+|> K8s.Client.async(prod_conn)
 ```
 
 ## Performing sub-resource operations
