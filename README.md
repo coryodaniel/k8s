@@ -52,6 +52,8 @@ Most functions are also written using doctests.
 * [K8s.Resource doctests](https://hexdocs.pm/k8s/K8s.Resource.html)
 * [K8s.Version doctests](https://hexdocs.pm/k8s/K8s.Version.html)
 
+If you are interested in building Kubernetes Operators or Schedulers, check out [Bonny](https://github.com/coryodaniel/bonny).
+
 ### tl;dr Examples
 
 #### Creating a deployment
