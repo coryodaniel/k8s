@@ -21,7 +21,7 @@ defmodule K8s.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [:logger],
+      extra_applications: [:logger, :websockex],
       mod: {K8s.Application, []}
     ]
   end
@@ -44,7 +44,8 @@ defmodule K8s.MixProject do
       {:ex_doc, "~> 0.20", only: :dev},
       {:excoveralls, "~> 0.10", only: :test},
       {:mix_test_watch, "~> 0.8", only: :dev, runtime: false},
-      {:stream_data, "~> 0.4", only: :test}
+      {:stream_data, "~> 0.4", only: :test},
+      {:websockex, "~> 0.4.0"}
     ]
   end
 
