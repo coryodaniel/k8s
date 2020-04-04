@@ -50,3 +50,40 @@ operation = K8s.Client.list("apps/v1", "Deployment", namespace: :all)
 operation = K8s.Client.get("apps/v1", :deployment, [namespace: "default", name: "nginx-deployment"])
 {:ok, deployment} = K8s.Client.run(operation, conn)
 ```
+
+### Running a command in a pod
+
+
+```elixir
+  conn = K8s.Conn.from_file("~/.kube/config")
+  op=K8s.Client.create("v1", "pods/exec", [namespace: "prod", name: "nginx"])
+  exec_opts = [command: ["/bin/sh", "-c", "nginx -t"], stdin: true, stderr: true, stdout: true, tty: true, stream_to: self()]
+  {:ok, pid} = K8s.Client.exec(op, conn, exec_opts)
+
+  # wait for the response from the pod
+  receive do
+    {:ok, message} -> #do something with the messages. There can be a lot of output.
+    {:exit, {:remote, 1000, ""}} -> # The websocket closed because of normal reasons.
+    error -> # Something unexpected happened.
+  after
+    60_0000 -> Process.exit(pid, :kill) # we probably dont want to let this run forever as this can leave orphaned processes.
+  end
+```
+
+Same as above, but you explicitly set the container you want to run the command in.
+
+```elixir
+  conn = K8s.Conn.from_file("~/.kube/config")
+  op=K8s.Client.create("v1", "pods/exec", [namespace: "prod", name: "nginx"])
+  exec_opts = [command: ["/bin/sh", "-c", "gem list"], container: "fluentd", stdin: true, stderr: true, stdout: true, tty: true, stream_to: self()]
+  {:ok, pid} = K8s.Client.exec(op, conn, exec_opts)
+
+  receive do
+    {:ok, message} -> #do something with the messages. There can be a lot of output.
+    {:exit, {:remote, 1000, ""}} -> # The websocket closed because of normal reasons.
+    error -> # Something unexpected happened.
+  after
+    60_0000 -> Process.exit(pid, :kill) # we probably dont want to let this run forever as this can leave orphaned processes.
+  end
+```
+
