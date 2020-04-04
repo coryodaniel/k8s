@@ -2,6 +2,8 @@ defmodule K8s.Client.Runner.PodExec do
   @moduledoc """
   Exec functionality for `K8s.Client`.
   """
+  require Logger
+  use WebSockex
 
   alias K8s.Operation
   alias K8s.Conn.RequestOptions
@@ -68,6 +70,65 @@ defmodule K8s.Client.Runner.PodExec do
   def run(_, _, _), do: {:error, :unsupported_operation}
 
   @doc false
+  def handle_frame({_type, <<1, "">>}, state) do
+    # no need to print out an empty response
+    {:ok, state}
+  end
+
+  @doc """
+    Websocket stdout handler. The frame starts with a <<1>> and is followed by a payload.
+  """
+  def handle_frame({type, <<1, msg::binary>>}, state) do
+    Logger.debug(
+      "Pod Command Received STDOUT Message - Type: #{inspect(type)} -- Message: #{inspect(msg)}"
+    )
+
+    from = Keyword.get(state, :stream_to)
+    send(from, {:ok, msg})
+    {:ok, state}
+  end
+
+  @doc """
+    Websocket sterr handler. The frame starts with a <<2>> and is a noop because of the empy payload.
+  """
+  def handle_frame({_type, <<2, "">>}, state) do
+    # no need to print out an empty response
+    {:ok, state}
+  end
+
+  @doc """
+    Websocket stderr handler. The frame starts with a 2 and is followed by a message.
+  """
+  def handle_frame({type, <<2, msg::binary>>}, state) do
+    Logger.debug(
+      "Pod Command Received STDERR Message  - Type: #{inspect(type)} -- Message: #{inspect(msg)}"
+    )
+
+    {:ok, state}
+  end
+
+  @doc """
+    Websocket uknown command handler. This is a binary frame we are not familiar with.
+  """
+  def handle_frame({type, <<_eot::binary-size(1), msg::binary>>}, state) do
+    Logger.error(
+      "Exec Command - Received Unknown Message - Type: #{inspect(type)} -- Message: #{msg}"
+    )
+
+    from = Keyword.get(state, :stream_to)
+    send(from, {:error, msg})
+    {:ok, state}
+  end
+
+  @doc """
+    Websocket disconnect handler. This frame is received when the web socket is disconnected.
+  """
+  def handle_disconnect(data, state) do
+    from = Keyword.get(state, :stream_to)
+    send(from, {:exit, data.reason})
+    {:ok, state}
+  end
+
   defp process_opts(opts) do
     default = [stream_to: self(), stdin: true, stdout: true, stderr: true, tty: true]
     processed = Keyword.merge(default, opts)

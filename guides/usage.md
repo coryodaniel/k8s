@@ -54,8 +54,6 @@ operation = K8s.Client.get("apps/v1", :deployment, [namespace: "default", name: 
 
 ### Running a command in a pod
 
-
-
 If your Pod has only one container, then you do not have to specify which container to run the command.
 
 ```elixir
@@ -74,7 +72,8 @@ If your Pod has only one container, then you do not have to specify which contai
   end
 ```
 
-Same as above, but you explicitly set the container you want to run the command in. If your Pod has more than one container and you do not specify which container, you will get a 400 bad request back from k8s API.
+```elixir
+Same as above, but you explicitly set the container you want to run the command in.
 
 ```elixir
   conn = K8s.Conn.from_file("~/.kube/config")

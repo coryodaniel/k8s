@@ -74,6 +74,9 @@ defmodule K8s.Client do
   @doc "alias of `K8s.Client.Runner.PodExec.run/3`"
   defdelegate exec(operation, cluster_name, opts), to: PodExec, as: :run
 
+  @doc "alias of `K8s.Client.Runner.Exec.run/3`"
+  defdelegate exec(operation, cluster_name, opts), to: PodExec, as: :run
+
   @doc """
   Returns a `PATCH` operation to server-side-apply the given resource.
 
