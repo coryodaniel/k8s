@@ -23,7 +23,7 @@ defmodule K8s.Client do
   @type options :: [option]
 
   alias K8s.Operation
-  alias K8s.Client.Runner.{Async, Base, Stream, Wait, Watch}
+  alias K8s.Client.Runner.{Async, Base, Stream, Wait, Watch, PodExec}
 
   @doc "alias of `K8s.Client.Runner.Base.run/2`"
   defdelegate run(operation, conn), to: Base
@@ -57,6 +57,9 @@ defmodule K8s.Client do
 
   @doc "alias of `K8s.Client.Runner.Stream.run/3`"
   defdelegate stream(operation, conn, opts), to: Stream, as: :run
+
+  @doc "alias of `K8s.Client.Runner.Exec.run/3`"
+  defdelegate exec(operation, cluster_name, opts), to: PodExec, as: :run
 
   @doc """
   Returns a `GET` operation for a resource given a manifest. May be a partial manifest as long as it contains:
