@@ -64,7 +64,7 @@ operation = K8s.Client.get("apps/v1", :deployment, [namespace: "default", name: 
 
 ```elixir
   conn = K8s.Conn.from_file("~/.kube/config")
-  op=K8s.Client.create("v1", "pods/exec", [namespace: "prod", name: "nginx"])
+  op = K8s.Client.create("v1", "pods/exec", [namespace: "prod", name: "nginx"])
   exec_opts = [command: ["/bin/sh", "-c", "nginx -t"], stdin: true, stderr: true, stdout: true, tty: true, stream_to: self()]
   {:ok, pid} = K8s.Client.exec(op, conn, exec_opts)
 
@@ -82,7 +82,7 @@ Same as above, but you explicitly set the container you want to run the command 
 
 ```elixir
   conn = K8s.Conn.from_file("~/.kube/config")
-  op=K8s.Client.create("v1", "pods/exec", [namespace: "prod", name: "nginx"])
+  op = K8s.Client.create("v1", "pods/exec", [namespace: "prod", name: "nginx"])
   exec_opts = [command: ["/bin/sh", "-c", "gem list"], container: "fluentd", stdin: true, stderr: true, stdout: true, tty: true, stream_to: self()]
   {:ok, pid} = K8s.Client.exec(op, conn, exec_opts)
 
