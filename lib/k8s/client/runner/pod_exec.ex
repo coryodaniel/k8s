@@ -18,7 +18,7 @@ defmodule K8s.Client.Runner.PodExec do
 
   ```elixir
   conn = K8s.Conn.from_file("~/.kube/config")
-  op=K8s.Client.create("v1", "pods/exec", [namespace: "default", name: "nginx", ])
+  op = K8s.Client.create("v1", "pods/exec", [namespace: "default", name: "nginx", ])
   exec_opts = [command: ["/bin/sh", "-c", "nginx -t"], stdin: true, stderr: true, stdout: true, tty: true, stream_to: self()]
   {:ok, pid} = K8s.Client.Runner.PodExec.run(op, conn, exec_opts)
   ```
@@ -27,7 +27,7 @@ defmodule K8s.Client.Runner.PodExec do
 
   ```elixir
   conn = K8s.Conn.from_file("~/.kube/config")
-  op=K8s.Client.create("v1", "pods/exec", [namespace: "default", name: "nginx", ])
+  op = K8s.Client.create("v1", "pods/exec", [namespace: "default", name: "nginx", ])
   exec_opts = [command: ["/bin/sh", "-c", "gem list"], container: "fluentd", stdin: true, stderr: true, stdout: true, tty: true, stream_to: self()]
   {:ok, pid} = K8s.Client.Runner.PodExec.run(op, conn, exec_opts)
   ```
