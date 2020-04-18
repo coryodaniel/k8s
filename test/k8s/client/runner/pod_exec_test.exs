@@ -5,7 +5,8 @@ defmodule K8s.Client.Runner.PodExecTest do
   alias K8s.Client.Runner.PodExec
 
   setup do
-    {:ok, %{conn: %K8s.Conn{}}}
+    {:ok, conn} = K8s.Conn.lookup(:test)
+    {:ok, %{conn: conn}}
   end
 
   def operation(name \\ "pods/exec") do
@@ -28,6 +29,23 @@ defmodule K8s.Client.Runner.PodExecTest do
       operation = operation("pods")
       {:error, msg} = PodExec.run(operation, conn, [command: ["date"], stream_to: self()])
       assert msg == :unsupported_operation
+    end
+
+    test "returns the command results and the websocket exit normal", %{conn: conn} do
+     exec_opts = [command: ["/bin/sh", "-c", "date"], stdin: true, stderr: true, stdout: true, tty: true, stream_to: self()]
+      {:ok, websocket_pid} = PodExec.run(operation(), conn, exec_opts)
+     receive_loop(websocket_pid)
+    end
+  end
+
+  def receive_loop(websocket_pid) do
+    receive do
+      {:ok, _message} -> receive_loop(websocket_pid)
+      {:exit, reason} -> reason
+    after
+      5000 ->
+        Process.exit(websocket_pid, :kill)
+        IO.puts "Timed out waiting for response from pod via websocket"
     end
   end
 end

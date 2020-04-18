@@ -45,6 +45,15 @@
       ]
     },
     {
+      "kind": "Pod",
+      "name": "pods/exec",
+      "namespaced": true,
+      "verbs": [
+        "create"
+      ],
+      "version": "v1"
+    },
+    {
       "group": "policy",
       "kind": "Eviction",
       "name": "pods/eviction",
