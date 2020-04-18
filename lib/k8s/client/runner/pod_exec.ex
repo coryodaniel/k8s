@@ -2,8 +2,6 @@ defmodule K8s.Client.Runner.PodExec do
   @moduledoc """
   Exec functionality for `K8s.Client`.
   """
-  require Logger
-  use WebSockex
 
   alias K8s.Operation
   alias K8s.Conn.RequestOptions

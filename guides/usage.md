@@ -56,6 +56,9 @@ operation = K8s.Client.get("apps/v1", :deployment, [namespace: "default", name: 
 
 If your Pod has only one container, then you do not have to specify which container to run the command.
 
+
+If your Pod has only one container, then you do not have to specify which container to run the command.
+
 ```elixir
   conn = K8s.Conn.from_file("~/.kube/config")
   op = K8s.Client.create("v1", "pods/exec", [namespace: "prod", name: "nginx"])
