@@ -5,7 +5,8 @@ defmodule K8s.Client.Runner.PodExecTest do
   alias K8s.Client.Runner.PodExec
 
   setup do
-    {:ok, %{conn: %K8s.Conn{}}}
+    {:ok, conn} = K8s.Conn.lookup(:test)
+    {:ok, %{conn: conn}}
   end
 
   def operation(name \\ "pods/exec") do
