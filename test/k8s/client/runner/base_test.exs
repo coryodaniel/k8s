@@ -21,6 +21,11 @@ defmodule K8s.Client.Runner.BaseTest do
       render(nil)
     end
 
+    def request(:get, @namespaced_url <> "/test-query-params", _body, _headers, opts) do
+      params = Keyword.get(opts, :params)
+      render(params)
+    end
+
     def request(
           :get,
           @base_url <> "/apis/apps/v1/namespaces/default/deployments/nginx/status",
@@ -80,18 +85,18 @@ defmodule K8s.Client.Runner.BaseTest do
     end
 
     test "running an operation with options", %{conn: conn} do
-      operation = Client.get(make_namespace("test"))
-      opts = [params: %{"watch" => "true"}]
-      assert {:ok, _} = Base.run(operation, conn, opts)
+      operation = Client.get(make_namespace("test-query-params"))
+      params = %{"watch" => "true"}
+      operation_w_params = Map.put(operation, :query_params, params)
+
+      assert {:ok, ^params} = Base.run(operation_w_params, conn)
     end
 
     test "supports subresource operations", %{conn: conn} do
       operation = Client.get("apps/v1", "deployments/status", name: "nginx", namespace: "default")
       assert {:ok, _} = Base.run(operation, conn)
     end
-  end
 
-  describe "run/4" do
     test "running an operation with a custom HTTP body", %{conn: conn} do
       operation = Client.create(make_namespace("test"))
       labels = %{"env" => "test"}
@@ -101,14 +106,17 @@ defmodule K8s.Client.Runner.BaseTest do
 
       assert body ==
                ~s({"apiVersion":"v1","kind":"Namespace","metadata":{"labels":{"env":"test"},"name":"test"}})
-    end
+    end    
+  end
 
-    test "running an operation with a custom HTTP body and options", %{
+  describe "run/4" do
+    test "[DEPRECATED] running an operation with a custom HTTP body and options", %{
       conn: conn
     } do
       operation = Client.create(make_namespace("test"))
       labels = %{"env" => "test"}
       body = put_in(make_namespace("test"), ["metadata", "labels"], labels)
+      
       opts = [params: %{"watch" => "true"}]
       assert {:ok, _} = Base.run(operation, conn, body, opts)
     end

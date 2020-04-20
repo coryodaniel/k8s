@@ -18,6 +18,8 @@ defmodule K8s.Client.Runner.Base do
   alias K8s.Operation
   alias K8s.Middleware.Request
 
+  require Logger
+
   @doc """
   Runs a `K8s.Operation`.
 
@@ -69,12 +71,13 @@ defmodule K8s.Client.Runner.Base do
     }
   }
 
-  operation = K8s.Client.create(deployment)
-  {:ok, conn} = K8s.Conn.lookup(:test)
+  operation = 
+    deployment 
+    |> K8s.Client.create()
+    |> K8s.Operation.put_query_param(:dryRun, "all")
 
-  # opts is passed to HTTPoison as opts.
-  opts = [params: %{"dryRun" => "all"}]
-  :ok = K8s.Client.Runner.Base.run(operation, conn, opts)
+  {:ok, conn} = K8s.Conn.lookup(:test)  
+  {:ok, result} = K8s.Client.Runner.Base.run(operation, conn)
   ```
   """
   @spec run(Operation.t(), Conn.t() | nil) :: result_t
@@ -109,11 +112,29 @@ defmodule K8s.Client.Runner.Base do
           Request.t()
   defp new_request(%Conn{} = conn, url, %Operation{} = operation, body, opts) do
     req = %Request{conn: conn, method: operation.method, body: body}
-    http_opts_params = build_http_params(opts[:params], operation.label_selector)
-    opts_with_selector_params = Keyword.put(opts, :params, http_opts_params)
 
+    params = merge_deprecated_params(operation.query_params, opts[:params])
+    label_selector = get_deprecated_label_selector(params[:labelSelector], operation.label_selector)  
+    http_opts_params = build_http_params(params, label_selector)
+
+    opts_with_selector_params = Keyword.put(opts, :params, http_opts_params)
     http_opts = Keyword.merge(req.opts, opts_with_selector_params)
+
     %Request{req | opts: http_opts, url: url}
+  end
+
+  defp get_deprecated_label_selector(new_label_selector, deprecated_label_selector) do
+    case new_label_selector do
+      nil -> deprecated_label_selector
+      label_selector -> label_selector
+    end
+  end
+
+  defp merge_deprecated_params(op_params, nil), do: op_params
+
+  defp merge_deprecated_params(%{} = op_params, run_params) do
+    Logger.warn("Providing HTTPoison options to K8s.Client.Runner.Base.run/N is deprecated.")
+    Map.merge(op_params, run_params)
   end
 
   @spec build_http_params(nil | keyword | map, nil | K8s.Selector.t()) :: map()
@@ -126,7 +147,6 @@ defmodule K8s.Client.Runner.Base do
 
   # Supplying a `labelSelector` to `run/4 should take precedence
   defp build_http_params(params, %K8s.Selector{} = s) when is_map(params) do
-    from_operation = %{labelSelector: K8s.Selector.to_s(s)}
-    Map.merge(from_operation, params)
+    Map.merge(params, %{labelSelector: K8s.Selector.to_s(s)})
   end
 end
