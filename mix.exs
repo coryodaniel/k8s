@@ -64,13 +64,13 @@ defmodule K8s.MixProject do
       extras: [
         "README.md",
         "guides/usage.md",
-        "guides/operations.md",        
+        "guides/operations.md",
         "guides/connections.md",
         "guides/middleware.md",
         "guides/authentication.md",
         "guides/discovery.md",
-        "guides/testing.md",        
         "guides/advanced.md",
+        "guides/testing.md"
       ],
       main: "readme"
     ]
