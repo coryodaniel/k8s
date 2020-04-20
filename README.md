@@ -66,7 +66,7 @@ In `config.exs`:
 ```elixir
 config :k8s,
   clusters: %{
-    default: %{ # <- this can be any name, used to load connections later
+    prod_us_east1: %{ # <- this can be any name, used to load connections later
       # Path to kube config
       conn: "~/.kube/config",
       # By default current context will be used, you can change the user or cluster
