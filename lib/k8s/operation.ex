@@ -4,6 +4,25 @@ defmodule K8s.Operation do
   alias K8s.Operation
   @derive {Jason.Encoder, except: [:path_params]}
 
+  @allow_http_body [:put, :patch, :post]
+  @verb_map %{
+    list_all_namespaces: :get,
+    list: :get,
+    deletecollection: :delete,
+    create: :post,
+    update: :put,
+    patch: :patch
+  }
+
+  defstruct method: nil,
+            verb: nil,
+            api_version: nil,
+            name: nil,
+            data: nil,
+            path_params: [],
+            query_params: %{},
+            label_selector: nil
+
   @typedoc "`K8s.Operation` name. May be an atom, string, or tuple of `{resource, subresource}`."
   @type name_t :: binary() | atom() | {binary(), binary()}
 
@@ -14,6 +33,7 @@ defmodule K8s.Operation do
   * `method` - HTTP Method
   * `verb` - Kubernetes REST API verb (`deletecollection`, `update`, `create`, `watch`, etc)
   * `path_params` - Parameters to interpolate into the Kubernetes REST URL
+  * `query_params` - Query parameter (`map`). Merged w/ params provided to any `K8s.Client.Runner`. `K8s.Client.Runner` options win.
 
   `name` would be `deployments` in the case of a deployment, but may be `deployments/status` or `deployments/scale` for Status and Scale subresources.
 
@@ -52,20 +72,9 @@ defmodule K8s.Operation do
           name: name_t(),
           data: map() | nil,
           path_params: keyword(atom()),
-          label_selector: K8s.Selector.t() | nil
+          label_selector: K8s.Selector.t() | nil,
+          query_params: map()
         }
-
-  @allow_http_body [:put, :patch, :post]
-  @verb_map %{
-    list_all_namespaces: :get,
-    list: :get,
-    deletecollection: :delete,
-    create: :post,
-    update: :put,
-    patch: :patch
-  }
-
-  defstruct [:method, :verb, :api_version, :name, :data, :path_params, :label_selector]
 
   @doc """
   Builds an `Operation` given a verb and a k8s resource.
@@ -166,4 +175,27 @@ defmodule K8s.Operation do
   @spec to_path(Operation.t()) ::
           {:ok, String.t()} | {:error, :missing_required_param, list(atom)}
   def to_path(%Operation{} = operation), do: Operation.Path.build(operation)
+
+  @doc """
+  Add a query param to an operation
+
+  ## Examples
+      iex> operation = %K8s.Operation{}
+      ...> K8s.Operation.put_query_param(operation, "foo", "bar")
+      %K8s.Operation{query_params: %{"foo" => "bar"}}
+  """
+  def put_query_param(%Operation{query_params: params} = op, key, value) do
+    new_params = Map.put(params, key, value)
+    %Operation{op | query_params: new_params}
+  end
+
+  @doc """
+  Get a query param of an operation
+
+  ## Examples
+      iex> operation = %K8s.Operation{query_params: %{foo: "bar"}}
+      ...> K8s.Operation.get_query_param(operation, :foo)
+      "bar"
+  """  
+  def get_query_param(%Operation{query_params: params}, key), do: Map.get(params, key)
 end
