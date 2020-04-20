@@ -38,20 +38,6 @@ tdd: ## Run fast test on k8s last stable in a loop
 cov: ## Generate coverage HTML
 	mix coveralls.html
 
-MASTER_SWAGGER_PATH:=test/support/swagger/master.json
-.PHONY: test/master
-test/master: ## Run test suite against master
-	@-rm -f ${MASTER_SWAGGER_PATH}
-	@curl -sSL https://raw.githubusercontent.com/kubernetes/kubernetes/master/api/openapi-spec/swagger.json -o ${MASTER_SWAGGER_PATH}
-	K8S_SPEC=${MASTER_SWAGGER_PATH} mix test
-
-.PHONY: test/all
-test/all: ## Run full test suite against 1.10+
-test/all: test/1.10 test/1.11 test/1.12 test/1.13 test/1.14 test/1.15
-
-test/%: ## Run full test suite against a specific k8s version
-	K8S_SPEC=test/support/swagger/$*.json mix test
-
 .PHONY: lint
 lint: ## Format and run credo
 	mix format

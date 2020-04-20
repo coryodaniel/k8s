@@ -9,7 +9,7 @@ otp_release:
   - 22.2
 before_script:
   - mix deps.get
-script: make test/all
+script: mix test
 env:
   - MIX_ENV=test
 notifications:

@@ -2,13 +2,16 @@ defmodule K8s.Conn do
   @moduledoc """
   Handles authentication and connection configuration details for a Kubernetes cluster.
 
-  `Conn`ections can be registered via Mix.Config or environment variables.
+  Connections can be registered via Mix.Config or environment variables.
 
-  Connections can also be dynaically built during application runtime.
+  Connections can also be dynamically built during application runtime.
   """
 
   alias __MODULE__
-  alias K8s.Conn.{PKI, RequestOptions, Config}
+  alias K8s.Conn.{Config, PKI, RequestOptions}
+
+  @service_account_cluster_name :"cluster.local"
+  @service_account_path "/var/run/secrets/kubernetes.io/serviceaccount"
 
   @providers [
     K8s.Conn.Auth.Certificate,
@@ -135,16 +138,23 @@ defmodule K8s.Conn do
   end
 
   @doc """
-  Generates configuration from kubernetes service account
+  Generates configuration from kubernetes service account.
+
+
 
   ## Links
 
   [kubernetes.io :: Accessing the API from a Pod](https://kubernetes.io/docs/tasks/access-application-cluster/access-cluster/#accessing-the-api-from-a-pod)
   """
+  @spec from_service_account() :: K8s.Conn.t()
+  def from_service_account() do
+    from_service_account(@service_account_cluster_name)
+  end
 
   @spec from_service_account(atom()) :: K8s.Conn.t()
-  def from_service_account(cluster_name),
-    do: from_service_account(cluster_name, "/var/run/secrets/kubernetes.io/serviceaccount")
+  def from_service_account(cluster_name) do
+    from_service_account(cluster_name, @service_account_path)
+  end
 
   @spec from_service_account(atom, String.t()) :: K8s.Conn.t()
   def from_service_account(cluster_name, root_sa_path) do
