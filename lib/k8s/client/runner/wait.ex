@@ -5,7 +5,7 @@ defmodule K8s.Client.Runner.Wait do
   Note: This is built using repeated GET operations rather than using a [watch](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.13/#watch-list-deployment-v1-apps) operation w/ `fieldSelector`.
   """
 
-  alias K8s.Operation
+  alias K8s.{Conn, Operation}
   alias K8s.Client.Runner.{Base, Wait}
 
   @typedoc "A wait configuration"
@@ -29,19 +29,20 @@ defmodule K8s.Client.Runner.Wait do
   ```elixir
   op = K8s.Client.get("batch/v1", :job, namespace: "default", name: "sleep")
   opts = [find: ["status", "succeeded"], eval: 1, timeout: 60]
-  resp = K8s.Client.Runner.Wait.run(op, cluster_name, opts)
+  conn = K8s.Conn.lookup(:my_cluster)
+  resp = K8s.Client.Runner.Wait.run(op, conn, opts)
   ```
   """
   @spec run(Operation.t(), binary, keyword(atom())) ::
           {:ok, map()} | {:error, binary()}
-  def run(%Operation{method: :get} = op, cluster_name, opts) do
+  def run(%Operation{method: :get} = op, %Conn{} = conn, opts) do
     conditions =
       Wait
       |> struct(opts)
       |> process_opts()
 
     case conditions do
-      {:ok, opts} -> run_operation(op, cluster_name, opts)
+      {:ok, opts} -> run_operation(op, conn, opts)
       error -> error
     end
   end
@@ -68,25 +69,25 @@ defmodule K8s.Client.Runner.Wait do
     {:ok, processed}
   end
 
-  defp run_operation(op, cluster_name, %Wait{timeout_after: timeout_after} = opts) do
+  defp run_operation(op, conn, %Wait{timeout_after: timeout_after} = opts) do
     case timed_out?(timeout_after) do
       true -> {:error, :timeout}
-      false -> evaluate_operation(op, cluster_name, opts)
+      false -> evaluate_operation(op, conn, opts)
     end
   end
 
   defp evaluate_operation(
          op,
-         cluster_name,
+         conn,
          %Wait{processor: processor, sleep: sleep, eval: eval, find: find} = opts
        ) do
-    with {:ok, resp} <- processor.(op, cluster_name),
+    with {:ok, resp} <- processor.(op, conn),
          true <- satisfied?(resp, find, eval) do
       {:ok, resp}
     else
       _not_satisfied ->
         Process.sleep(sleep)
-        run_operation(op, cluster_name, opts)
+        run_operation(op, conn, opts)
     end
   end
 

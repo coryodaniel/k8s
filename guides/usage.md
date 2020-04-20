@@ -8,6 +8,14 @@
 * [Testing](./testing.html)
 * [Advanced Topics](./advanced.html) - CRDs, Multiple Clusters, and Subresource Requests
 
+## Removal of `cluster_name` based operation runners
+
+Versions previous to `0.5` used the `cluster_name`'s atom to lookup the kubernetes connection information (`K8s.Conn`). When executing any HTTP operation on `K8s.Client`. This has been removed and now `K8s.Conn`s must be provided.
+
+See [the connection's guide](./connections.html) for more information.
+
+`cluster_name` atoms are now only used to identify cluster connection configurations (`K8s.Conn.lookup/1`) and to register middleware `K8s.Middleware.Registry.set/3`.
+
 ## tl;dr Examples
 
 ### Creating a deployment
