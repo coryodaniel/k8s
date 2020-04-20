@@ -56,6 +56,26 @@ If you are interested in building Kubernetes Operators or Schedulers, check out 
 
 ### tl;dr Examples
 
+
+#### Configure a cluster
+
+There are many ways to configure cluster connections. Check out the [guide](https://hexdocs.pm/k8s/connections.html) for additional options.
+
+In `config.exs`:
+
+```elixir
+config :k8s,
+  clusters: %{
+    default: %{ # <- this can be any name, used to load connections later
+      # Path to kube config
+      conn: "~/.kube/config",
+      # By default current context will be used, you can change the user or cluster
+      conn_opts: [user: "some-user", cluster: "prod-cluster"]
+    }
+  }
+```
+
+
 #### Creating a deployment
 
 ```elixir
