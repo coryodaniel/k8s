@@ -45,7 +45,7 @@
       ]
     },
     {
-      "kind": "Pod",
+      "kind": "PodExecOptions",
       "name": "pods/exec",
       "namespaced": true,
       "verbs": [
