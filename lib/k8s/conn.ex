@@ -16,7 +16,8 @@ defmodule K8s.Conn do
   @providers [
     K8s.Conn.Auth.Certificate,
     K8s.Conn.Auth.Token,
-    K8s.Conn.Auth.AuthProvider
+    K8s.Conn.Auth.AuthProvider,
+    K8s.Conn.Auth.BasicAuth
   ]
 
   @typep auth_t :: nil | struct
