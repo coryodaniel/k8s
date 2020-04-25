@@ -61,6 +61,9 @@ defmodule K8s.Client do
   @doc "alias of `K8s.Client.Runner.PodExec.run/3`"
   defdelegate exec(operation, cluster_name, opts), to: PodExec, as: :run
 
+  @doc "alias of `K8s.Client.Runner.PodExec.run/3`"
+  defdelegate exec(operation, cluster_name, opts), to: PodExec, as: :run
+
   @doc """
   Returns a `GET` operation for a resource given a manifest. May be a partial manifest as long as it contains:
 
