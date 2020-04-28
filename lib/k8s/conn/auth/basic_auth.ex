@@ -13,6 +13,7 @@ defmodule K8s.Conn.Auth.BasicAuth do
   def create(%{"username" => username, "password" => password}, _) do
     %K8s.Conn.Auth.BasicAuth{token: Base.encode64("#{username}:#{password}")}
   end
+
   def create(_, _) do
     nil
   end

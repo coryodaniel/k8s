@@ -23,5 +23,4 @@ defmodule K8s.Conn.Auth.BasicAuthTest do
     assert headers == [{"Authorization", "Basic #{token}"}]
     assert ssl_options == []
   end
-
 end

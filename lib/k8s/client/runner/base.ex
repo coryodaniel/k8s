@@ -139,7 +139,9 @@ defmodule K8s.Client.Runner.Base do
     params = merge_deprecated_params(operation.query_params, opts[:params])
 
     # if label_selector is set, the end user is setting it manually, respect that value until removed in #73
-    label_selector = maybe_get_deprecated_label_selector(params[:labelSelector], operation.label_selector)  
+    label_selector =
+      maybe_get_deprecated_label_selector(params[:labelSelector], operation.label_selector)
+
     http_opts_params = build_http_params(params, label_selector)
 
     opts_with_selector_params = Keyword.put(opts, :params, http_opts_params)
@@ -148,12 +150,18 @@ defmodule K8s.Client.Runner.Base do
     %Request{req | opts: http_opts, url: url}
   end
 
-  @spec maybe_get_deprecated_label_selector(K8s.Selector.t() | nil, K8s.Selector.t() | nil) :: K8s.Selector.t() | nil
+  @spec maybe_get_deprecated_label_selector(K8s.Selector.t() | nil, K8s.Selector.t() | nil) ::
+          K8s.Selector.t() | nil
   defp maybe_get_deprecated_label_selector(new_label_selector, deprecated_label_selector) do
     case deprecated_label_selector do
-      nil -> new_label_selector
-      deprecated_label_selector -> 
-        Logger.warn("K8s.Operation label_selector is deprecated. Use K8s.Selector functions instead.")
+      nil ->
+        new_label_selector
+
+      deprecated_label_selector ->
+        Logger.warn(
+          "K8s.Operation label_selector is deprecated. Use K8s.Selector functions instead."
+        )
+
         deprecated_label_selector
     end
   end
@@ -169,7 +177,10 @@ defmodule K8s.Client.Runner.Base do
   end
 
   defp merge_deprecated_params(%{} = op_params, run_params) do
-    Logger.warn("Providing HTTPoison options to K8s.Client.Runner.Base.run/N is deprecated. Use K8s.Operation's query_params key intead.")
+    Logger.warn(
+      "Providing HTTPoison options to K8s.Client.Runner.Base.run/N is deprecated. Use K8s.Operation's query_params key intead."
+    )
+
     run_params_as_map = Enum.into(run_params, %{})
     Map.merge(op_params, run_params_as_map)
   end

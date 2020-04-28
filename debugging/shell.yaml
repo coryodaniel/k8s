@@ -1,0 +1,11 @@
+## kubectl exec -it shell -- /bin/sh
+apiVersion: v1
+kind: Pod
+metadata:
+  name: shell
+spec:
+  containers:
+    - name: shell
+      image: lachlanevenson/k8s-kubectl
+      command: ["/bin/sh", "-c", "--"]
+      args: ["while true; do sleep 30; done;"]

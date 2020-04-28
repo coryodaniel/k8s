@@ -31,7 +31,7 @@ defmodule K8s.Operation do
   * `name` - The name of the REST operation (Kubernets kind/resource/subresource). This is *not* _always_ the same as the `kind` key in the `data` field. e.g: `deployments` when POSTing, GETting a deployment.
   * `data` - HTTP request body to submit when applicable. (POST, PUT, PATCH, etc)
   * `method` - HTTP Method
-  * `verb` - Kubernetes REST API verb (`deletecollection`, `update`, `create`, `watch`, etc)
+  * `verb` - Kubernetes [REST API verb](https://kubernetes.io/docs/reference/access-authn-authz/authorization/#determine-the-request-verb) (`deletecollection`, `update`, `create`, `watch`, etc)
   * `path_params` - Parameters to interpolate into the Kubernetes REST URL
   * `query_params` - Query parameter (`map`). Merged w/ params provided to any `K8s.Client.Runner`. `K8s.Client.Runner` options win.
 
@@ -216,14 +216,6 @@ defmodule K8s.Operation do
       iex> operation = %K8s.Operation{query_params: %{foo: "bar"}}
       ...> K8s.Operation.get_query_param(operation, :foo)
       "bar"
-  """  
-  # covers when query_params are not set so there is not value to retun
-  def get_query_param(%Operation{query_params: nil}, _key), do: nil
-  def get_query_param(%Operation{query_params: params}, key) when is_list(params) do
-    Keyword.get(params, key)
-  end
-
-  def get_query_param(%Operation{query_params: params}, key) do
-    Map.get(params, key)
-  end
+  """
+  def get_query_param(%Operation{query_params: params}, key), do: Map.get(params, key)
 end
