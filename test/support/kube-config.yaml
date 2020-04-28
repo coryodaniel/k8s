@@ -36,6 +36,10 @@ users:
 - name: token-user
   user:
     token: just-a-token-user-pun-intended
+- name: basic-auth-user
+  user:
+    username: basic-auth-username
+    password: basic-auth-password
 - name: pem-cert-user
   user:
     client-certificate: tls/certificate.pem
