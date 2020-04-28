@@ -106,7 +106,7 @@ defmodule K8s.Client.Runner.BaseTest do
 
       assert body ==
                ~s({"apiVersion":"v1","kind":"Namespace","metadata":{"labels":{"env":"test"},"name":"test"}})
-    end    
+    end
   end
 
   describe "run/4" do
@@ -116,7 +116,7 @@ defmodule K8s.Client.Runner.BaseTest do
       operation = Client.create(make_namespace("test"))
       labels = %{"env" => "test"}
       body = put_in(make_namespace("test"), ["metadata", "labels"], labels)
-      
+
       opts = [params: %{"watch" => "true"}]
       assert {:ok, _} = Base.run(operation, conn, body, opts)
     end

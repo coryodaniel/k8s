@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 ### Added
-- K8s.Operation `query_params` map. `labelSelector` 
+- K8s.Operation struct `query_params` field
+- BasicAuth auth provider
 - Deprecated HTTPoison options being passed to K8s.Client.Runner.base
 - K8s.Operation.put_query_param/3 to add query parameters by key 
 - K8s.Operation.get_query_param/3 to get a query parameter by key
