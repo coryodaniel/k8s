@@ -17,6 +17,9 @@ defmodule K8s.Client.Runner.Base do
   alias K8s.Conn
   alias K8s.Operation
   alias K8s.Middleware.Request
+  alias K8s.Conn.RequestOptions
+  alias K8s.Discovery
+
 
   require Logger
 
@@ -85,21 +88,41 @@ defmodule K8s.Client.Runner.Base do
     do: run(operation, conn, [])
 
   @doc """
-  Run an operation and pass `opts` to HTTPoison.
-  Destructures `Operation` data and passes as the HTTP body.
+  Run an connect operation and pass `query_params` and `opts` to Websocket provider.
 
-  See `run/2`
+  The query params inside %Operation{} must be a Keyword list.
+
   """
   @spec run(Operation.t(), Conn.t(), keyword()) :: result_t
+  def run(%Operation{verb: :connect} = operation, %Conn{} = conn, opts) when is_list(opts) do
+    with {:ok, url} <- Discovery.url_for(conn, operation),
+         req <- new_request(conn, url, operation, [], opts),
+         {:ok, request_options} <- RequestOptions.generate(conn) do
+
+      ## headers for websocket connection to k8s API
+      headers =
+        request_options.headers ++ [{"Accept", "*/*"}, {"Content-Type", "application/json"}]
+
+      cacerts = Keyword.get(request_options.ssl_options, :cacerts)
+      query_params = "?#{URI.encode_query(req.opts[:params])}"
+
+      url = URI.merge(req.url, query_params)
+      K8s.websocket_provider().request(url, false, request_options.ssl_options, cacerts, headers, opts)
+    else
+      {:error, message} -> {:error, message}
+      error -> {:error, inspect(error)}
+    end
+  end
+
   def run(%Operation{} = operation, %Conn{} = conn, opts) when is_list(opts) do
     run(operation, conn, operation.data, opts)
   end
+
 
   @doc """
   Run an operation with an HTTP Body (map) and pass `opts` to HTTPoison.
   See `run/2`
   """
-  @spec run(Operation.t(), Conn.t(), map(), keyword()) :: result_t
   def run(%Operation{} = operation, %Conn{} = conn, body, opts \\ []) do
     with {:ok, url} <- K8s.Discovery.url_for(conn, operation),
          req <- new_request(conn, url, operation, body, opts),
@@ -135,8 +158,15 @@ defmodule K8s.Client.Runner.Base do
     end
   end
 
-  @spec merge_deprecated_params(map(), nil | map()) :: map()
-  defp merge_deprecated_params(op_params, nil), do: op_params
+  @spec merge_deprecated_params(nil | map(), nil | map()) :: map() | keyword()
+  # covers when both op_params and run_params are nil
+  defp merge_deprecated_params(nil, nil), do: %{}
+  # covers when op_params are nil
+  defp merge_deprecated_params(nil, run_params), do: merge_deprecated_params(%{}, run_params)
+  # covers when there is not run_params
+  defp merge_deprecated_params(op_params, nil) do
+    op_params
+  end
 
   defp merge_deprecated_params(%{} = op_params, run_params) do
     Logger.warn("Providing HTTPoison options to K8s.Client.Runner.Base.run/N is deprecated. Use K8s.Operation's query_params key intead.")
@@ -146,6 +176,11 @@ defmodule K8s.Client.Runner.Base do
 
   @spec build_http_params(keyword | map, nil | K8s.Selector.t()) :: map()
   # defp build_http_params(nil, nil), do: %{}  
+  # for Pod connect
+  defp build_http_params(params, nil) when is_list(params) do
+    process_opts(params)
+    |> Keyword.drop([:stream_to])
+  end
   defp build_http_params(params, nil), do: Enum.into(params, %{})  
   
   # Supplying a `labelSelector` to `run/4 should take precedence
@@ -154,4 +189,11 @@ defmodule K8s.Client.Runner.Base do
     params_as_map = Enum.into(params, %{})
     Map.merge(params_as_map, %{labelSelector: K8s.Selector.to_s(s)})
   end
+
+  # for Pod connect
+  defp process_opts(opts) do
+    default = [stdin: true, stdout: true, stderr: true, tty: true]
+    Keyword.merge(default, opts)
+  end
+
 end
