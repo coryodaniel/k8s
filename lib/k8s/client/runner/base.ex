@@ -178,7 +178,7 @@ defmodule K8s.Client.Runner.Base do
 
   defp merge_deprecated_params(%{} = op_params, run_params) do
     Logger.warn(
-      "Providing HTTPoison options to K8s.Client.Runner.Base.run/N is deprecated. Use K8s.Operation's query_params key intead."
+      "Providing HTTPoison options to K8s.Client.Runner.Base.run/N is deprecated. Use K8s.Operation's query_params key instead."
     )
 
     run_params_as_map = Enum.into(run_params, %{})
