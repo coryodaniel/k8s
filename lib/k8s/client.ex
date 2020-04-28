@@ -23,7 +23,7 @@ defmodule K8s.Client do
   @type options :: [option]
 
   alias K8s.Operation
-  alias K8s.Client.Runner.{Async, Base, Stream, Wait, Watch, PodExec}
+  alias K8s.Client.Runner.{Async, Base, Stream, Wait, Watch}
 
   @doc "alias of `K8s.Client.Runner.Base.run/2`"
   defdelegate run(operation, conn), to: Base
