@@ -34,7 +34,7 @@ resource = %{
 }
 
 operation = K8s.Client.create(resource)
-{:ok, conn} = K8s.Conn.lookup(:my_registered_connection_name)
+{:ok, conn} = K8s.Conn.lookup("my_registered_connection_name")
 {:ok, response} = K8s.Client.run(operation, conn)
 ```
 

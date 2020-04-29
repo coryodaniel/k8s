@@ -31,7 +31,7 @@ defmodule K8s.Client.Runner.WatchTest do
 
   setup do
     DynamicHTTPProvider.register(self(), __MODULE__.HTTPMock)
-    {:ok, conn} = K8s.Conn.lookup(:test)
+    {:ok, conn} = K8s.Conn.lookup("test")
     {:ok, %{conn: conn}}
   end
 

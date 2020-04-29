@@ -25,12 +25,12 @@ defmodule K8s.Client.Runner.Base do
 
   ## Examples
 
-  *Note:* Examples assume a `K8s.Conn` was configured named `:test`. See `K8s.Conn.Config`.
+  *Note:* Examples assume a `K8s.Conn` was configured named `"test"`. See `K8s.Conn.Config`.
 
   Running a list pods operation:
 
   ```elixir
-  {:ok, conn} = K8s.Conn.lookup(:test)
+  {:ok, conn} = K8s.Conn.lookup("test")
   operation = K8s.Client.list("v1", "Pod", namespace: :all)
   {:ok, %{"items" => pods}} = K8s.Client.run(operation, conn)
   ```
@@ -71,12 +71,12 @@ defmodule K8s.Client.Runner.Base do
     }
   }
 
-  operation = 
-    deployment 
+  operation =
+    deployment
     |> K8s.Client.create()
     |> K8s.Operation.put_query_param(:dryRun, "all")
 
-  {:ok, conn} = K8s.Conn.lookup(:test)  
+  {:ok, conn} = K8s.Conn.lookup("test")
   {:ok, result} = K8s.Client.Runner.Base.run(operation, conn)
   ```
   """

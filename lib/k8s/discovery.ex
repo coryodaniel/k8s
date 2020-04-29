@@ -52,13 +52,13 @@ defmodule K8s.Discovery do
     discovery_opts: [config: "test/support/discovery/example.json"],
 
     clusters: %{
-      test: %{
+      "test" => %{
         conn: "test/support/kube-config.yaml"
       },
-      dev: %{
+      "dev" => %{
         conn: "test/support/kube-config.yaml"
       },
-      prod: %{
+      "prod" => %{
         conn: "test/support/kube-config.yaml",
         conn_opts: [
           discovery_driver: K8s.Discovery.Driver.HTTP

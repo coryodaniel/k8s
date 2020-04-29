@@ -14,7 +14,7 @@ defmodule K8s.MiddlewareTest do
 
   describe "run/2" do
     test "Applies middleware to a request" do
-      {:ok, conn} = K8s.Conn.lookup(:test)
+      {:ok, conn} = K8s.Conn.lookup("test")
 
       req = %K8s.Middleware.Request{
         conn: conn,

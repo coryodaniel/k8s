@@ -119,13 +119,13 @@ A cluster name must be provided when creating connections from service account d
 If a path isn't provided for the service account, the default path is used `/var/run/secrets/kubernetes.io/serviceaccount`.
 
 ```elixir
-conn = K8s.Conn.from_service_account(:cluster_name_here)
+conn = K8s.Conn.from_service_account("cluster_name_here")
 ```
 
 Optionally the path can be specified:
 
 ```elixir
-conn = K8s.Conn.from_service_account(:cluster_name_here, "/path/to/service/account/directory")
+conn = K8s.Conn.from_service_account("cluster_name_here", "/path/to/service/account/directory")
 ```
 
 **Creating a `K8s.Conn` struct manually:**
@@ -134,7 +134,7 @@ For the use case of having an unbound number of connections (a multi-tenant K8s 
 
 ```elixir
  %K8s.Conn{
-    cluster_name: :default, 
+    cluster_name: "default",
     user_name: "optional-user-name-in-kubeconfig",
     url: "https://ip-address-of-cluster",
     ca_cert: K8s.Conn.PKI.cert_from_map(cluster, base_path),
