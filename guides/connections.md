@@ -69,7 +69,7 @@ Multiple clusters can be registered via environment variables. Keep in mind that
 
 **Environment Variable Prefixes:**
 
-Prefixes are used to configure multiple connections. The word following the last underscore `_` in the prefix will be the name of the connection. This name _will be atomized_.
+Prefixes are used to configure multiple connections. The word following the last underscore `_` in the prefix will be the name of the connection.
 
 * `K8S_CLUSTER_CONF_SA_` - *boolean* enables authentication to the k8s API with the pods `spec.serviceAccount`.
 * `K8S_CLUSTER_CONF_PATH_` - *string* absolute path to the kube config file.

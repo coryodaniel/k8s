@@ -3,7 +3,7 @@ defmodule K8s.Conn.Config do
   Add runtime cluster configuration with environment variables.
 
   Each variable consists of a prefix that determines where the value will be placed in the config
-  and a suffix that is the cluster name. The cluster name will be atomized.
+  and a suffix that is the cluster name.
 
   Environment Variable Prefixes:
   * `K8S_CLUSTER_CONF_SA_` - *boolean* enables authentication to the k8s API with the pods `spec.serviceAccountName`.
