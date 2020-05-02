@@ -38,7 +38,7 @@ defmodule K8s.MixProject do
       {:notion, "~> 0.2"},
       {:telemetry, ">=  0.4.0"},
 
-      # dev/test deps
+      # dev/test deps (e.g. code coverage)
       {:credo, "~> 1.0", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.0.0", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.20", only: :dev},
