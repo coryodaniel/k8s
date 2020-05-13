@@ -31,18 +31,17 @@ jobs:
           elixir-version: ${{matrix.elixir}}
       - run: mix deps.get
       - run: mix dialyzer
-  # coverage:
-  #   name: Coverage
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v1.0.0
-  #     - uses: actions/setup-elixir@v1.0.0
-  #       with:
-  #         otp-version: 22.x
-  #         elixir-version: 1.9.x
-  #     - run: mix deps.get
-  #     - run: mix coveralls
-  #     - name: Coveralls
-  #       uses: coverallsapp/github-action@master
-  #       with:
-  #         github-token: ${{ secrets.COVERALLS_REPO_TOKEN }}
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    env:
+      MIX_ENV: test
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v1.0.0
+      - uses: actions/setup-elixir@v1.0.0
+        with:
+          otp-version: 22.x
+          elixir-version: 1.9.x
+      - run: mix deps.get
+      - run: mix coveralls.github

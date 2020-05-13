@@ -38,11 +38,11 @@ defmodule K8s.MixProject do
       {:notion, "~> 0.2"},
       {:telemetry, ">=  0.4.0"},
 
-      # dev/test deps
+      # dev/test deps (e.g. code coverage)
       {:credo, "~> 1.0", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.0.0", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.20", only: :dev},
-      {:excoveralls, "~> 0.10", only: :test},
+      {:excoveralls, "~> 0.12", only: [:test]},
       {:mix_test_watch, "~> 0.8", only: :dev, runtime: false},
       {:stream_data, "~> 0.4", only: :test}
     ]
