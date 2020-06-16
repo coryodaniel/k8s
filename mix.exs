@@ -33,7 +33,7 @@ defmodule K8s.MixProject do
   defp deps do
     [
       {:yaml_elixir, "~> 2.4"},
-      {:httpoison, "~> 1.0"},
+      {:httpoison, "~> 1.7"},
       {:jason, "~> 1.0"},
       {:notion, "~> 0.2"},
       {:telemetry, ">=  0.4.0"},
