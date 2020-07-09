@@ -1,6 +1,6 @@
 defmodule K8s.Resource.NamedList do
   @moduledoc """
-  Provides an accessor to a list of maps whereas each element in the list nas a key named "name". The name should
+  Provides an accessor to a list of maps whereas each element in the list has a key named "name". The name should
   be unique within the list and therefore defining the element.
 
   ## Examples
@@ -19,7 +19,7 @@ defmodule K8s.Resource.NamedList do
   def access(name) do
     fn op, data, next ->
       if Enum.count(data, match_name_callback(name)) > 1 do
-        raise ArgumentError, "The name #{name} ist not unique in the given list: #{inspect(data)}"
+        raise ArgumentError, "The name #{name} is not unique in the given list: #{inspect(data)}"
       end
 
       access(op, data, name, next)
