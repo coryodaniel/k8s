@@ -63,3 +63,13 @@ users:
         expiry-key: '{.credential.token_expiry}'
         token-key: '{.credential.access_token}'
       name: gcp
+- name: exec-user
+  user:
+    exec:
+      apiVersion: client.authentication.k8s.io/v1alpha1
+      command: echo
+      args:
+        - "foo"
+      env:
+        - name: "FOO"
+          value: "bar"

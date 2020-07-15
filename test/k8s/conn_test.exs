@@ -2,8 +2,7 @@ defmodule K8s.ConnTest do
   @moduledoc false
   use ExUnit.Case, async: true
   doctest K8s.Conn
-
-  alias K8s.Conn.Auth.{AuthProvider, Certificate, Token}
+  alias K8s.Conn.Auth.{AuthProvider, Certificate, Exec, Token}
   alias K8s.Conn.RequestOptions
 
   describe "list/0" do
@@ -84,6 +83,12 @@ defmodule K8s.ConnTest do
     test "loading an auth-provider" do
       config = K8s.Conn.from_file("test/support/kube-config.yaml", user: "auth-provider-user")
       assert %AuthProvider{} = config.auth
+      assert config.url == "https://localhost:6443"
+    end
+
+    test "loading an exec user" do
+      config = K8s.Conn.from_file("test/support/kube-config.yaml", user: "exec-user")
+      assert %Exec{} = config.auth
       assert config.url == "https://localhost:6443"
     end
   end

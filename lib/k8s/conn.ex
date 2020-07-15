@@ -17,6 +17,7 @@ defmodule K8s.Conn do
     K8s.Conn.Auth.Certificate,
     K8s.Conn.Auth.Token,
     K8s.Conn.Auth.AuthProvider,
+    K8s.Conn.Auth.Exec,
     K8s.Conn.Auth.BasicAuth
   ]
 
