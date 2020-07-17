@@ -19,8 +19,8 @@ jobs:
       - name: Setup elixir
         uses: actions/setup-elixir@v1
         with:
-          elixir-version: ${{matrix.elixir}}
-          otp-version: ${{matrix.otp}}
+          elixir-version: ${{matrix.pair.elixir-version}}
+          otp-version: ${{matrix.pair.otp-version}}
 
       - name: Retrieve Mix Dependencies Cache
         uses: actions/cache@v1
