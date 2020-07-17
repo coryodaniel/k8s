@@ -31,10 +31,16 @@ jobs:
 
       - name: Install Mix Dependencies
         if: steps.mix-cache.outputs.cache-hit != 'true'
+        with:
+          elixir-version: ${{matrix.pair.elixir-version}}
+          otp-version: ${{matrix.pair.otp-version}}
         run: |
           mix local.rebar --force
           mix local.hex --force
           mix deps.get
 
       - name: Run Tests
+        with:
+          elixir-version: ${{matrix.pair.elixir-version}}
+          otp-version: ${{matrix.pair.otp-version}}
         run: mix test
