@@ -1,15 +1,21 @@
-name: CI Workflow
+name: CI
 on: push
 env:
   MIX_ENV: test
 
 jobs:
-  test:
+  once:
+    runs-on: ubuntu-latest
+
+  matrix:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        elixir: [1.9.x, 1.10.4]
-        otp: [22.x]
+        pairs:
+          - otp-version: "23.0"
+            elixir-version: "1.10"
+          - otp-version: "22.x"
+            elixir-version: "1.9.x"
     steps:
       - uses: actions/checkout@v2
 
@@ -24,7 +30,7 @@ jobs:
         id: mix-cache
         with:
           path: deps
-          key: ${{ runner.os }}-${{ matrix.otp }}-${{ matrix.elixir }}-mix-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
+          key: ${{ runner.os }}-${{ matrix.pair.otp-version }}-${{ matrix.pair.elixir-version }}-mix-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
 
       - name: Install Mix Dependencies
         if: steps.mix-cache.outputs.cache-hit != 'true'
