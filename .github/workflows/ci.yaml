@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        elixir: [1.10.2]
+        elixir: [1.10.4]
         otp: [22.x]
     steps:
       - uses: actions/checkout@v2
@@ -61,5 +61,6 @@ jobs:
         run: |
           mkdir -p priv/plts
           mix dialyzer --plt
+
       - name: Run dialyzer
         run: mix dialyzer --no-check --halt-exit-status
