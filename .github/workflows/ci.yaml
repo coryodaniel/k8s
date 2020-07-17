@@ -4,7 +4,7 @@ env:
   MIX_ENV: test
 
 jobs:
-  test:
+  tests:
     runs-on: ubuntu-latest
     strategy:
       matrix:
