@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.5.1] - 2020-07-17
+
 ### Added
 - K8s.Operation struct `query_params` field
 - BasicAuth auth provider
