@@ -191,12 +191,8 @@ defmodule K8s.Operation do
 
 
   """
-  # covers when query_params have not been set yet and they are intended to be a Map
-  def put_query_param(%Operation{query_params: nil} = op, key, value) do
-    new_params = Map.put(%{}, key, value)
-    %Operation{op | query_params: new_params}
-  end
-  def put_query_param(%Operation{query_params: params} = op, key, value) when is_map(params) do
+  @spec put_query_param(Operation.t(), atom(), String.t() | K8s.Selector.t()) :: Operation.t()
+  def put_query_param(%Operation{query_params: params} = op, key, value) do
     new_params = Map.put(params, key, value)
     %Operation{op | query_params: new_params}
   end
@@ -217,5 +213,6 @@ defmodule K8s.Operation do
       ...> K8s.Operation.get_query_param(operation, :foo)
       "bar"
   """
+  @spec get_query_param(Operation.t(), atom()) :: any()
   def get_query_param(%Operation{query_params: params}, key), do: Map.get(params, key)
 end

@@ -7,7 +7,7 @@ defmodule K8s.Sys.Logger do
   Attaches telemetry events to the Elixir Logger
   """
   @spec attach() :: :ok
-  def attach() do
+  def attach do
     events = K8s.Sys.Event.events()
     :telemetry.attach_many("k8s-events-logger", events, &log_handler/4, :debug)
   end

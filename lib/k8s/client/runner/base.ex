@@ -15,11 +15,8 @@ defmodule K8s.Client.Runner.Base do
   @type body_t :: list(map()) | map() | binary() | nil
 
   alias K8s.Conn
-  alias K8s.Operation
   alias K8s.Middleware.Request
-  alias K8s.Conn.RequestOptions
-  alias K8s.Discovery
-
+  alias K8s.Operation
 
   require Logger
 
@@ -186,14 +183,8 @@ defmodule K8s.Client.Runner.Base do
   end
 
   @spec build_http_params(keyword | map, nil | K8s.Selector.t()) :: map()
-  # defp build_http_params(nil, nil), do: %{}  
-  # for Pod connect
-  defp build_http_params(params, nil) when is_list(params) do
-    process_opts(params)
-    |> Keyword.drop([:stream_to])
-  end
-  defp build_http_params(params, nil), do: Enum.into(params, %{})  
-  
+  defp build_http_params(params, nil), do: Enum.into(params, %{})
+
   # Supplying a `labelSelector` to `run/4 should take precedence
   defp build_http_params(params, %K8s.Selector{} = s) do
     # After HTTPoison options are removed from run/N, this will always be a map()

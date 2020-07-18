@@ -2,8 +2,8 @@ defmodule K8s.ConnTest do
   @moduledoc false
   use ExUnit.Case, async: true
   doctest K8s.Conn
-  alias K8s.Conn
-  alias K8s.Conn.Auth.{Certificate, Token, AuthProvider}
+
+  alias K8s.Conn.Auth.{AuthProvider, Certificate, Token}
   alias K8s.Conn.RequestOptions
 
   describe "list/0" do
@@ -26,7 +26,7 @@ defmodule K8s.ConnTest do
 
   describe "from_file/2" do
     test "parses a configuration file" do
-      config = Conn.from_file("test/support/kube-config.yaml")
+      config = K8s.Conn.from_file("test/support/kube-config.yaml")
       assert %Certificate{} = config.auth
       assert config.url == "https://localhost:6443"
       assert config.cluster_name == :"docker-for-desktop-cluster"
@@ -34,7 +34,9 @@ defmodule K8s.ConnTest do
     end
 
     test "using an alternate cluster: cluster-with-cert-data" do
-      config = Conn.from_file("test/support/kube-config.yaml", cluster: "cluster-with-cert-data")
+      config =
+        K8s.Conn.from_file("test/support/kube-config.yaml", cluster: "cluster-with-cert-data")
+
       assert %Certificate{} = config.auth
       assert config.url == "https://123.123.123.123"
       assert config.cluster_name == :"cluster-with-cert-data"
@@ -44,7 +46,7 @@ defmodule K8s.ConnTest do
     end
 
     test "using an alternate cluster" do
-      config = Conn.from_file("test/support/kube-config.yaml", cluster: "cert-cluster")
+      config = K8s.Conn.from_file("test/support/kube-config.yaml", cluster: "cert-cluster")
       assert %Certificate{} = config.auth
       assert config.url == "https://localhost:6443"
       assert config.cluster_name == :"cert-cluster"
@@ -54,7 +56,7 @@ defmodule K8s.ConnTest do
     end
 
     test "using an alternate context" do
-      config = Conn.from_file("test/support/kube-config.yaml", context: "insecure-context")
+      config = K8s.Conn.from_file("test/support/kube-config.yaml", context: "insecure-context")
       assert %Certificate{} = config.auth
       assert config.url == "https://localhost:6443"
       refute config.ca_cert
@@ -64,7 +66,7 @@ defmodule K8s.ConnTest do
     end
 
     test "using an alternate user" do
-      config = Conn.from_file("test/support/kube-config.yaml", user: "base64-cert-user")
+      config = K8s.Conn.from_file("test/support/kube-config.yaml", user: "base64-cert-user")
       assert %Certificate{} = config.auth
       assert config.url == "https://localhost:6443"
       assert config.user_name == "base64-cert-user"
@@ -73,14 +75,14 @@ defmodule K8s.ConnTest do
     end
 
     test "loading a token user" do
-      config = Conn.from_file("test/support/kube-config.yaml", user: "token-user")
+      config = K8s.Conn.from_file("test/support/kube-config.yaml", user: "token-user")
       assert %Token{} = config.auth
       assert config.url == "https://localhost:6443"
       assert config.auth.token
     end
 
     test "loading an auth-provider" do
-      config = Conn.from_file("test/support/kube-config.yaml", user: "auth-provider-user")
+      config = K8s.Conn.from_file("test/support/kube-config.yaml", user: "auth-provider-user")
       assert %AuthProvider{} = config.auth
       assert config.url == "https://localhost:6443"
     end
@@ -91,7 +93,7 @@ defmodule K8s.ConnTest do
       System.put_env("KUBERNETES_SERVICE_HOST", "kewlhost")
       System.put_env("KUBERNETES_SERVICE_PORT", "1337")
 
-      config = Conn.from_service_account(:test_sa_cluster, "test/support/tls")
+      config = K8s.Conn.from_service_account(:test_sa_cluster, "test/support/tls")
       assert %Token{} = config.auth
       assert config.cluster_name == :test_sa_cluster
       assert config.url == "https://kewlhost:1337"
@@ -103,7 +105,7 @@ defmodule K8s.ConnTest do
   describe "generating RequestOptions" do
     test "generates headers for the given auth provider" do
       opts = [user: "token-user", cluster: "insecure-cluster"]
-      config = Conn.from_file("test/support/kube-config.yaml", opts)
+      config = K8s.Conn.from_file("test/support/kube-config.yaml", opts)
 
       assert {:ok, %RequestOptions{headers: headers, ssl_options: ssl_options}} =
                RequestOptions.generate(config)
@@ -114,7 +116,7 @@ defmodule K8s.ConnTest do
 
     test "generates ssl_options for the given auth provider" do
       opts = [user: "pem-cert-user", cluster: "insecure-cluster"]
-      config = Conn.from_file("test/support/kube-config.yaml", opts)
+      config = K8s.Conn.from_file("test/support/kube-config.yaml", opts)
 
       assert {:ok, %RequestOptions{headers: headers, ssl_options: ssl_options}} =
                RequestOptions.generate(config)
@@ -125,7 +127,7 @@ defmodule K8s.ConnTest do
 
     test "includes cacerts if provided" do
       opts = [user: "pem-cert-user", cluster: "cert-cluster"]
-      config = Conn.from_file("test/support/kube-config.yaml", opts)
+      config = K8s.Conn.from_file("test/support/kube-config.yaml", opts)
 
       assert {:ok, %RequestOptions{headers: headers, ssl_options: ssl_options}} =
                RequestOptions.generate(config)
@@ -136,7 +138,7 @@ defmodule K8s.ConnTest do
 
     test "when skipping TLS verification" do
       opts = [user: "pem-cert-user", cluster: "insecure-cluster"]
-      config = Conn.from_file("test/support/kube-config.yaml", opts)
+      config = K8s.Conn.from_file("test/support/kube-config.yaml", opts)
 
       assert {:ok, %RequestOptions{headers: headers, ssl_options: ssl_options}} =
                RequestOptions.generate(config)
