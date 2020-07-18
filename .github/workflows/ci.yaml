@@ -14,7 +14,7 @@ jobs:
     strategy:
       matrix:
         elixir: [1.10.2]
-        otp: [23.x]
+        otp: [22.x]
     steps:
       - uses: actions/checkout@v2
 
@@ -38,8 +38,8 @@ jobs:
           mix local.hex --force
           mix deps.get
 
-      - name: Check Formatting
-        run: mix format --check-formatted
+      # - name: Check Formatting
+      #   run: mix format --check-formatted
 
       - name: Run Credo
         run: mix credo --strict
