@@ -184,7 +184,7 @@ defmodule K8s.Operation do
       ...> K8s.Operation.put_query_param(operation, "foo", "bar")
       %K8s.Operation{query_params: %{"foo" => "bar"}}
   """
-  @spec put_query_param(Operation.t(), String.t(), String.t()) :: Operation.t()
+  @spec put_query_param(Operation.t(), atom(), String.t() | K8s.Selector.t()) :: Operation.t()
   def put_query_param(%Operation{query_params: params} = op, key, value) do
     new_params = Map.put(params, key, value)
     %Operation{op | query_params: new_params}
@@ -198,6 +198,6 @@ defmodule K8s.Operation do
       ...> K8s.Operation.get_query_param(operation, :foo)
       "bar"
   """
-  @spec get_query_param(Operation.t(), String.t()) :: Map.t()
+  @spec get_query_param(Operation.t(), atom()) :: any()
   def get_query_param(%Operation{query_params: params}, key), do: Map.get(params, key)
 end

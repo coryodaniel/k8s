@@ -1,4 +1,4 @@
-name: Test Matrix
+name: Compatibility Matrix
 on: push
 jobs:
   test:
