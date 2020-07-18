@@ -15,8 +15,8 @@ defmodule K8s.Client.Runner.Base do
   @type body_t :: list(map()) | map() | binary() | nil
 
   alias K8s.Conn
-  alias K8s.Operation
   alias K8s.Middleware.Request
+  alias K8s.Operation
 
   require Logger
 
@@ -156,7 +156,6 @@ defmodule K8s.Client.Runner.Base do
   end
 
   @spec build_http_params(keyword | map, nil | K8s.Selector.t()) :: map()
-  # defp build_http_params(nil, nil), do: %{}  
   defp build_http_params(params, nil), do: Enum.into(params, %{})
 
   # Supplying a `labelSelector` to `run/4 should take precedence

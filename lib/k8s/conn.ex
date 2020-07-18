@@ -52,8 +52,8 @@ defmodule K8s.Conn do
   [%K8s.Conn{ca_cert: nil, auth: %K8s.Conn.Auth{}, cluster_name: :"docker-for-desktop-cluster", discovery_driver: K8s.Discovery.Driver.File, discovery_opts: [config: "test/support/discovery/example.json"], insecure_skip_tls_verify: true, url: "https://localhost:6443", user_name: "docker-for-desktop"}]
   ```
   """
-  @spec list() :: list(K8s.Conn.t())
-  def list() do
+  @spec list :: list(K8s.Conn.t())
+  def list do
     Enum.reduce(Config.all(), [], fn {cluster_name, conf}, agg ->
       conn = config_to_conn(conf, cluster_name)
       [conn | agg]
@@ -147,8 +147,8 @@ defmodule K8s.Conn do
 
   [kubernetes.io :: Accessing the API from a Pod](https://kubernetes.io/docs/tasks/access-application-cluster/access-cluster/#accessing-the-api-from-a-pod)
   """
-  @spec from_service_account() :: K8s.Conn.t()
-  def from_service_account() do
+  @spec from_service_account :: K8s.Conn.t()
+  def from_service_account do
     from_service_account(@service_account_cluster_name)
   end
 

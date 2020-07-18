@@ -28,13 +28,13 @@ defmodule K8s.Conn.Config do
   @doc """
   Returns runtime and compile time cluster configuration merged together.
   """
-  @spec all() :: map()
-  def all() do
+  @spec all :: map()
+  def all do
     merge_configs(runtime_cluster_configs(), compiletime_cluster_configs())
   end
 
-  @spec compiletime_cluster_configs() :: map()
-  def compiletime_cluster_configs() do
+  @spec compiletime_cluster_configs :: map()
+  def compiletime_cluster_configs do
     Application.get_env(:k8s, :clusters, %{})
   end
 
@@ -101,12 +101,12 @@ defmodule K8s.Conn.Config do
   defp cluster_name(@env_var_path_prefix <> cluster_name), do: cluster_name
   defp cluster_name(@env_var_sa_prefix <> cluster_name), do: cluster_name
 
-  @spec runtime_cluster_configs() :: map
+  @spec runtime_cluster_configs :: map
   @doc "Parses ENV variables to runtime cluster configs"
-  def runtime_cluster_configs(), do: Map.take(System.get_env(), env_keys())
+  def runtime_cluster_configs, do: Map.take(System.get_env(), env_keys())
 
-  @spec env_keys() :: list(binary)
-  defp env_keys() do
+  @spec env_keys :: list(binary)
+  defp env_keys do
     System.get_env()
     |> Map.keys()
     |> Enum.filter(&String.starts_with?(&1, @env_var_prefix))

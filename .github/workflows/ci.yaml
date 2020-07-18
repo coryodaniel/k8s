@@ -63,4 +63,4 @@ jobs:
           mix dialyzer --plt
 
       - name: Run dialyzer
-        run: mix dialyzer --no-check --halt-exit-status
+        run: mix dialyzer --no-check
