@@ -39,6 +39,7 @@ defmodule K8s.MixProject do
       {:telemetry, ">=  0.4.0"},
 
       # dev/test deps (e.g. code coverage)
+      {:inch_ex, github: "rrrene/inch_ex", only: [:dev, :test]},
       {:credo, "~> 1.0", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.0.0", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.20", only: :dev},
