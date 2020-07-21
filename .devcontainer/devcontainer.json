@@ -1,0 +1,11 @@
+{
+    "name": "Elixir",
+	"dockerFile": "Dockerfile",
+    "settings": {
+        "terminal.integrated.shell.linux": "/bin/bash"
+    },
+    "extensions": [
+        "jakebecker.elixir-ls"
+    ],
+	"postCreateCommand": "elixir -v"    
+}
