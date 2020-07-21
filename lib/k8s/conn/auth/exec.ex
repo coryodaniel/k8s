@@ -56,6 +56,7 @@ defmodule K8s.Conn.Auth.Exec do
 
   def create(_, _), do: nil
 
+  defp format_env(nil), do: %{}
   defp format_env(env) when is_list(env), do: Enum.into(env, %{}, &format_env/1)
   defp format_env(%{"name" => key, "value" => value}), do: {key, value}
 

@@ -52,6 +52,22 @@ defmodule K8s.Conn.Auth.ExecTest do
                args: []
              } = Exec.create(auth, nil)
     end
+
+    test "creates an exec struct with null env" do
+      auth = %{
+        "exec" => %{
+          "apiVersion" => "client.authentication.k8s.io/v1alpha1",
+          "command" => "aws-iam-authenticator",
+          "env" => nil
+        }
+      }
+
+      assert %Exec{
+               command: "aws-iam-authenticator",
+               env: %{},
+               args: []
+             } = Exec.create(auth, nil)
+    end
   end
 
   test "creates http request signing options" do
