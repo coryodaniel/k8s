@@ -98,16 +98,5 @@ defmodule K8s.Conn.Auth.Exec do
   defp parse_cmd_response(%{"kind" => "ExecCredential", "status" => %{"token" => token}}),
     do: {:ok, token}
 
-  #  # TODO: support clientKeyData and clientCertificateData
-  #  defp parse_cmd_response(
-  #         %{
-  #           "kind" => "ExecCredential",
-  #           "status" => %{
-  #             "clientCertificateData" => _certData,
-  #             "clientKeyData" => _keyData
-  #           }
-  #         }
-  #       ), do: {:error, {:exec_fail, "Unsupported ExecCredential"}}
-
   defp parse_cmd_response(_), do: {:error, {:exec_fail, "Unsupported ExecCredential"}}
 end
