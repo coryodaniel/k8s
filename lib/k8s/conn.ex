@@ -73,9 +73,9 @@ defmodule K8s.Conn do
   """
   @spec lookup(atom()) :: {:ok, K8s.Conn.t()} | {:error, :connection_not_registered}
   def lookup(cluster_name) do
-    config = Map.get(Config.all(), cluster_name)
-
-    case config do
+    Config.all()
+    |> Map.get(cluster_name)
+    |> case do
       nil -> {:error, :connection_not_registered}
       config -> {:ok, config_to_conn(config, cluster_name)}
     end
@@ -83,7 +83,9 @@ defmodule K8s.Conn do
 
   @spec config_to_conn(map, atom) :: K8s.Conn.t()
   defp config_to_conn(config, cluster_name) do
-    case Map.get(config, :conn) do
+    config
+    |> Map.get(:conn)
+    |> case do
       nil ->
         K8s.Conn.from_service_account(cluster_name)
 
@@ -185,7 +187,9 @@ defmodule K8s.Conn do
   @doc false
   @spec resolve_file_path(binary, binary) :: binary
   def resolve_file_path(file_name, base_path) do
-    case Path.type(file_name) do
+    file_name
+    |> Path.type()
+    |> case do
       :absolute -> file_name
       _ -> Path.join([base_path, file_name])
     end
@@ -205,16 +209,20 @@ defmodule K8s.Conn do
     @doc "Generates HTTP Authorization options for certificate authentication"
     @spec generate(K8s.Conn.t()) :: K8s.Conn.RequestOptions.generate_t()
     def generate(%K8s.Conn{} = conn) do
-      case RequestOptions.generate(conn.auth) do
+      conn.auth
+      |> RequestOptions.generate()
+      |> case do
         {:ok, %RequestOptions{headers: headers, ssl_options: auth_options}} ->
           verify_options =
-            case conn.insecure_skip_tls_verify do
-              true -> [verify: :verify_none]
-              _ -> []
+            if conn.insecure_skip_tls_verify do
+              [verify: :verify_none]
+            else
+              []
             end
 
           ca_options =
-            case conn.ca_cert do
+            conn.ca_cert
+            |> case do
               nil -> []
               cert -> [cacerts: [cert]]
             end

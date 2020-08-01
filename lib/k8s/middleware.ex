@@ -43,20 +43,20 @@ defmodule K8s.Middleware do
 
   @spec run(Request.t(), list(module())) :: {:ok, Request.t()} | {:error, Error.t()}
   def run(%Request{} = req, middlewares) do
-    result =
-      Enum.reduce_while(middlewares, req, fn middleware, req ->
-        case apply(middleware, :call, [req]) do
-          {:ok, updated_request} ->
-            {:cont, updated_request}
+    Enum.reduce_while(middlewares, req, fn middleware, req ->
+      middleware
+      |> apply(:call, [req])
+      |> case do
+        {:ok, updated_request} ->
+          {:cont, updated_request}
 
-          {:error, error} ->
-            {:halt, error(middleware, req, error)}
-        end
-      end)
-
-    case result do
-      %Request{} -> {:ok, result}
-      %Error{} -> {:error, result}
+        {:error, error} ->
+          {:halt, error(middleware, req, error)}
+      end
+    end)
+    |> case do
+      %Request{} = result -> {:ok, result}
+      %Error{} = result -> {:error, result}
     end
   end
 
