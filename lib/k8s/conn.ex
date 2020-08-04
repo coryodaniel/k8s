@@ -29,7 +29,8 @@ defmodule K8s.Conn do
             ca_cert: nil,
             auth: nil,
             discovery_driver: nil,
-            discovery_opts: nil
+            discovery_opts: nil,
+            http_provider: nil
 
   @type t :: %__MODULE__{
           cluster_name: atom(),
@@ -39,7 +40,8 @@ defmodule K8s.Conn do
           ca_cert: String.t() | nil,
           auth: auth_t,
           discovery_driver: module(),
-          discovery_opts: Keyword.t()
+          discovery_opts: Keyword.t(),
+          http_provider: module()
         }
 
   @doc """
@@ -124,25 +126,20 @@ defmodule K8s.Conn do
     cluster_name = opts[:cluster] || context["cluster"]
     cluster = find_by_name(config["clusters"], cluster_name, "cluster")
 
-    discovery_driver = opts[:discovery_driver] || K8s.Discovery.default_driver()
-    discovery_opts = opts[:discovery_opts] || K8s.Discovery.default_opts()
-
-    %Conn{
+    conn = %Conn{
       cluster_name: String.to_atom(cluster_name),
       user_name: user_name,
       url: cluster["server"],
       ca_cert: PKI.cert_from_map(cluster, base_path),
       auth: get_auth(user, base_path),
-      insecure_skip_tls_verify: cluster["insecure-skip-tls-verify"],
-      discovery_driver: discovery_driver,
-      discovery_opts: discovery_opts
+      insecure_skip_tls_verify: cluster["insecure-skip-tls-verify"]
     }
+
+    maybe_set_defaults(conn)
   end
 
   @doc """
   Generates configuration from kubernetes service account.
-
-
 
   ## Links
 
@@ -165,15 +162,30 @@ defmodule K8s.Conn do
     cert_path = Path.join(root_sa_path, "ca.crt")
     token_path = Path.join(root_sa_path, "token")
 
-    %Conn{
+    conn = %Conn{
       cluster_name: cluster_name,
       url: "https://#{host}:#{port}",
       ca_cert: PKI.cert_from_pem(cert_path),
-      auth: %K8s.Conn.Auth.Token{token: File.read!(token_path)},
-      discovery_driver: K8s.Discovery.default_driver(),
-      discovery_opts: K8s.Discovery.default_opts()
+      auth: %K8s.Conn.Auth.Token{token: File.read!(token_path)}
     }
+
+    maybe_set_defaults(conn)
   end
+
+  @doc "Adds default configuration options if not set"
+  @spec maybe_set_defaults(Conn.t()) :: Conn.t()
+  def maybe_set_defaults(%Conn{} = conn) do    
+    defaults = %{
+      discovery_driver: K8s.Discovery.default_driver(),
+      discovery_opts: K8s.Discovery.default_opts(),
+      http_provider: K8s.default_http_provider()
+    }
+
+    Enum.reduce(defaults, conn, fn({k,v}, conn) -> 
+      value = Map.get(conn, k) || v
+      %{conn | k => value}
+    end)
+  end  
 
   @spec find_by_name([map()], String.t(), String.t()) :: map()
   defp find_by_name(items, name, type) do
