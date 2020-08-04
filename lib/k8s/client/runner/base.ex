@@ -127,11 +127,13 @@ defmodule K8s.Client.Runner.Base do
     %Request{req | opts: http_opts, url: url}
   end
 
-  @spec maybe_get_deprecated_label_selector(K8s.Selector.t() | nil, K8s.Selector.t() | nil) :: K8s.Selector.t() | nil
+  @spec maybe_get_deprecated_label_selector(K8s.Selector.t() | nil, K8s.Selector.t() | nil) ::
+          K8s.Selector.t() | nil
   defp maybe_get_deprecated_label_selector(new_label_selector, nil), do: new_label_selector
-  
+
   @deprecated "K8s.Operation label_selector is deprecated. Use K8s.Selector functions instead."
-  defp maybe_get_deprecated_label_selector(nil, deprecated_label_selector), do: deprecated_label_selector
+  defp maybe_get_deprecated_label_selector(nil, deprecated_label_selector),
+    do: deprecated_label_selector
 
   @spec merge_deprecated_params(map(), nil | map()) :: map()
   defp merge_deprecated_params(op_params, nil), do: op_params

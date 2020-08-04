@@ -28,9 +28,9 @@ defmodule K8s.Conn do
             insecure_skip_tls_verify: false,
             ca_cert: nil,
             auth: nil,
-            discovery_driver: nil,
-            discovery_opts: nil,
-            http_provider: nil
+            discovery_driver: K8s.default_discovery_driver(),
+            discovery_opts: K8s.default_discovery_opts(),
+            http_provider: K8s.default_http_provider()
 
   @type t :: %__MODULE__{
           cluster_name: atom(),
@@ -135,7 +135,18 @@ defmodule K8s.Conn do
       insecure_skip_tls_verify: cluster["insecure-skip-tls-verify"]
     }
 
-    maybe_set_defaults(conn)
+    maybe_update_defaults(conn, config)
+  end
+
+  @spec maybe_update_defaults(Conn.t(), map()) :: Conn.t()
+  defp maybe_update_defaults(%Conn{} = conn, config) do
+    defaults = [:discovery_driver, :discovery_opts, :http_provider]
+
+    Enum.reduce(defaults, conn, fn k, conn ->
+      conn_value = Map.get(conn, k)
+      config_value = Map.get(config, k)
+      %{conn | k => config_value || conn_value}
+    end)
   end
 
   @doc """
@@ -162,30 +173,13 @@ defmodule K8s.Conn do
     cert_path = Path.join(root_sa_path, "ca.crt")
     token_path = Path.join(root_sa_path, "token")
 
-    conn = %Conn{
+    %Conn{
       cluster_name: cluster_name,
       url: "https://#{host}:#{port}",
       ca_cert: PKI.cert_from_pem(cert_path),
       auth: %K8s.Conn.Auth.Token{token: File.read!(token_path)}
     }
-
-    maybe_set_defaults(conn)
   end
-
-  @doc "Adds default configuration options if not set"
-  @spec maybe_set_defaults(Conn.t()) :: Conn.t()
-  def maybe_set_defaults(%Conn{} = conn) do    
-    defaults = %{
-      discovery_driver: K8s.Discovery.default_driver(),
-      discovery_opts: K8s.Discovery.default_opts(),
-      http_provider: K8s.default_http_provider()
-    }
-
-    Enum.reduce(defaults, conn, fn({k,v}, conn) -> 
-      value = Map.get(conn, k) || v
-      %{conn | k => value}
-    end)
-  end  
 
   @spec find_by_name([map()], String.t(), String.t()) :: map()
   defp find_by_name(items, name, type) do
