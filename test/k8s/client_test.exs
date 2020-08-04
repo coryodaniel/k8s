@@ -6,17 +6,10 @@ defmodule K8s.ClientTest do
     use ExUnit.Case, async: false
 
     def conn() do
-    #   # @HERE HTTP Driver needs to be per connection.
-    #   %K8s.Conn{
-    #     cluster_name: :default, 
-    #     user_name: "optional-user-name-in-kubeconfig",
-    #     url: "https://ip-address-of-cluster",
-    #     ca_cert: K8s.Conn.PKI.cert_from_map(cluster, base_path),
-    #     auth: %K8s.Conn.Auth{},
-    #     insecure_skip_tls_verify: false,
-    #     discovery_driver: K8s.Discovery.Driver.HTTP,
-    #     discovery_opts: [cache: true]
-    #   }      
+      # @HERE HTTP Driver needs to be per connection.
+      "KUBECONFIG"
+      |> System.get_env()
+      |> K8s.Conn.from_file()
     end
 
     def pod() do
@@ -28,32 +21,47 @@ defmodule K8s.ClientTest do
       }
     end
 
-    def setup do
+    setup do
       {:ok, %{conn: conn()}}
     end
 
     @tag external: true
     describe "namespaced scoped resources" do
       test "creating a resource", %{conn: conn} do
-        pod()
-        |> K8s.Client.create()
-        |> K8s.Client.run(conn)
-        assert false
+        op = K8s.Client.create(pod())
+        result = K8s.Client.run(op, conn)
+        
+        assert {:ok, _pod} = result
+      end
+
+      test "getting a resource", %{conn: conn} do
+        op = K8s.Client.get("v1", "ServiceAccount", name: "default", namespace: "default")
+        result = K8s.Client.run(op, conn)
+        
+        assert {:ok,  %{"apiVersion" => "v1", "kind" => "ServiceAccount"}} = result
+      end
+
+      test "listing resources", %{conn: conn} do
+        op = K8s.Client.list("v1", "ServiceAccount", namespace: "default")
+        {:ok, service_accounts} = K8s.Client.run(op, conn)
+        
+        assert length(service_accounts) == 1
+        assert %{"apiVersion" => "v1", "kind" => "ServiceAccount"} = List.first(service_accounts)
       end
     end
 
-    @tag external: true
-    describe "cluster scoped resources" do
-      test "foo", %{conn: conn} do
-        assert false
-      end
-    end
+    # @tag external: true
+    # describe "cluster scoped resources" do
+    #   test "foo", %{conn: conn} do
+    #     assert false
+    #   end
+    # end
 
-    @tag external: true
-    describe "custom resources" do
-      test "foo", %{conn: conn} do
-        assert false
-      end
-    end
+    # @tag external: true
+    # describe "custom resources" do
+    #   test "foo", %{conn: conn} do
+    #     assert false
+    #   end
+    # end
   end
 end
