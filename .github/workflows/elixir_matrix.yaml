@@ -1,4 +1,4 @@
-name: Compatibility Matrix
+name: Elixir Compatibility Matrix
 on: push
 jobs:
   test:

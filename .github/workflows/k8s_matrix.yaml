@@ -1,4 +1,4 @@
-name: Kubernetes Support Testing
+name: Kubernetes Compatibility Matrix
 on: push
 jobs:
   test:
@@ -11,6 +11,15 @@ jobs:
       id: k3s
       with:
         version: ${{ matrix.k8s_version }}
+    - uses: actions/checkout@v1.0.0
+    - uses: actions/setup-elixir@v1.0.0
+      with:
+        otp-version: 22.x
+        elixir-version: 1.10.2
     - name: Test on k3s
       run: |
-        kubectl get nodes
+        kubectl get nodes        
+    - run: mix local.rebar --force
+    - run: mix local.hex --force
+    - run: mix deps.get
+    - run: mix test --only external
