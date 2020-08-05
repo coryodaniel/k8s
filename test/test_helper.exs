@@ -1,2 +1,2 @@
 K8s.Client.DynamicHTTPProvider.start_link(nil)
-ExUnit.start()
+ExUnit.start(exclude: [:external])

@@ -5,7 +5,7 @@ defmodule K8s.MixProject do
     [
       app: :k8s,
       description: "Kubernetes API Client for Elixir",
-      version: "0.5.0",
+      version: "0.5.2",
       elixir: "~> 1.9",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -33,16 +33,17 @@ defmodule K8s.MixProject do
   defp deps do
     [
       {:yaml_elixir, "~> 2.4"},
-      {:httpoison, "~> 1.0"},
+      {:httpoison, "~> 1.7"},
       {:jason, "~> 1.0"},
       {:notion, "~> 0.2"},
       {:telemetry, ">=  0.4.0"},
 
-      # dev/test deps
+      # dev/test deps (e.g. code coverage)
+      {:inch_ex, github: "rrrene/inch_ex", only: [:dev, :test]},
       {:credo, "~> 1.0", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.0.0", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.20", only: :dev},
-      {:excoveralls, "~> 0.10", only: :test},
+      {:excoveralls, "~> 0.12", only: [:test]},
       {:mix_test_watch, "~> 0.8", only: :dev, runtime: false},
       {:stream_data, "~> 0.4", only: :test}
     ]
@@ -88,8 +89,9 @@ defmodule K8s.MixProject do
 
   defp dialyzer do
     [
-      plt_add_apps: [:mix, :eex],
       ignore_warnings: ".dialyzer_ignore.exs",
+      plt_add_apps: [:mix, :eex],
+      plt_core_path: "priv/plts",
       plt_file: {:no_warn, "priv/plts/k8s.plt"}
     ]
   end

@@ -26,8 +26,8 @@ defmodule K8s.Client.DynamicHTTPProvider do
   end
 
   @doc "List all registered handlers"
-  @spec list() :: map()
-  def list(), do: GenServer.call(__MODULE__, :list)
+  @spec list :: map()
+  def list, do: GenServer.call(__MODULE__, :list)
 
   @doc "Register the handler mdoule for this process"
   @spec register(pid(), module() | function()) :: map()

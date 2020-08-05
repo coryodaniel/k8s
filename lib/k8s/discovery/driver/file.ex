@@ -70,9 +70,9 @@ defmodule K8s.Discovery.Driver.File do
   end
 
   @spec default_opts() :: Keyword.t()
-  defp default_opts() do
-    case K8s.Discovery.default_driver() do
-      __MODULE__ -> K8s.Discovery.default_opts()
+  defp default_opts do
+    case K8s.default_discovery_driver() do
+      __MODULE__ -> K8s.default_discovery_opts()
       _ -> []
     end
   end
