@@ -126,7 +126,7 @@ defmodule K8s.Conn do
     cluster_name = opts[:cluster] || context["cluster"]
     cluster = find_by_name(config["clusters"], cluster_name, "cluster")
 
-    %Conn{
+    conn = %Conn{
       cluster_name: cluster_name,
       user_name: user_name,
       url: cluster["server"],

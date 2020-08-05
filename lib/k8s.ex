@@ -21,6 +21,9 @@ defmodule K8s do
 
   ## Example mix config
   In the example below `dev` and `test` clusters will use the File driver, while `prod` will use the HTTP driver.
+
+  Cluster names can be atoms or strings, but are internally stored as strings.
+
   ```elixir
   use Mix.Config
 

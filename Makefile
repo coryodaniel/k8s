@@ -1,3 +1,5 @@
+K3D_KUBECONFIG_PATH=/tmp/k8s.ex.kubeconfig.yaml
+
 .PHONY: help
 help: ## Show this help
 help:
@@ -34,9 +36,15 @@ inch:
 test: ## Run fast tests on k8s latest stable
 	mix test
 
+.PHONY: cluster
+cluster: ## Create a k3d cluster
+	- k3d cluster delete k8s-ex
+	k3d cluster create k8s-ex --servers 1 --wait
+	k3d kubeconfig get k8s-ex > ${K3D_KUBECONFIG_PATH}
+
 .PHONY: integration
-integration: ## Run integration tests using ~/.kube/config current-context
-	TEST_KUBECONFIG=~/.kube/config mix test --only external
+integration: ## Run integration tests using k3d `make cluster`
+	TEST_KUBECONFIG=${K3D_KUBECONFIG_PATH} mix test --only external
 
 .PHONY: tdd
 tdd: ## Run fast test on k8s last stable in a loop
@@ -54,9 +62,6 @@ lint: ## Format and run credo
 .PHONY: analyze
 analyze: ## Run dialyzer
 	mix dialyzer
-
-get/%: ## Add a new swagger spec to the test suite
-	curl -sfSL https://raw.githubusercontent.com/kubernetes/kubernetes/release-$*/api/openapi-spec/swagger.json -o test/support/swagger/$*.json
 
 .PHONY: mock.dupes
 mock.dupes: ## List duplicates in resource_definitions mock (this should be empty)
