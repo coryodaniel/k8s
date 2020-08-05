@@ -60,19 +60,5 @@ defmodule K8s.ClientTest do
         assert length(service_accounts) == 1
       end
     end
-
-    # @tag external: true
-    # describe "cluster scoped resources" do
-    #   test "foo", %{conn: conn} do
-    #     assert false
-    #   end
-    # end
-
-    # @tag external: true
-    # describe "custom resources" do
-    #   test "foo", %{conn: conn} do
-    #     assert false
-    #   end
-    # end
   end
 end
