@@ -7,7 +7,7 @@ defmodule K8s.ClientTest do
 
     def conn() do
       conn =
-        "KUBECONFIG"
+        "TEST_KUBECONFIG"
         |> System.get_env()
         |> K8s.Conn.from_file()
 

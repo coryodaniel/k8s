@@ -48,7 +48,7 @@ jobs:
       - name: Run Coverage
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: mix coveralls.github --exclude external
+        run: mix coveralls.github
 
       - name: Retrieve PLT Cache
         uses: actions/cache@v1
