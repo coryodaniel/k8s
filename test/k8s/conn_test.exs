@@ -98,7 +98,7 @@ defmodule K8s.ConnTest do
       System.put_env("KUBERNETES_SERVICE_HOST", "kewlhost")
       System.put_env("KUBERNETES_SERVICE_PORT", "1337")
 
-      config = Conn.from_service_account("test_sa_cluster", "test/support/tls")
+      config = K8s.Conn.from_service_account("test_sa_cluster", "test/support/tls")
 
       assert %Token{} = config.auth
       assert config.cluster_name == "test_sa_cluster"
