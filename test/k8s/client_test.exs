@@ -5,7 +5,7 @@ defmodule K8s.ClientTest do
   defmodule IntegrationTest do
     use ExUnit.Case, async: false
 
-    def conn() do
+    def conn do
       conn =
         "TEST_KUBECONFIG"
         |> System.get_env()
@@ -55,7 +55,13 @@ defmodule K8s.ClientTest do
       @tag external: true
       test "listing resources", %{conn: conn} do
         op = K8s.Client.list("v1", "ServiceAccount", namespace: "default")
-        assert {:ok, %{"items" => service_accounts, "apiVersion" => "v1", "kind" => "ServiceAccountList"}} = K8s.Client.run(op, conn)
+
+        assert {:ok,
+                %{
+                  "items" => service_accounts,
+                  "apiVersion" => "v1",
+                  "kind" => "ServiceAccountList"
+                }} = K8s.Client.run(op, conn)
 
         assert length(service_accounts) == 1
       end
