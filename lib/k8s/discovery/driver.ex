@@ -19,7 +19,7 @@ defmodule K8s.Discovery.Driver do
   List of Kubernetes `apiVersion`s
 
   ## Examples
-      iex> {:ok, conn} = K8s.Conn.lookup(:test)
+      iex> {:ok, conn} = K8s.Conn.lookup("test")
       ...> K8s.Discovery.Driver.HTTP.api(conn)
       {:ok, ["v1"]}
   """
@@ -31,7 +31,7 @@ defmodule K8s.Discovery.Driver do
   List of Kubernetes `APIResourceList`s
 
   ## Examples
-      iex> {:ok, conn} = K8s.Conn.lookup(:test)
+      iex> {:ok, conn} = K8s.Conn.lookup("test")
       ...> K8s.Discovery.Driver.HTTP.resources("autoscaling/v1", conn)
       {:ok, [
                %{

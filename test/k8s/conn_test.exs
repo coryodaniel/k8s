@@ -9,17 +9,17 @@ defmodule K8s.ConnTest do
     test "returns a list of all registered Conns" do
       conns = K8s.Conn.list()
       conn_names = Enum.map(conns, & &1.cluster_name)
-      assert conn_names == [:"docker-for-desktop-cluster"]
+      assert conn_names == ["docker-for-desktop-cluster"]
     end
   end
 
   describe "lookup/1" do
     test "returns a conn by name" do
-      assert {:ok, %K8s.Conn{}} = K8s.Conn.lookup(:test)
+      assert {:ok, %K8s.Conn{}} = K8s.Conn.lookup("test")
     end
 
     test "returns an error when no connection was registered" do
-      assert {:error, :connection_not_registered} = K8s.Conn.lookup(:foo)
+      assert {:error, :connection_not_registered} = K8s.Conn.lookup("foo")
     end
   end
 
@@ -28,7 +28,7 @@ defmodule K8s.ConnTest do
       config = K8s.Conn.from_file("test/support/kube-config.yaml")
       assert %Certificate{} = config.auth
       assert config.url == "https://localhost:6443"
-      assert config.cluster_name == :"docker-for-desktop-cluster"
+      assert config.cluster_name == "docker-for-desktop-cluster"
       assert config.user_name == "docker-for-desktop"
     end
 
@@ -38,7 +38,7 @@ defmodule K8s.ConnTest do
 
       assert %Certificate{} = config.auth
       assert config.url == "https://123.123.123.123"
-      assert config.cluster_name == :"cluster-with-cert-data"
+      assert config.cluster_name == "cluster-with-cert-data"
       assert config.ca_cert
       assert config.auth.certificate
       assert config.auth.key
@@ -48,7 +48,7 @@ defmodule K8s.ConnTest do
       config = K8s.Conn.from_file("test/support/kube-config.yaml", cluster: "cert-cluster")
       assert %Certificate{} = config.auth
       assert config.url == "https://localhost:6443"
-      assert config.cluster_name == :"cert-cluster"
+      assert config.cluster_name == "cert-cluster"
       assert config.ca_cert
       assert config.auth.certificate
       assert config.auth.key
@@ -98,9 +98,10 @@ defmodule K8s.ConnTest do
       System.put_env("KUBERNETES_SERVICE_HOST", "kewlhost")
       System.put_env("KUBERNETES_SERVICE_PORT", "1337")
 
-      config = K8s.Conn.from_service_account(:test_sa_cluster, "test/support/tls")
+      config = Conn.from_service_account("test_sa_cluster", "test/support/tls")
+
       assert %Token{} = config.auth
-      assert config.cluster_name == :test_sa_cluster
+      assert config.cluster_name == "test_sa_cluster"
       assert config.url == "https://kewlhost:1337"
       assert config.ca_cert
       assert config.auth.token

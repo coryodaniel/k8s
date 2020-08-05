@@ -69,7 +69,7 @@ Multiple clusters can be registered via environment variables. Keep in mind that
 
 **Environment Variable Prefixes:**
 
-Prefixes are used to configure multiple connections. The word following the last underscore `_` in the prefix will be the name of the connection. This name _will be atomized_.
+Prefixes are used to configure multiple connections. The word following the last underscore `_` in the prefix will be the name of the connection.
 
 * `K8S_CLUSTER_CONF_SA_` - *boolean* enables authentication to the k8s API with the pods `spec.serviceAccount`.
 * `K8S_CLUSTER_CONF_PATH_` - *string* absolute path to the kube config file.
@@ -119,13 +119,13 @@ A cluster name must be provided when creating connections from service account d
 If a path isn't provided for the service account, the default path is used `/var/run/secrets/kubernetes.io/serviceaccount`.
 
 ```elixir
-conn = K8s.Conn.from_service_account(:cluster_name_here)
+conn = K8s.Conn.from_service_account("cluster_name_here")
 ```
 
 Optionally the path can be specified:
 
 ```elixir
-conn = K8s.Conn.from_service_account(:cluster_name_here, "/path/to/service/account/directory")
+conn = K8s.Conn.from_service_account("cluster_name_here", "/path/to/service/account/directory")
 ```
 
 **Creating a `K8s.Conn` struct manually:**
@@ -134,7 +134,7 @@ For the use case of having an unbound number of connections (a multi-tenant K8s 
 
 ```elixir
  %K8s.Conn{
-    cluster_name: :default, 
+    cluster_name: "default",
     user_name: "optional-user-name-in-kubeconfig",
     url: "https://ip-address-of-cluster",
     ca_cert: K8s.Conn.PKI.cert_from_map(cluster, base_path),

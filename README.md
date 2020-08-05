@@ -79,7 +79,7 @@ config :k8s,
 #### Creating a deployment
 
 ```elixir
-{:ok, conn} = K8s.Conn.lookup(:prod_us_east1)
+{:ok, conn} = K8s.Conn.lookup("prod_us_east1")
 
 opts = [namespace: "default", name: "nginx", image: "nginx:nginx:1.7.9"]
 {:ok, resource} = K8s.Resource.from_file("priv/deployment.yaml", opts)
@@ -93,7 +93,7 @@ operation = K8s.Client.create(resource)
 In a namespace:
 
 ```elixir
-{:ok, conn} = K8s.Conn.lookup(:prod_us_east1)
+{:ok, conn} = K8s.Conn.lookup("prod_us_east1")
 
 operation = K8s.Client.list("apps/v1", "Deployment", namespace: "prod")
 {:ok, deployments} = K8s.Client.run(operation, conn)
@@ -102,7 +102,7 @@ operation = K8s.Client.list("apps/v1", "Deployment", namespace: "prod")
 Across all namespaces:
 
 ```elixir
-{:ok, conn} = K8s.Conn.lookup(:prod_us_east1)
+{:ok, conn} = K8s.Conn.lookup("prod_us_east1")
 
 operation = K8s.Client.list("apps/v1", "Deployment", namespace: :all)
 {:ok, deployments} = K8s.Client.run(operation, conn)
@@ -111,7 +111,7 @@ operation = K8s.Client.list("apps/v1", "Deployment", namespace: :all)
 #### Getting a deployment
 
 ```elixir
-{:ok, conn} = K8s.Conn.lookup(:prod_us_east1)
+{:ok, conn} = K8s.Conn.lookup("prod_us_east1")
 
 operation = K8s.Client.get("apps/v1", :deployment, [namespace: "default", name: "nginx-deployment"])
 {:ok, deployment} = K8s.Client.run(operation, conn)
