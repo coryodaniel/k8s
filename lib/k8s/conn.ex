@@ -10,10 +10,10 @@ defmodule K8s.Conn do
   alias __MODULE__
   alias K8s.Conn.{Config, PKI, RequestOptions}
 
-  @service_account_cluster_name "cluster.local"
-  @service_account_path "/var/run/secrets/kubernetes.io/serviceaccount"
+  @default_service_account_cluster_name "cluster.local"
+  @default_service_account_path "/var/run/secrets/kubernetes.io/serviceaccount"
 
-  @providers [
+  @auth_providers [
     K8s.Conn.Auth.Certificate,
     K8s.Conn.Auth.Token,
     K8s.Conn.Auth.AuthProvider,
@@ -158,12 +158,12 @@ defmodule K8s.Conn do
   """
   @spec from_service_account :: K8s.Conn.t()
   def from_service_account do
-    from_service_account(@service_account_cluster_name)
+    from_service_account(@default_service_account_cluster_name)
   end
 
   @spec from_service_account(String.t()) :: K8s.Conn.t()
   def from_service_account(cluster_name) do
-    from_service_account(cluster_name, @service_account_path)
+    from_service_account(cluster_name, @default_service_account_path)
   end
 
   @spec from_service_account(String.t(), String.t()) :: K8s.Conn.t()
@@ -204,7 +204,7 @@ defmodule K8s.Conn do
 
   @spec providers() :: list(atom)
   defp providers do
-    Application.get_env(:k8s, :auth_providers, []) ++ @providers
+    Application.get_env(:k8s, :auth_providers, []) ++ @auth_providers
   end
 
   defimpl K8s.Conn.RequestOptions, for: __MODULE__ do

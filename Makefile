@@ -25,11 +25,11 @@ all: ## Run format, credo, dialyzer, and test all supported k8s versions
 all: deps doc lint test analyze inch
 
 .PHONY: doc
-doc:
+doc: ## Build documentation
 	mix docs
 
 .PHONY: inch
-inch:
+inch: ## Finds missing documentation
 	mix inch
 
 .PHONY: test
