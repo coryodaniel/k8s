@@ -28,8 +28,9 @@ defmodule K8s.Conn do
             insecure_skip_tls_verify: false,
             ca_cert: nil,
             auth: nil,
-            discovery_driver: nil,
-            discovery_opts: nil
+            discovery_driver: K8s.default_discovery_driver(),
+            discovery_opts: K8s.default_discovery_opts(),
+            http_provider: K8s.default_http_provider()
 
   @type t :: %__MODULE__{
           cluster_name: atom(),
@@ -39,7 +40,8 @@ defmodule K8s.Conn do
           ca_cert: String.t() | nil,
           auth: auth_t,
           discovery_driver: module(),
-          discovery_opts: Keyword.t()
+          discovery_opts: Keyword.t(),
+          http_provider: module()
         }
 
   @doc """
@@ -124,25 +126,31 @@ defmodule K8s.Conn do
     cluster_name = opts[:cluster] || context["cluster"]
     cluster = find_by_name(config["clusters"], cluster_name, "cluster")
 
-    discovery_driver = opts[:discovery_driver] || K8s.Discovery.default_driver()
-    discovery_opts = opts[:discovery_opts] || K8s.Discovery.default_opts()
-
-    %Conn{
+    conn = %Conn{
       cluster_name: String.to_atom(cluster_name),
       user_name: user_name,
       url: cluster["server"],
       ca_cert: PKI.cert_from_map(cluster, base_path),
       auth: get_auth(user, base_path),
-      insecure_skip_tls_verify: cluster["insecure-skip-tls-verify"],
-      discovery_driver: discovery_driver,
-      discovery_opts: discovery_opts
+      insecure_skip_tls_verify: cluster["insecure-skip-tls-verify"]
     }
+
+    maybe_update_defaults(conn, config)
+  end
+
+  @spec maybe_update_defaults(Conn.t(), map()) :: Conn.t()
+  defp maybe_update_defaults(%Conn{} = conn, config) do
+    defaults = [:discovery_driver, :discovery_opts, :http_provider]
+
+    Enum.reduce(defaults, conn, fn k, conn ->
+      conn_value = Map.get(conn, k)
+      config_value = Map.get(config, k)
+      %{conn | k => config_value || conn_value}
+    end)
   end
 
   @doc """
   Generates configuration from kubernetes service account.
-
-
 
   ## Links
 
@@ -169,9 +177,7 @@ defmodule K8s.Conn do
       cluster_name: cluster_name,
       url: "https://#{host}:#{port}",
       ca_cert: PKI.cert_from_pem(cert_path),
-      auth: %K8s.Conn.Auth.Token{token: File.read!(token_path)},
-      discovery_driver: K8s.Discovery.default_driver(),
-      discovery_opts: K8s.Discovery.default_opts()
+      auth: %K8s.Conn.Auth.Token{token: File.read!(token_path)}
     }
   end
 
