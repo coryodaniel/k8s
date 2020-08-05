@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ## Unreleased
+### Added
+- Per connection http provider configuration
+
+### Changed
+- deprecated K8s.http_provider/0 for K8s.default_http_provider/0
 
 ### Added
 
