@@ -44,7 +44,7 @@ config :k8s,
 
 Drivers can also be set per connection.
 
-In the example below the `:test` and `:dev` connections are using the default File driver, while the `:prod` connection is using the HTTP driver with caching enabled.
+In the example below the `"test"` and `"dev"` connections are using the default File driver, while the `"prod"` connection is using the HTTP driver with caching enabled.
 
 ```elixir
 use Mix.Config
@@ -53,15 +53,15 @@ config :k8s,
   discovery_driver: K8s.Discovery.Driver.File,
   discovery_opts: [config: "test/support/discovery/example.json"],
   clusters: %{
-    test: %{
+    "test" => %{
       conn: "test/support/kube-config.yaml",
       conn_opts: [context: "test-context"]
     },
-    dev: %{
+    "dev" => %{
       conn: "test/support/kube-config.yaml",
       conn_opts: [context: "dev-context"]
     },
-    prod: %{
+    "prod" => %{
       use_sa: true,
       conn_opts: [
         discovery_driver: K8s.Discovery.Driver.HTTP,
@@ -81,7 +81,7 @@ The HTTP driver can also be used directly to explore API support.
 List supported versions:
 
 ```elixir
-{:ok, conn} = K8s.Conn.lookup(:my_connection)
+{:ok, conn} = K8s.Conn.lookup("my_connection")
 K8s.Discovery.Driver.HTTP.versions(conn)
 ["v1", "apps/v1", "batch/v1"]
 ```
@@ -89,7 +89,7 @@ K8s.Discovery.Driver.HTTP.versions(conn)
 List supported resources of an API version.
 
 ```elixir
-{:ok, conn} = K8s.Conn.lookup(:my_connection)
+{:ok, conn} = K8s.Conn.lookup("my_connection")
 K8s.Discovery.Driver.HTTP.resources("apps/v1", conn)
 [
   {

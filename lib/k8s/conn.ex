@@ -10,7 +10,7 @@ defmodule K8s.Conn do
   alias __MODULE__
   alias K8s.Conn.{Config, PKI, RequestOptions}
 
-  @service_account_cluster_name :"cluster.local"
+  @service_account_cluster_name "cluster.local"
   @service_account_path "/var/run/secrets/kubernetes.io/serviceaccount"
 
   @providers [
@@ -33,7 +33,7 @@ defmodule K8s.Conn do
             http_provider: K8s.default_http_provider()
 
   @type t :: %__MODULE__{
-          cluster_name: atom(),
+          cluster_name: String.t(),
           user_name: String.t() | nil,
           url: String.t(),
           insecure_skip_tls_verify: boolean(),
@@ -52,7 +52,7 @@ defmodule K8s.Conn do
 
   ```elixir
   K8s.Conn.list()
-  [%K8s.Conn{ca_cert: nil, auth: %K8s.Conn.Auth{}, cluster_name: :"docker-for-desktop-cluster", discovery_driver: K8s.Discovery.Driver.File, discovery_opts: [config: "test/support/discovery/example.json"], insecure_skip_tls_verify: true, url: "https://localhost:6443", user_name: "docker-for-desktop"}]
+  [%K8s.Conn{ca_cert: nil, auth: %K8s.Conn.Auth{}, cluster_name: "docker-for-desktop-cluster", discovery_driver: K8s.Discovery.Driver.File, discovery_opts: [config: "test/support/discovery/example.json"], insecure_skip_tls_verify: true, url: "https://localhost:6443", user_name: "docker-for-desktop"}]
   ```
   """
   @spec list :: list(K8s.Conn.t())
@@ -69,11 +69,11 @@ defmodule K8s.Conn do
   ## Examples
 
   ```elixir
-  K8s.Conn.lookup(:test)
-  {:ok, %K8s.Conn{ca_cert: nil, auth: %K8s.Conn.Auth{}, cluster_name: :"docker-for-desktop-cluster", discovery_driver: K8s.Discovery.Driver.File, discovery_opts: [config: "test/support/discovery/example.json"], insecure_skip_tls_verify: true, url: "https://localhost:6443", user_name: "docker-for-desktop"}}
+  K8s.Conn.lookup("test")
+  {:ok, %K8s.Conn{ca_cert: nil, auth: %K8s.Conn.Auth{}, cluster_name: "docker-for-desktop-cluster", discovery_driver: K8s.Discovery.Driver.File, discovery_opts: [config: "test/support/discovery/example.json"], insecure_skip_tls_verify: true, url: "https://localhost:6443", user_name: "docker-for-desktop"}}
   ```
   """
-  @spec lookup(atom()) :: {:ok, K8s.Conn.t()} | {:error, :connection_not_registered}
+  @spec lookup(String.t()) :: {:ok, K8s.Conn.t()} | {:error, :connection_not_registered}
   def lookup(cluster_name) do
     config = Map.get(Config.all(), cluster_name)
 
@@ -83,7 +83,7 @@ defmodule K8s.Conn do
     end
   end
 
-  @spec config_to_conn(map, atom) :: K8s.Conn.t()
+  @spec config_to_conn(map, String.t()) :: K8s.Conn.t()
   defp config_to_conn(config, cluster_name) do
     case Map.get(config, :conn) do
       nil ->
@@ -126,8 +126,8 @@ defmodule K8s.Conn do
     cluster_name = opts[:cluster] || context["cluster"]
     cluster = find_by_name(config["clusters"], cluster_name, "cluster")
 
-    conn = %Conn{
-      cluster_name: String.to_atom(cluster_name),
+    %Conn{
+      cluster_name: cluster_name,
       user_name: user_name,
       url: cluster["server"],
       ca_cert: PKI.cert_from_map(cluster, base_path),
@@ -161,12 +161,12 @@ defmodule K8s.Conn do
     from_service_account(@service_account_cluster_name)
   end
 
-  @spec from_service_account(atom()) :: K8s.Conn.t()
+  @spec from_service_account(String.t()) :: K8s.Conn.t()
   def from_service_account(cluster_name) do
     from_service_account(cluster_name, @service_account_path)
   end
 
-  @spec from_service_account(atom, String.t()) :: K8s.Conn.t()
+  @spec from_service_account(String.t(), String.t()) :: K8s.Conn.t()
   def from_service_account(cluster_name, root_sa_path) do
     host = System.get_env("KUBERNETES_SERVICE_HOST")
     port = System.get_env("KUBERNETES_SERVICE_PORT")

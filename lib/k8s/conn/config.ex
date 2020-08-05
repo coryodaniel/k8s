@@ -3,7 +3,7 @@ defmodule K8s.Conn.Config do
   Add runtime cluster configuration with environment variables.
 
   Each variable consists of a prefix that determines where the value will be placed in the config
-  and a suffix that is the cluster name. The cluster name will be atomized.
+  and a suffix that is the cluster name.
 
   Environment Variable Prefixes:
   * `K8S_CLUSTER_CONF_SA_` - *boolean* enables authentication to the k8s API with the pods `spec.serviceAccountName`.
@@ -44,40 +44,40 @@ defmodule K8s.Conn.Config do
 
   ## Examples
     Only specifying compiletime configs
-      iex> config = %{dev: %{conn: "runtime/path/to/dev.kubeconfig.yaml"}}
+      iex> config = %{"dev" => %{conn: "runtime/path/to/dev.kubeconfig.yaml"}}
       ...> K8s.Conn.Config.merge_configs(%{}, config)
-      %{dev: %{conn: "runtime/path/to/dev.kubeconfig.yaml"}}
+      %{"dev" => %{conn: "runtime/path/to/dev.kubeconfig.yaml"}}
 
     Only specifying runtime configs
       iex> env = %{"K8S_CLUSTER_CONF_PATH_dev" => "runtime/path/to/dev.kubeconfig.yaml"}
       ...> K8s.Conn.Config.merge_configs(env, %{})
-      %{dev: %{conn: "runtime/path/to/dev.kubeconfig.yaml"}}
+      %{"dev" => %{conn: "runtime/path/to/dev.kubeconfig.yaml"}}
 
     Overriding compile time configs
 
       iex> env = %{"K8S_CLUSTER_CONF_PATH_dev" => "runtime/path/to/dev.kubeconfig.yaml"}
-      ...> compile_config = %{dev: %{conn: "compiletime/path/to/dev.kubeconfig.yaml"}}
+      ...> compile_config = %{"dev" => %{conn: "compiletime/path/to/dev.kubeconfig.yaml"}}
       ...> K8s.Conn.Config.merge_configs(env, compile_config)
-      %{dev: %{conn: "runtime/path/to/dev.kubeconfig.yaml"}}
+      %{"dev" => %{conn: "runtime/path/to/dev.kubeconfig.yaml"}}
 
     Merging compile time configs
 
       iex> env = %{"K8S_CLUSTER_CONF_CONTEXT_dev" => "runtime-context"}
-      ...> compile_config = %{dev: %{conn: "compiletime/path/to/dev.kubeconfig.yaml"}}
+      ...> compile_config = %{"dev" => %{conn: "compiletime/path/to/dev.kubeconfig.yaml"}}
       ...> K8s.Conn.Config.merge_configs(env, compile_config)
-      %{dev: %{conn: "compiletime/path/to/dev.kubeconfig.yaml", conn_opts: [context: "runtime-context"]}}
+      %{"dev" => %{conn: "compiletime/path/to/dev.kubeconfig.yaml", conn_opts: [context: "runtime-context"]}}
 
     Adding clusters at runtime
 
       iex> env = %{"K8S_CLUSTER_CONF_PATH_us_east" => "runtime/path/to/us_east.kubeconfig.yaml", "K8S_CLUSTER_CONF_CONTEXT_us_east" => "east-context"}
-      ...> compile_config = %{us_west: %{conn: "compiletime/path/to/us_west.kubeconfig.yaml"}}
+      ...> compile_config = %{"us_west" => %{conn: "compiletime/path/to/us_west.kubeconfig.yaml"}}
       ...> K8s.Conn.Config.merge_configs(env, compile_config)
-      %{us_east: %{conn: "runtime/path/to/us_east.kubeconfig.yaml", conn_opts: [context: "east-context"]}, us_west: %{conn: "compiletime/path/to/us_west.kubeconfig.yaml"}}
+      %{"us_east" => %{conn: "runtime/path/to/us_east.kubeconfig.yaml", conn_opts: [context: "east-context"]}, "us_west" => %{conn: "compiletime/path/to/us_west.kubeconfig.yaml"}}
   """
   @spec merge_configs(map, map) :: map
   def merge_configs(env_vars, config) do
     Enum.reduce(env_vars, config, fn {k, v}, acc ->
-      cluster_name = k |> cluster_name() |> String.to_atom()
+      cluster_name = k |> cluster_name()
       acc_cluster_config = Map.get(acc, cluster_name, %{})
 
       {new_key, new_value} = get_config_kv(k, v)

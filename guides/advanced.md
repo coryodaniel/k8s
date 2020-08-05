@@ -17,14 +17,14 @@ Register a staging cluster:
 
 ```elixir
 staging_conn = K8s.Conn.from_file("~/.kube/config")
-{:ok, staging} = K8s.Cluster.Registry.add(:staging, staging_conn)
+{:ok, staging} = K8s.Cluster.Registry.add("staging", staging_conn)
 ```
 
 Register a prod cluster:
 
 ```elixir
 prod_conn = K8s.Conn.from_service_account() # or from_file/2
-{:ok, prod} = K8s.Cluster.Registry.add(:prod, staging_conn)
+{:ok, prod} = K8s.Cluster.Registry.add("prod", staging_conn)
 ```
 
 Get a list of all deployments in the `default` prod namespace:

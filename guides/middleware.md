@@ -11,24 +11,24 @@ Middleware can be added to a connection or the entire middleware stack can be re
 
 ### Adding Request Middleware
 
-Given a registered `K8s.Conn` named `:foo` the following example will add `ExampleMiddleware` to the end of the middleware stack
+Given a registered `K8s.Conn` named `"foo"` the following example will add `ExampleMiddleware` to the end of the middleware stack
 
 ```elixir
-K8s.Middleware.Registry.add(:foo, :request, MyMiddlewareModule)
+K8s.Middleware.Registry.add("foo", :request, MyMiddlewareModule)
 ```
 
 ### Replacing the Middleware Stack
 
-Given a registered `K8s.Conn` named `:foo` the following example will replace the middleware stack.
+Given a registered `K8s.Conn` named `"foo"` the following example will replace the middleware stack.
 
 ```elixir
-K8s.Middleware.Registry.set(:foo, :request, [MyMiddlewareModule])
+K8s.Middleware.Registry.set("foo", :request, [MyMiddlewareModule])
 ```
 
 ### Listing Middleware for a `K8s.Conn`
 
 ```elixir
-K8s.Middleware.Registry.list(:foo, :request)
+K8s.Middleware.Registry.list("foo", :request)
 [K8s.Middleware.Request.Initialize, K8s.Middleware.Request.EncodeBody]
 ```
 

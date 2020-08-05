@@ -15,14 +15,14 @@ defmodule K8s.Middleware do
       ...> K8s.Middleware.run(req)
 
     Adding middlware to a cluster
-      iex> conn = %K8s.Conn{cluster_name: :foo}
-      ...> K8s.Middleware.add(:foo, :request, MyMiddlewareModule)
+      iex> conn = %K8s.Conn{cluster_name: "foo"}
+      ...> K8s.Middleware.add("foo", :request, MyMiddlewareModule)
       ...> req = %K8s.Middlware.Request{}
       ...> K8s.Middleware.run(req)
 
     Setting/Replacing middleware on a cluster
-      iex> conn = %K8s.Conn{cluster_name: :foo}
-      ...> K8s.Middleware.set(:foo, :request, [MyMiddlewareModule, OtherModule])
+      iex> conn = %K8s.Conn{cluster_name: "foo"}
+      ...> K8s.Middleware.set("foo", :request, [MyMiddlewareModule, OtherModule])
       ...> req = %K8s.Middlware.Request{}
       ...> K8s.Middleware.run(req)
   """
