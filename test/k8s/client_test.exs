@@ -30,14 +30,14 @@ defmodule K8s.ClientTest do
     end
 
     setup do
-      {:ok, %{conn: conn()}}
+      test_id = :rand.uniform(10_000)
+      {:ok, %{conn: conn(), test_id: test_id}}
     end
 
     describe "namespaced scoped resources" do
       @tag external: true
-      test "creating a resource", %{conn: conn} do
-        name = "nginx-#{:rand.uniform(10_000)}"
-        pod = pod(name)
+      test "creating a resource", %{conn: conn, test_id: test_id} do
+        pod = pod("nginx-#{test_id}")
         op = K8s.Client.create(pod)
         result = K8s.Client.run(op, conn)
 
