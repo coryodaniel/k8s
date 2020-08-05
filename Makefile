@@ -34,6 +34,10 @@ inch:
 test: ## Run fast tests on k8s latest stable
 	mix test
 
+.PHONY: integration
+integration: ## Run integration tests using ~/.kube/config current-context
+	TEST_KUBECONFIG=~/.kube/config mix test --only external
+
 .PHONY: tdd
 tdd: ## Run fast test on k8s last stable in a loop
 	mix test.watch
