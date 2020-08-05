@@ -16,9 +16,10 @@ jobs:
       with:
         otp-version: 22.x
         elixir-version: 1.10.2
-    - name: Test against k8s ${{ matrix.k8s_version }}
+    - name: Test on k3s
       run: |
-        mix local.rebar --force
-        mix local.hex --force
-        mix deps.get
-        TEST_KUBECONFIG=$KUBECONFIG mix test --only external
+        kubectl get nodes
+    - run: mix local.rebar --force
+    - run: mix local.hex --force
+    - run: mix deps.get
+    - run: mix test --only external
