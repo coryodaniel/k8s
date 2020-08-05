@@ -104,7 +104,7 @@ defmodule K8s.Client.Runner.Base do
     with {:ok, url} <- K8s.Discovery.url_for(conn, operation),
          req <- new_request(conn, url, operation, body, opts),
          {:ok, req} <- K8s.Middleware.run(req) do
-      K8s.default_http_provider().request(req.method, req.url, req.body, req.headers, req.opts)
+      conn.http_provider.request(req.method, req.url, req.body, req.headers, req.opts)
     end
   end
 

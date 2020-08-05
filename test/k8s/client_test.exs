@@ -6,18 +6,26 @@ defmodule K8s.ClientTest do
     use ExUnit.Case, async: false
 
     def conn() do
-      # @HERE HTTP Driver needs to be per connection.
-      "KUBECONFIG"
-      |> System.get_env()
-      |> K8s.Conn.from_file()
+      conn =
+        "KUBECONFIG"
+        |> System.get_env()
+        |> K8s.Conn.from_file()
+
+      # Override the defaults for testing
+      %K8s.Conn{
+        conn
+        | discovery_driver: K8s.Discovery.Driver.HTTP,
+          discovery_opts: [],
+          http_provider: K8s.Client.HTTPProvider
+      }
     end
 
-    def pod() do
+    def pod(name) do
       %{
         "apiVersion" => "v1",
         "kind" => "Pod",
-        "metadata" => %{"name" => "nginx-pod", "namespace" => "test"},
-        "spec" => %{"containers" => %{"image" => "nginx"}}
+        "metadata" => %{"name" => name, "namespace" => "default"},
+        "spec" => %{"containers" => [%{"image" => "nginx", "name" => "nginx"}]}
       }
     end
 
@@ -25,28 +33,31 @@ defmodule K8s.ClientTest do
       {:ok, %{conn: conn()}}
     end
 
-    @tag external: true
     describe "namespaced scoped resources" do
+      @tag external: true
       test "creating a resource", %{conn: conn} do
-        op = K8s.Client.create(pod())
+        name = "nginx-#{:rand.uniform(10_000)}"
+        pod = pod(name)
+        op = K8s.Client.create(pod)
         result = K8s.Client.run(op, conn)
-        
+
         assert {:ok, _pod} = result
       end
 
+      @tag external: true
       test "getting a resource", %{conn: conn} do
         op = K8s.Client.get("v1", "ServiceAccount", name: "default", namespace: "default")
         result = K8s.Client.run(op, conn)
-        
-        assert {:ok,  %{"apiVersion" => "v1", "kind" => "ServiceAccount"}} = result
+
+        assert {:ok, %{"apiVersion" => "v1", "kind" => "ServiceAccount"}} = result
       end
 
+      @tag external: true
       test "listing resources", %{conn: conn} do
         op = K8s.Client.list("v1", "ServiceAccount", namespace: "default")
-        {:ok, service_accounts} = K8s.Client.run(op, conn)
-        
+        assert {:ok, %{"items" => service_accounts, "apiVersion" => "v1", "kind" => "ServiceAccountList"}} = K8s.Client.run(op, conn)
+
         assert length(service_accounts) == 1
-        assert %{"apiVersion" => "v1", "kind" => "ServiceAccount"} = List.first(service_accounts)
       end
     end
 
