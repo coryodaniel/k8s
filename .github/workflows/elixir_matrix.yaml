@@ -1,4 +1,4 @@
-name: Compatibility Matrix
+name: Elixir Compatibility Matrix
 on: push
 jobs:
   test:
@@ -17,4 +17,4 @@ jobs:
       - run: mix local.rebar --force
       - run: mix local.hex --force
       - run: mix deps.get
-      - run: mix test
+      - run: mix test --exclude external

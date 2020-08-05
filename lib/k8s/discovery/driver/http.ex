@@ -58,9 +58,9 @@ defmodule K8s.Discovery.Driver.HTTP do
     case K8s.Conn.RequestOptions.generate(conn) do
       {:ok, request_options} ->
         url = Path.join(conn.url, path)
-        headers = K8s.default_http_provider().headers(:get, request_options)
+        headers = conn.http_provider.headers(:get, request_options)
         opts = [ssl: request_options.ssl_options]
-        K8s.default_http_provider().request(:get, url, "", headers, opts)
+        conn.http_provider.request(:get, url, "", headers, opts)
 
       error ->
         error
