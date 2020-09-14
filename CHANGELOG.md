@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- `K8s.Resource.NamedList.access!/1` raises if item is missing
+
+### Changed
+
+- `K8s.Resource.NamedList.access/1` deals better with missing items now
+
 ## [0.5.2] - 2020-07-31
 
 ### Added
