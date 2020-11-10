@@ -32,7 +32,7 @@ defmodule K8s.Client.Runner.Base do
   ```elixir
   {:ok, conn} = K8s.Conn.lookup("test")
   operation = K8s.Client.list("v1", "Pod", namespace: :all)
-  {:ok, %{"items" => pods}} = K8s.Client.run(operation, conn)
+  {:ok, %{"items" => pods}} = K8s.Client.run(conn, operation)
   ```
 
   Running a dry-run of a create deployment operation:
@@ -77,12 +77,12 @@ defmodule K8s.Client.Runner.Base do
     |> K8s.Operation.put_query_param(:dryRun, "all")
 
   {:ok, conn} = K8s.Conn.lookup("test")
-  {:ok, result} = K8s.Client.Runner.Base.run(operation, conn)
+  {:ok, result} = K8s.Client.Runner.Base.run(conn, operation)
   ```
   """
-  @spec run(Operation.t(), Conn.t() | nil) :: result_t
-  def run(%Operation{} = operation, %Conn{} = conn),
-    do: run(operation, conn, [])
+  @spec run(Conn.t(), Operation.t()) :: result_t
+  def run(%Conn{} = conn, %Operation{} = operation),
+    do: run(conn, operation, [])
 
   @doc """
   Run an operation and pass `opts` to HTTPoison.
@@ -90,17 +90,17 @@ defmodule K8s.Client.Runner.Base do
 
   See `run/2`
   """
-  @spec run(Operation.t(), Conn.t(), keyword()) :: result_t
-  def run(%Operation{} = operation, %Conn{} = conn, opts) when is_list(opts) do
-    run(operation, conn, operation.data, opts)
+  @spec run(Conn.t(), Operation.t(), keyword()) :: result_t
+  def run(%Conn{} = conn, %Operation{} = operation, opts) when is_list(opts) do
+    run(conn, operation, operation.data, opts)
   end
 
   @doc """
   Run an operation with an HTTP Body (map) and pass `opts` to HTTPoison.
   See `run/2`
   """
-  @spec run(Operation.t(), Conn.t(), map(), keyword()) :: result_t
-  def run(%Operation{} = operation, %Conn{} = conn, body, opts \\ []) do
+  @spec run(Conn.t(), Operation.t(), map(), keyword()) :: result_t
+  def run(%Conn{} = conn, %Operation{} = operation, body, opts \\ []) do
     with {:ok, url} <- K8s.Discovery.url_for(conn, operation),
          req <- new_request(conn, url, operation, body, opts),
          {:ok, req} <- K8s.Middleware.run(req) do

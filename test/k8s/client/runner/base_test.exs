@@ -71,17 +71,17 @@ defmodule K8s.Client.Runner.BaseTest do
         Client.list("v1", :pods)
         |> K8s.Selector.label({"app", "nginx"})
 
-      assert {:ok, _} = Base.run(operation, conn)
+      assert {:ok, _} = Base.run(conn, operation)
     end
 
     test "running an operation without an HTTP body", %{conn: conn} do
       operation = Client.get(make_namespace("test"))
-      assert {:ok, _} = Base.run(operation, conn)
+      assert {:ok, _} = Base.run(conn, operation)
     end
 
     test "running an operation with an HTTP body", %{conn: conn} do
       operation = Client.create(make_namespace("test"))
-      assert {:ok, _} = Base.run(operation, conn)
+      assert {:ok, _} = Base.run(conn, operation)
     end
 
     test "running an operation with options", %{conn: conn} do
@@ -89,12 +89,12 @@ defmodule K8s.Client.Runner.BaseTest do
       params = %{"watch" => "true"}
       operation_w_params = Map.put(operation, :query_params, params)
 
-      assert {:ok, ^params} = Base.run(operation_w_params, conn)
+      assert {:ok, ^params} = Base.run(conn, operation_w_params)
     end
 
     test "supports subresource operations", %{conn: conn} do
       operation = Client.get("apps/v1", "deployments/status", name: "nginx", namespace: "default")
-      assert {:ok, _} = Base.run(operation, conn)
+      assert {:ok, _} = Base.run(conn, operation)
     end
 
     test "running an operation with a custom HTTP body", %{conn: conn} do
@@ -102,7 +102,7 @@ defmodule K8s.Client.Runner.BaseTest do
       labels = %{"env" => "test"}
       body = put_in(make_namespace("test"), ["metadata", "labels"], labels)
 
-      assert {:ok, body} = Base.run(operation, conn, body)
+      assert {:ok, body} = Base.run(conn, operation, body)
 
       assert body ==
                ~s({"apiVersion":"v1","kind":"Namespace","metadata":{"labels":{"env":"test"},"name":"test"}})
@@ -118,14 +118,14 @@ defmodule K8s.Client.Runner.BaseTest do
       body = put_in(make_namespace("test"), ["metadata", "labels"], labels)
 
       opts = [params: %{"watch" => "true"}]
-      assert {:ok, _} = Base.run(operation, conn, body, opts)
+      assert {:ok, _} = Base.run(conn, operation, body, opts)
     end
   end
 
   describe "run" do
     test "request with HTTP 2xx response", %{conn: conn} do
       operation = Client.list("v1", "Namespace", [])
-      assert {:ok, _} = Base.run(operation, conn)
+      assert {:ok, _} = Base.run(conn, operation)
     end
 
     test "supports subresource operations with alternate `kind` HTTP bodies", %{conn: conn} do
@@ -148,7 +148,7 @@ defmodule K8s.Client.Runner.BaseTest do
       }
 
       operation = K8s.Client.create(pod, eviction)
-      assert {:ok, _} = Base.run(operation, conn)
+      assert {:ok, _} = Base.run(conn, operation)
     end
   end
 end

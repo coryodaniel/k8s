@@ -38,7 +38,7 @@ defmodule K8s.Client.Runner.WatchTest do
   describe "run/4" do
     test "watching a list operation from a specific resource version", %{conn: conn} do
       operation = K8s.Client.list("v1", "Namespace")
-      assert {:ok, _} = Watch.run(operation, conn, 0, stream_to: self())
+      assert {:ok, _} = Watch.run(conn, operation, 0, stream_to: self())
 
       assert_receive %HTTPoison.AsyncStatus{code: 200}
       assert_receive %HTTPoison.AsyncHeaders{}
@@ -50,7 +50,7 @@ defmodule K8s.Client.Runner.WatchTest do
   describe "run/3" do
     test "watching a list all operation", %{conn: conn} do
       operation = K8s.Client.list("v1", "Namespace")
-      assert {:ok, _} = Watch.run(operation, conn, stream_to: self())
+      assert {:ok, _} = Watch.run(conn, operation, stream_to: self())
 
       assert_receive %HTTPoison.AsyncStatus{code: 200}
       assert_receive %HTTPoison.AsyncHeaders{}
@@ -60,7 +60,7 @@ defmodule K8s.Client.Runner.WatchTest do
 
     test "watching a get operation", %{conn: conn} do
       operation = K8s.Client.get("v1", "Namespace", name: "test")
-      assert {:ok, _} = Watch.run(operation, conn, stream_to: self())
+      assert {:ok, _} = Watch.run(conn, operation, stream_to: self())
 
       assert_receive %HTTPoison.AsyncStatus{code: 200}
       assert_receive %HTTPoison.AsyncHeaders{}
@@ -85,7 +85,7 @@ defmodule K8s.Client.Runner.WatchTest do
       }
 
       operation = K8s.Client.create(pod)
-      assert {:error, _msg} = Watch.run(operation, conn, stream_to: self())
+      assert {:error, _msg} = Watch.run(conn, operation, stream_to: self())
     end
   end
 end
