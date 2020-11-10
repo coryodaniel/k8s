@@ -40,14 +40,14 @@ defmodule K8s.Discovery.Driver.File do
   def versions(%K8s.Conn{}, opts \\ []), do: get_versions(opts)
 
   defp get_versions(opts) do
-    with {:ok, config} = get_config(opts) do
+    with {:ok, config} <- get_config(opts) do
       versions = Map.keys(config)
       {:ok, versions}
     end
   end
 
   defp get_resources(api_version, opts) do
-    with {:ok, config} = get_config(opts) do
+    with {:ok, config} <- get_config(opts) do
       resources = Map.get(config, api_version, [])
       {:ok, resources}
     end

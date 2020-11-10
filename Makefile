@@ -1,67 +1,35 @@
-K3D_KUBECONFIG_PATH=/tmp/k8s.ex.kubeconfig.yaml
+K3D_KUBECONFIG_PATH=./integration.yaml
 
 .PHONY: help
 help: ## Show this help
 help:
 	@grep -E '^[\/a-zA-Z0-9._%-]+:.*?## .*$$' Makefile | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
-.PHONY: quality
-quality: ## Run code quality and test targets
-quality: cov lint analyze
-
 .PHONY: clean
 clean: ## Remove build/doc dirs
-	rm -rf _build
-	rm -rf cover
-	rm -rf deps
-	rm -rf doc
-
-.PHONY: deps
-deps: ## Fetch deps
-	mix deps.get
+	rm -rf {_build,cover,deps,doc}
 
 .PHONY: all
 all: ## Run format, credo, dialyzer, and test all supported k8s versions
-all: deps doc lint test analyze inch
-
-.PHONY: doc
-doc: ## Build documentation
+all: 
+	mix deps.get
+	mix coveralls.html
+	mix format
+	mix credo --strict
+	mix dialyzer
 	mix docs
-
-.PHONY: inch
-inch: ## Finds missing documentation
 	mix inch
 
-.PHONY: test
-test: ## Run fast tests on k8s latest stable
-	mix test
-
-.PHONY: cluster
-cluster: ## Create a k3d cluster
+integration.yaml: ## Create a k3d cluster
 	- k3d cluster delete k8s-ex
 	k3d cluster create k8s-ex --servers 1 --wait
 	k3d kubeconfig get k8s-ex > ${K3D_KUBECONFIG_PATH}
+	sleep 5
 
 .PHONY: integration
+integration: integration.yaml
 integration: ## Run integration tests using k3d `make cluster`
 	TEST_KUBECONFIG=${K3D_KUBECONFIG_PATH} mix test --only external
-
-.PHONY: tdd
-tdd: ## Run fast test on k8s last stable in a loop
-	mix test.watch
-
-.PHONY: cov
-cov: ## Generate coverage HTML
-	mix coveralls.html
-
-.PHONY: lint
-lint: ## Format and run credo
-	mix format
-	mix credo
-
-.PHONY: analyze
-analyze: ## Run dialyzer
-	mix dialyzer
 
 .PHONY: mock.dupes
 mock.dupes: ## List duplicates in resource_definitions mock (this should be empty)

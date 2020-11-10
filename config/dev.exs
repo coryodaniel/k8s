@@ -7,4 +7,5 @@ config :k8s,
       conn: "~/.kube/config",
       conn_opts: [context: "docker-for-desktop"]
     }
-  }
+  },
+  cluster_connections: %{}

@@ -116,7 +116,7 @@ defmodule K8s.ConnTest do
       assert {:ok, %RequestOptions{headers: headers, ssl_options: ssl_options}} =
                RequestOptions.generate(config)
 
-      assert [{"Authorization", bearer_token}] = headers
+      assert [{"Authorization", _bearer_token}] = headers
       assert [verify: :verify_none] = ssl_options
     end
 
@@ -139,7 +139,7 @@ defmodule K8s.ConnTest do
                RequestOptions.generate(config)
 
       assert headers == []
-      assert [cert: _, key: _, cacerts: [cert]] = ssl_options
+      assert [cert: _, key: _, cacerts: [_cert]] = ssl_options
     end
 
     test "when skipping TLS verification" do
