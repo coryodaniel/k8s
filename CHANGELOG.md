@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Per connection http provider configuration
 
 ### Changed
+- `K8s.Conn.t()` is now the first argument in all runners. `K8s.Operation.t()` is now the second.
 - deprecated K8s.http_provider/0
 - deprecated K8s.Discovery.default_opts/0
 - deprecated K8s.Discovery.default_driver/0

@@ -59,7 +59,7 @@ defmodule MyApp.ResourceTest do
   test "gets namespaces" do
     conn = %K8s.Conn{} # set up your conn
     operation = K8s.Client.get("v1", :namespaces)
-    assert {:ok, namespaces} = K8s.Client.run(operation, conn)
+    assert {:ok, namespaces} = K8s.Client.run(conn, operation)
     assert namespaces == [%{"metadata" => %{"name" => "default"}}]
   end
 end

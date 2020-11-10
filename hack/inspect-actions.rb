@@ -7,7 +7,7 @@ require 'pp'
 # todo take action/NAME and other things as CLI args to dynamically create the inspection
 # rename to inspect.rb
 
-url = 'https://raw.githubusercontent.com/kubernetes/kubernetes/master/api/openapi-spec/swagger.json'
+url = 'https://raw.githubusercontent.com/kubernetes/kubernetes/develop/api/openapi-spec/swagger.json'
 uri = URI(url)
 response = Net::HTTP.get(uri);nil
 data = JSON.parse(response);nil

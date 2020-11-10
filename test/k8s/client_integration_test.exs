@@ -36,30 +36,30 @@ defmodule K8s.ClientIntegrationTest do
     @tag external: true
     test "creating a resource", %{conn: conn, test_id: test_id} do
       pod = pod("nginx-#{test_id}")
-      op = K8s.Client.create(pod)
-      result = K8s.Client.run(op, conn)
+      operation = K8s.Client.create(pod)
+      result = K8s.Client.run(conn, operation)
 
       assert {:ok, _pod} = result
     end
 
     @tag external: true
     test "getting a resource", %{conn: conn} do
-      op = K8s.Client.get("v1", "ServiceAccount", name: "default", namespace: "default")
-      result = K8s.Client.run(op, conn)
+      operation = K8s.Client.get("v1", "ServiceAccount", name: "default", namespace: "default")
+      result = K8s.Client.run(conn, operation)
 
       assert {:ok, %{"apiVersion" => "v1", "kind" => "ServiceAccount"}} = result
     end
 
     @tag external: true
     test "listing resources", %{conn: conn} do
-      op = K8s.Client.list("v1", "ServiceAccount", namespace: "default")
+      operation = K8s.Client.list("v1", "ServiceAccount", namespace: "default")
 
       assert {:ok,
               %{
                 "items" => service_accounts,
                 "apiVersion" => "v1",
                 "kind" => "ServiceAccountList"
-              }} = K8s.Client.run(op, conn)
+              }} = K8s.Client.run(conn, operation)
 
       assert length(service_accounts) == 1
     end

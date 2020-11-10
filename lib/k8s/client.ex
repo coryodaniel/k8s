@@ -26,13 +26,13 @@ defmodule K8s.Client do
   alias K8s.Client.Runner.{Async, Base, Stream, Wait, Watch}
 
   @doc "alias of `K8s.Client.Runner.Base.run/2`"
-  defdelegate run(operation, conn), to: Base
+  defdelegate run(conn, operation), to: Base
 
   @doc "alias of `K8s.Client.Runner.Base.run/3`"
-  defdelegate run(operation, conn, opts), to: Base
+  defdelegate run(conn, operation, opts), to: Base
 
   @doc "alias of `K8s.Client.Runner.Base.run/4`"
-  defdelegate run(operation, conn, resource, opts), to: Base
+  defdelegate run(conn, operation, resource, opts), to: Base
 
   @doc "alias of `K8s.Client.Runner.Async.run/3`"
   defdelegate async(operations, conn), to: Async, as: :run
@@ -44,22 +44,22 @@ defmodule K8s.Client do
   defdelegate async(operations, conn, opts), to: Async, as: :run
 
   @doc "alias of `K8s.Client.Runner.Wait.run/3`"
-  defdelegate wait_until(operation, conn, opts), to: Wait, as: :run
+  defdelegate wait_until(conn, operation, opts), to: Wait, as: :run
 
   @doc "alias of `K8s.Client.Runner.Watch.run/3`"
-  defdelegate watch(operation, conn, opts), to: Watch, as: :run
+  defdelegate watch(conn, operation, opts), to: Watch, as: :run
 
   @doc "alias of `K8s.Client.Runner.Watch.run/4`"
-  defdelegate watch(operation, conn, rv, opts), to: Watch, as: :run
+  defdelegate watch(conn, operation, rv, opts), to: Watch, as: :run
 
   @doc "alias of `K8s.Client.Runner.Stream.run/2`"
-  defdelegate stream(operation, conn), to: Stream, as: :run
+  defdelegate stream(conn, operation), to: Stream, as: :run
 
   @doc "alias of `K8s.Client.Runner.Stream.run/3`"
-  defdelegate stream(operation, conn, opts), to: Stream, as: :run
+  defdelegate stream(conn, operation, opts), to: Stream, as: :run
 
   @doc """
-  Returns a `GET` operation for a resource given a manifest. May be a partial manifest as long as it contains:
+  Returns a `GET` operation for a resource given a Kubernetes manifest. May be a partial manifest as long as it contains:
 
     * apiVersion
     * kind

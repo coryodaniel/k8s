@@ -58,7 +58,7 @@ defmodule K8s.Client.Runner.StreamTest do
   describe "run/3" do
     test "when the initial request has no results", %{conn: conn} do
       operation = K8s.Client.list("v1", "Service", namespace: "stream-empty-test")
-      assert {:ok, stream} = Stream.run(operation, conn)
+      assert {:ok, stream} = Stream.run(conn, operation)
 
       services = Enum.into(stream, [])
       assert services == []
@@ -66,7 +66,7 @@ defmodule K8s.Client.Runner.StreamTest do
 
     test "puts error tuples into the stream when HTTP errors are encountered", %{conn: conn} do
       operation = K8s.Client.list("v1", "Service", namespace: "stream-failure-test")
-      assert {:ok, stream} = Stream.run(operation, conn)
+      assert {:ok, stream} = Stream.run(conn, operation)
 
       services = Enum.into(stream, [])
 
@@ -82,7 +82,7 @@ defmodule K8s.Client.Runner.StreamTest do
 
     test "returns an enumerable stream of k8s resources", %{conn: conn} do
       operation = K8s.Client.list("v1", "Service", namespace: "stream-runner-test")
-      assert {:ok, stream} = Stream.run(operation, conn)
+      assert {:ok, stream} = Stream.run(conn, operation)
 
       services = Enum.into(stream, [])
 

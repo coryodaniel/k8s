@@ -32,16 +32,16 @@ Get a list of all deployments in the `default` prod namespace:
 ```elixir
 prod_conn = K8s.Conn.from_service_account() # or from_file/2
 operation = K8s.Client.list("apps/v1", :deployment, namespace: "default")
-{:ok, deployments} = K8s.Client.run(operation, prod_conn)
+{:ok, deployments} = K8s.Client.run(prod_conn, operation)
 ```
 
 Map the deployments to operations and async create on staging:
 
 ```elixir
-prod_conn = K8s.Conn.from_service_account() # or from_file/2
-deployments
-|> Enum.map(fn(deployment) -> K8s.Client.create(deployment) end)
-|> K8s.Client.async(prod_conn)
+staging_conn = K8s.Conn.from_service_account() # or from_file/2
+operations = Enum.map(deployments, fn(deployment) -> K8s.Client.create(deployment) end)
+
+K8s.Client.async(staging_conn, operations)
 ```
 
 ## Performing sub-resource operations
@@ -53,7 +53,7 @@ Getting a deployment's status:
 ```elixir
 conn = K8s.Conn.from_file("~/.kube/config")
 operation = K8s.Client.get("apps/v1", "deployments/status", name: "nginx", namespace: "default")
-{:ok, scale} = K8s.Client.run(operation, conn)
+{:ok, scale} = K8s.Client.run(conn, operation)
 ```
 
 Getting a deployment's scale:
@@ -61,7 +61,7 @@ Getting a deployment's scale:
 ```
 conn = K8s.Conn.from_file("~/.kube/config")
 operation = K8s.Client.get("apps/v1", "deployments/scale", [name: "nginx", namespace: "default"])
-{:ok, scale} = K8s.Client.run(operation, conn)
+{:ok, scale} = K8s.Client.run(conn, operation)
 ```
 
 There are two forms for mutating subresources.
@@ -81,7 +81,7 @@ eviction = %{
 # Here we use K8s.Resource.build/4 but this k8s resource map could be built manually or retrieved from the k8s API
 subject = K8s.Resource.build("v1", "Pod", "default", "nginx")
 operation = K8s.Client.create(subject, eviction)
-{:ok, resp} = K8s.Client.run(operation, conn)
+{:ok, resp} = K8s.Client.run(conn, operation)
 ```
 
 Evicting a pod by providing details:
@@ -98,5 +98,5 @@ eviction = %{
 
 subject = K8s.Client.create("v1", "pods/eviction", [namespace: "default", name: "nginx"], eviction)
 operation = K8s.Client.create(subject, eviction)
-{:ok, resp} = K8s.Client.run(operation, conn)
+{:ok, resp} = K8s.Client.run(conn, operation)
 ```
