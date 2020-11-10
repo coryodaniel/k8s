@@ -2,7 +2,7 @@ defmodule K8s.Client.Runner.Stream.ListRequest do
   @moduledoc "`:list` `K8s.Operation` encapsulated with pagination and `K8s.Conn`"
   @limit 10
 
-  @typedoc "opts for `Base.run/3`"
+  @typedoc "opts for `K8s.Client.Runner.Base.run/3`"
   @type opts_t :: keyword
 
   @typedoc "Pagination continue token"

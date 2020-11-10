@@ -59,7 +59,7 @@ defmodule K8s.Client do
   defdelegate stream(conn, operation, opts), to: Stream, as: :run
 
   @doc """
-  Returns a `GET` operation for a resource given a manifest. May be a partial manifest as long as it contains:
+  Returns a `GET` operation for a resource given a Kubernetes manifest. May be a partial manifest as long as it contains:
 
     * apiVersion
     * kind
