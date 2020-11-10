@@ -12,4 +12,9 @@ config :k8s,
         discovery_opts: [config: "test/support/discovery/example.json"]
       ]
     }
+  },
+  cluster_connections: %{
+    "test" => %{
+      auth: "file://test/support/kube-config.yaml"
+    }
   }

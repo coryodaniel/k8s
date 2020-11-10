@@ -54,7 +54,7 @@
         {Credo.Check.Consistency.ExceptionNames, []},
         {Credo.Check.Consistency.LineEndings, []},
         {Credo.Check.Consistency.ParameterPatternMatching, []},
-        {Credo.Check.Consistency.SpaceAroundOperators, []},
+        {Credo.Check.Consistency.SpaceAroundOperators, false},
         {Credo.Check.Consistency.SpaceInParentheses, []},
         {Credo.Check.Consistency.TabsOrSpaces, []},
 

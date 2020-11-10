@@ -85,7 +85,7 @@ defmodule K8s.Client.Runner.WatchTest do
       }
 
       operation = K8s.Client.create(pod)
-      assert {:error, msg} = Watch.run(operation, conn, stream_to: self())
+      assert {:error, _msg} = Watch.run(operation, conn, stream_to: self())
     end
   end
 end

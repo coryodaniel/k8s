@@ -40,12 +40,11 @@ defmodule K8s.MixProject do
 
       # dev/test deps (e.g. code coverage)
       {:inch_ex, github: "rrrene/inch_ex", only: [:dev, :test]},
-      {:credo, "~> 1.0", only: [:dev, :test], runtime: false},
-      {:dialyxir, "~> 1.0.0", only: [:dev, :test], runtime: false},
+      {:credo, "~> 1.5", only: [:dev, :test], runtime: false},
+      {:dialyxir, "~> 1.0", only: [:dev], runtime: false},
       {:ex_doc, "~> 0.20", only: :dev},
       {:excoveralls, "~> 0.12", only: [:test]},
-      {:mix_test_watch, "~> 0.8", only: :dev, runtime: false},
-      {:stream_data, "~> 0.4", only: :test}
+      {:mix_test_watch, "~> 0.8", only: :dev, runtime: false}
     ]
   end
 
