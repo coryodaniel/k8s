@@ -3,7 +3,7 @@ defmodule K8s.ClientIntegrationTest do
 
   @spec conn() :: K8s.Conn.t()
   def conn do
-    conn =
+    {:ok, conn} =
       "TEST_KUBECONFIG"
       |> System.get_env()
       |> K8s.Conn.from_file()
@@ -32,14 +32,59 @@ defmodule K8s.ClientIntegrationTest do
     {:ok, %{conn: conn(), test_id: test_id}}
   end
 
+  describe "cluster scoped resources" do
+    @tag external: true
+    test "creating a resource", %{conn: conn, test_id: test_id} do
+      namespace = %{
+        "apiVersion" => "v1",
+        "kind" => "Namespace",
+        "metadata" => %{"name" => "k8s-ex-#{test_id}"}
+      }
+
+      operation = K8s.Client.create(namespace)
+      result = K8s.Client.run(conn, operation)
+      assert {:ok, _pod} = result
+
+      operation = K8s.Client.delete(namespace)
+      result = K8s.Client.run(conn, operation)
+      assert {:ok, _pod} = result        
+    end
+
+    @tag external: true
+    test "getting a resource", %{conn: conn} do
+      operation = K8s.Client.get("v1", "Namespace", name: "default")
+      result = K8s.Client.run(conn, operation)
+
+      assert {:ok, %{"apiVersion" => "v1", "kind" => "Namespace"}} = result
+    end
+
+    @tag external: true
+    test "listing resources", %{conn: conn} do
+      operation = K8s.Client.list("v1", "Namespace")
+
+      assert {:ok,
+              %{
+                "items" => namespaces,
+                "apiVersion" => "v1",
+                "kind" => "NamespaceList"
+              }} = K8s.Client.run(conn, operation)
+
+      namespace_names = Enum.map(namespaces, fn(ns) -> get_in(ns, ["metadata", "name"]) end)
+      assert Enum.member?(namespace_names, "default")
+    end    
+  end
+
   describe "namespaced scoped resources" do
     @tag external: true
     test "creating a resource", %{conn: conn, test_id: test_id} do
-      pod = pod("nginx-#{test_id}")
+      pod = pod("k8s-ex-#{test_id}")
       operation = K8s.Client.create(pod)
       result = K8s.Client.run(conn, operation)
-
       assert {:ok, _pod} = result
+
+      operation = K8s.Client.delete(pod)
+      result = K8s.Client.run(conn, operation)
+      assert {:ok, _pod} = result  
     end
 
     @tag external: true
