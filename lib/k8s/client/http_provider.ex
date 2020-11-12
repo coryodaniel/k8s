@@ -4,6 +4,7 @@ defmodule K8s.Client.HTTPProvider do
   """
   @behaviour K8s.Client.Provider
   alias K8s.Conn.RequestOptions
+  require Logger
 
   @impl true
   def request(method, url, body, headers, opts) do
@@ -46,7 +47,9 @@ defmodule K8s.Client.HTTPProvider do
 
   Handles not found responses:
 
-      iex> K8s.Client.HTTPProvider.handle_response({:ok, %HTTPoison.Response{status_code: 404}})
+      iex> body = ~s({"kind":"Status","apiVersion":"v1","metadata":{},"status":"Failure","message":"namespaces not found","reason":"NotFound","details":{"name":"i-dont-exist","kind":"namespaces"},"code":404})
+      ...> headers = [{"Content-Type", "application/json"}]
+      ...> K8s.Client.HTTPProvider.handle_response({:ok, %HTTPoison.Response{status_code: 404, body: body, headers: headers}})
       {:error, :not_found}
 
   Passes through HTTPoison 4xx responses:
@@ -61,27 +64,27 @@ defmodule K8s.Client.HTTPProvider do
 
   """
   @impl true
-  def handle_response(resp) do
+  def handle_response({:error, %HTTPoison.Error{} = err}), do: {:error, err}
+  def handle_response({:ok, %HTTPoison.AsyncResponse{id: ref}}), do: {:ok, ref}
+
+  def handle_response({:ok, resp}) do
     case resp do
-      {:ok, %HTTPoison.Response{status_code: code, body: body, headers: headers}}
+      %HTTPoison.Response{status_code: code, body: body, headers: headers}
       when code in 200..299 ->
         content_type = List.keyfind(headers, "Content-Type", 0)
         {:ok, decode(body, content_type)}
 
-      {:ok, %HTTPoison.AsyncResponse{id: ref}} ->
-        {:ok, ref}
+      %HTTPoison.Response{status_code: 404, body: body, headers: headers} ->
+        msg = format_log_message(body, headers)
+        Logger.error(msg)
 
-      {:ok, %HTTPoison.Response{status_code: 401}} ->
-        {:error, :unauthorized}
-
-      {:ok, %HTTPoison.Response{status_code: 404}} ->
         {:error, :not_found}
 
-      {:ok, %HTTPoison.Response{status_code: code} = resp} when code in 400..599 ->
-        {:error, resp}
+      %HTTPoison.Response{status_code: 401} ->
+        {:error, :unauthorized}
 
-      {:error, %HTTPoison.Error{} = err} ->
-        {:error, err}
+      %HTTPoison.Response{status_code: code} when code in 400..599 ->
+        {:error, resp}
     end
   end
 
@@ -124,6 +127,15 @@ defmodule K8s.Client.HTTPProvider do
     case Jason.decode(body) do
       {:ok, data} -> data
       {:error, _} -> nil
+    end
+  end
+
+  def format_log_message(body, headers) do
+    content_type = List.keyfind(headers, "Content-Type", 0)
+
+    case decode(body, content_type) do
+      %{"message" => msg} -> msg
+      msg -> msg
     end
   end
 end

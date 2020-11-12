@@ -25,10 +25,12 @@ defmodule K8s.Client.Runner.StreamTest do
       case params do
         %{continue: nil, limit: _limit} ->
           data = make_list(page1_items, continue_token)
-          render(data, 200)
+          render(data, 200, [{"Content-Type", "application/json"}])
 
         %{continue: ^continue_token} ->
-          render(%{}, 404)
+          render(%{"message" => "next page not found"}, 404, [
+            {"Content-Type", "application/json"}
+          ])
       end
     end
 

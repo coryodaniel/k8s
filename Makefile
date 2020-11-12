@@ -26,15 +26,12 @@ integration.yaml: ## Create a k3d cluster
 	k3d kubeconfig get k8s-ex > ${K3D_KUBECONFIG_PATH}
 	sleep 5
 
-.PHONY: integration
-integration: integration.yaml
-integration: ## Run integration tests using k3d `make cluster`
+.PHONY: integration-tests
+integration-tests: integration.yaml
+integration-tests: ## Run integration tests using k3d `make cluster`
 	TEST_KUBECONFIG=${K3D_KUBECONFIG_PATH} mix test --only external
 
-.PHONY: mock.dupes
-mock.dupes: ## List duplicates in resource_definitions mock (this should be empty)
-	jq '.[].groupVersion' test/support/discovery/resource_definitions.json | uniq -d
-
-.PHONY: mock.groups
-mock.groups: ## List of all groups in resource_definitions mock
-	jq '.[].groupVersion' test/support/discovery/resource_definitions.json
+.PHONY: all-tests
+all-tests: integration.yaml
+all-tests: ## Run all tests
+	TEST_KUBECONFIG=${K3D_KUBECONFIG_PATH} mix test --include external
