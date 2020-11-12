@@ -14,11 +14,11 @@ defmodule K8s.Conn.Auth.BasicAuthTest do
   end
 
   test "creates http request signing options" do
-    config = Conn.from_file("test/support/kube-config.yaml", user: "basic-auth-user")
-    assert %BasicAuth{token: token} = config.auth
+    {:ok, conn} = Conn.from_file("test/support/kube-config.yaml", user: "basic-auth-user")
+    assert %BasicAuth{token: token} = conn.auth
 
     {:ok, %Conn.RequestOptions{headers: headers, ssl_options: ssl_options}} =
-      Conn.RequestOptions.generate(config.auth)
+      Conn.RequestOptions.generate(conn.auth)
 
     assert headers == [{"Authorization", "Basic #{token}"}]
     assert ssl_options == []

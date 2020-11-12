@@ -16,21 +16,21 @@ Copying a workloads between two clusters:
 Register a staging cluster:
 
 ```elixir
-staging_conn = K8s.Conn.from_file("~/.kube/config")
+{:ok, staging_conn} = K8s.Conn.from_file("~/.kube/config")
 {:ok, staging} = K8s.Cluster.Registry.add("staging", staging_conn)
 ```
 
 Register a prod cluster:
 
 ```elixir
-prod_conn = K8s.Conn.from_service_account() # or from_file/2
+{:ok, prod_conn} = K8s.Conn.from_service_account() # or from_file/2
 {:ok, prod} = K8s.Cluster.Registry.add("prod", staging_conn)
 ```
 
 Get a list of all deployments in the `default` prod namespace:
 
 ```elixir
-prod_conn = K8s.Conn.from_service_account() # or from_file/2
+{:ok, prod_conn} = K8s.Conn.from_service_account() # or from_file/2
 operation = K8s.Client.list("apps/v1", :deployment, namespace: "default")
 {:ok, deployments} = K8s.Client.run(prod_conn, operation)
 ```
@@ -38,7 +38,7 @@ operation = K8s.Client.list("apps/v1", :deployment, namespace: "default")
 Map the deployments to operations and async create on staging:
 
 ```elixir
-staging_conn = K8s.Conn.from_service_account() # or from_file/2
+{:ok, staging_conn} = K8s.Conn.from_service_account() # or from_file/2
 operations = Enum.map(deployments, fn(deployment) -> K8s.Client.create(deployment) end)
 
 K8s.Client.async(staging_conn, operations)
@@ -51,7 +51,7 @@ Subresource (eviction|finalize|bindings|binding|approval|scale|status) operation
 Getting a deployment's status:
 
 ```elixir
-conn = K8s.Conn.from_file("~/.kube/config")
+{:ok, conn} = K8s.Conn.from_file("~/.kube/config")
 operation = K8s.Client.get("apps/v1", "deployments/status", name: "nginx", namespace: "default")
 {:ok, scale} = K8s.Client.run(conn, operation)
 ```
@@ -59,7 +59,7 @@ operation = K8s.Client.get("apps/v1", "deployments/status", name: "nginx", names
 Getting a deployment's scale:
 
 ```
-conn = K8s.Conn.from_file("~/.kube/config")
+{:ok, conn} = K8s.Conn.from_file("~/.kube/config")
 operation = K8s.Client.get("apps/v1", "deployments/scale", [name: "nginx", namespace: "default"])
 {:ok, scale} = K8s.Client.run(conn, operation)
 ```
@@ -69,7 +69,7 @@ There are two forms for mutating subresources.
 Evicting a pod with a Pod map:
 
 ```elixir
-conn = K8s.Conn.from_file("~/.kube/config")
+{:ok, conn} = K8s.Conn.from_file("~/.kube/config")
 eviction = %{
   "apiVersion" => "policy/v1beta1",
   "kind" => "Eviction",
@@ -87,7 +87,7 @@ operation = K8s.Client.create(subject, eviction)
 Evicting a pod by providing details:
 
 ```elixir
-conn = K8s.Conn.from_file("~/.kube/config")
+{:ok, conn} = K8s.Conn.from_file("~/.kube/config")
 eviction = %{
   "apiVersion" => "policy/v1beta1",
   "kind" => "Eviction",

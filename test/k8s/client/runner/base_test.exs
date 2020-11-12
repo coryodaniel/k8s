@@ -60,7 +60,7 @@ defmodule K8s.Client.Runner.BaseTest do
 
   setup do
     DynamicHTTPProvider.register(self(), __MODULE__.HTTPMock)
-    conn = K8s.Conn.from_file("test/support/kube-config.yaml")
+    {:ok, conn} = K8s.Conn.from_file("test/support/kube-config.yaml")
 
     {:ok, conn: conn}
   end
