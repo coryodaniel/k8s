@@ -19,7 +19,7 @@ defmodule K8s.Discovery do
 
   ## Examples
 
-      iex> conn = K8s.Conn.from_file("./test/support/kube-config.yaml")
+      iex> {:ok, conn} = K8s.Conn.from_file("./test/support/kube-config.yaml")
       ...> op = K8s.Operation.build(:get, "apps/v1", :deployments, [namespace: "default", name: "nginx"])
       ...> K8s.Discovery.url_for(conn, op)
       {:ok, "https://localhost:6443/apis/apps/v1/namespaces/default/deployments/nginx"}

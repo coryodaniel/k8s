@@ -47,7 +47,7 @@ defmodule K8s.ClientIntegrationTest do
 
       operation = K8s.Client.delete(namespace)
       result = K8s.Client.run(conn, operation)
-      assert {:ok, _pod} = result        
+      assert {:ok, _pod} = result
     end
 
     @tag external: true
@@ -69,9 +69,9 @@ defmodule K8s.ClientIntegrationTest do
                 "kind" => "NamespaceList"
               }} = K8s.Client.run(conn, operation)
 
-      namespace_names = Enum.map(namespaces, fn(ns) -> get_in(ns, ["metadata", "name"]) end)
+      namespace_names = Enum.map(namespaces, fn ns -> get_in(ns, ["metadata", "name"]) end)
       assert Enum.member?(namespace_names, "default")
-    end    
+    end
   end
 
   describe "namespaced scoped resources" do
@@ -84,7 +84,7 @@ defmodule K8s.ClientIntegrationTest do
 
       operation = K8s.Client.delete(pod)
       result = K8s.Client.run(conn, operation)
-      assert {:ok, _pod} = result  
+      assert {:ok, _pod} = result
     end
 
     @tag external: true

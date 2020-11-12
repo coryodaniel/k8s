@@ -109,7 +109,7 @@ There are a few helper functions for creating `K8s.Conn`s, but they can also be 
 Using a kube config file will set the cluster name to the name of the cluster in the kube config.
 
 ```elixir
-conn = K8s.Conn.from_file("/path/to/kube/config", context: "docker-for-desktop")
+{:ok, conn} = K8s.Conn.from_file("/path/to/kube/config", context: "docker-for-desktop")
 ```
 
 **Using `K8s.Conn.from_service_account/2`:**
@@ -119,13 +119,13 @@ A cluster name must be provided when creating connections from service account d
 If a path isn't provided for the service account, the default path is used `/var/run/secrets/kubernetes.io/serviceaccount`.
 
 ```elixir
-conn = K8s.Conn.from_service_account("cluster_name_here")
+{:ok, conn} = K8s.Conn.from_service_account("cluster_name_here")
 ```
 
 Optionally the path can be specified:
 
 ```elixir
-conn = K8s.Conn.from_service_account("cluster_name_here", "/path/to/service/account/directory")
+{:ok, conn} = K8s.Conn.from_service_account("cluster_name_here", "/path/to/service/account/directory")
 ```
 
 **Creating a `K8s.Conn` struct manually:**

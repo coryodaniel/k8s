@@ -9,6 +9,8 @@ defmodule K8s.Conn do
 
   alias __MODULE__
   alias K8s.Conn.{Config, PKI, RequestOptions}
+  alias K8s.Resource.NamedList
+  require Logger
 
   @default_service_account_cluster_name "cluster.local"
   @default_service_account_path "/var/run/secrets/kubernetes.io/serviceaccount"
@@ -58,8 +60,12 @@ defmodule K8s.Conn do
   @spec list :: list(K8s.Conn.t())
   def list do
     Enum.reduce(Config.all(), [], fn {cluster_name, conf}, agg ->
-      conn = config_to_conn(conf, cluster_name)
-      [conn | agg]
+      with {:ok, conn} <- config_to_conn(conf, cluster_name) do
+        [conn | agg]
+      else
+        _error ->
+          agg
+      end
     end)
   end
 
@@ -73,17 +79,17 @@ defmodule K8s.Conn do
   {:ok, %K8s.Conn{ca_cert: nil, auth: %K8s.Conn.Auth{}, cluster_name: "docker-for-desktop-cluster", discovery_driver: K8s.Discovery.Driver.File, discovery_opts: [config: "test/support/discovery/example.json"], insecure_skip_tls_verify: true, url: "https://localhost:6443", user_name: "docker-for-desktop"}}
   ```
   """
-  @spec lookup(String.t()) :: {:ok, K8s.Conn.t()} | {:error, :connection_not_registered}
+  @spec lookup(String.t()) :: {:ok, __MODULE__.t()} | {:error, atom()}
   def lookup(cluster_name) do
     config = Map.get(Config.all(), cluster_name)
 
     case config do
       nil -> {:error, :connection_not_registered}
-      config -> {:ok, config_to_conn(config, cluster_name)}
+      config -> config_to_conn(config, cluster_name)
     end
   end
 
-  @spec config_to_conn(map, String.t()) :: K8s.Conn.t()
+  @spec config_to_conn(map, String.t()) :: {:ok, __MODULE__.t()} | {:error, atom()}
   defp config_to_conn(config, cluster_name) do
     case Map.get(config, :conn) do
       nil ->
@@ -111,31 +117,44 @@ defmodule K8s.Conn do
   * `discovery_driver` module name to use for discovery
   * `discovery_opts` options for discovery module
   """
-  @spec from_file(binary, keyword) :: K8s.Conn.t()
+  @spec from_file(binary, keyword) :: {:ok, __MODULE__.t()} | {:error, atom()}
   def from_file(config_file, opts \\ []) do
     abs_config_file = Path.expand(config_file)
     base_path = Path.dirname(abs_config_file)
 
-    config = YamlElixir.read_from_file!(abs_config_file)
-    context_name = opts[:context] || config["current-context"]
-    context = find_by_name(config["contexts"], context_name, "context")
+    with {:ok, config} <- YamlElixir.read_from_file(abs_config_file),
+         context_name <- opts[:context] || config["current-context"],
+         {:ok, context} <- find_configuration(config["contexts"], context_name, "context"),
+         user_name <- opts[:user] || context["user"],
+         {:ok, user} <- find_configuration(config["users"], user_name, "user"),
+         cluster_name <- opts[:cluster] || context["cluster"],
+         {:ok, cluster} <- find_configuration(config["clusters"], cluster_name, "cluster") do
+      conn = %Conn{
+        cluster_name: cluster_name,
+        user_name: user_name,
+        url: cluster["server"],
+        ca_cert: PKI.cert_from_map(cluster, base_path),
+        auth: get_auth(user, base_path),
+        insecure_skip_tls_verify: cluster["insecure-skip-tls-verify"]
+      }
 
-    user_name = opts[:user] || context["user"]
-    user = find_by_name(config["users"], user_name, "user")
+      {:ok, maybe_update_defaults(conn, config)}
+    else
+      error -> error
+    end
+  end
 
-    cluster_name = opts[:cluster] || context["cluster"]
-    cluster = find_by_name(config["clusters"], cluster_name, "cluster")
+  @spec find_configuration([map()], String.t(), String.t()) ::
+          {:ok, map()} | {:error, :invalid_configuration, String.t()}
+  defp find_configuration(items, name, type) do
+    case get_in(items, [NamedList.access(name), type]) do
+      nil ->
+        Logger.error("No `#{type}` type found with name: '#{name}'")
+        {:error, :invalid_configuration}
 
-    conn = %Conn{
-      cluster_name: cluster_name,
-      user_name: user_name,
-      url: cluster["server"],
-      ca_cert: PKI.cert_from_map(cluster, base_path),
-      auth: get_auth(user, base_path),
-      insecure_skip_tls_verify: cluster["insecure-skip-tls-verify"]
-    }
-
-    maybe_update_defaults(conn, config)
+      item ->
+        {:ok, item}
+    end
   end
 
   @spec maybe_update_defaults(Conn.t(), map()) :: Conn.t()
@@ -156,36 +175,36 @@ defmodule K8s.Conn do
 
   [kubernetes.io :: Accessing the API from a Pod](https://kubernetes.io/docs/tasks/access-application-cluster/access-cluster/#accessing-the-api-from-a-pod)
   """
-  @spec from_service_account :: K8s.Conn.t()
+  @spec from_service_account :: {:ok, __MODULE__.t()} | {:error, atom()}
   def from_service_account do
     from_service_account(@default_service_account_cluster_name)
   end
 
-  @spec from_service_account(String.t()) :: K8s.Conn.t()
+  @spec from_service_account(String.t()) :: {:ok, __MODULE__.t()} | {:error, atom()}
   def from_service_account(cluster_name) do
     from_service_account(cluster_name, @default_service_account_path)
   end
 
-  @spec from_service_account(String.t(), String.t()) :: K8s.Conn.t()
+  @spec from_service_account(String.t(), String.t()) :: {:ok, __MODULE__.t()} | {:error, atom()}
   def from_service_account(cluster_name, root_sa_path) do
-    host = System.get_env("KUBERNETES_SERVICE_HOST")
-    port = System.get_env("KUBERNETES_SERVICE_PORT")
     cert_path = Path.join(root_sa_path, "ca.crt")
     token_path = Path.join(root_sa_path, "token")
 
-    %Conn{
-      cluster_name: cluster_name,
-      url: "https://#{host}:#{port}",
-      ca_cert: PKI.cert_from_pem(cert_path),
-      auth: %K8s.Conn.Auth.Token{token: File.read!(token_path)}
-    }
-  end
+    with {:ok, token} <- File.read(token_path) do
+      # TODO: PKI.cert_from_pem/1 will raise an exception if the file is not present. #97
+      ca_cert = PKI.cert_from_pem(cert_path)
 
-  @spec find_by_name([map()], String.t(), String.t()) :: map()
-  defp find_by_name(items, name, type) do
-    items
-    |> Enum.find(fn item -> item["name"] == name end)
-    |> Map.get(type)
+      conn = %Conn{
+        cluster_name: cluster_name,
+        url: kubernetes_service_url(),
+        ca_cert: ca_cert,
+        auth: %K8s.Conn.Auth.Token{token: token}
+      }
+
+      {:ok, conn}
+    else
+      error -> error
+    end
   end
 
   @doc false
@@ -205,6 +224,13 @@ defmodule K8s.Conn do
   @spec providers() :: list(atom)
   defp providers do
     Application.get_env(:k8s, :auth_providers, []) ++ @auth_providers
+  end
+
+  @spec kubernetes_service_url() :: String.t()
+  defp kubernetes_service_url() do
+    host = System.get_env("KUBERNETES_SERVICE_HOST")
+    port = System.get_env("KUBERNETES_SERVICE_PORT")
+    "https://#{host}:#{port}"
   end
 
   defimpl K8s.Conn.RequestOptions, for: __MODULE__ do
