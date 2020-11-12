@@ -130,6 +130,7 @@ defmodule K8s.Client.HTTPProvider do
     end
   end
 
+  @spec format_log_message(String.t(), [tuple]) :: any
   def format_log_message(body, headers) do
     content_type = List.keyfind(headers, "Content-Type", 0)
 

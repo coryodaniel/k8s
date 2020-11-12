@@ -1,7 +1,7 @@
+# credo:disable-for-this-file
 defmodule K8s.Test.HTTPHelper do
   @moduledoc "HTTP Helpers for test suite."
 
-  @spec render(any, integer) :: {:ok, HTTPoison.Response.t()}
   def render(data), do: render(data, 200)
   def render(data, code), do: render(data, code, [])
 

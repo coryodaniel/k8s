@@ -60,11 +60,9 @@ defmodule K8s.Conn do
   @spec list :: list(K8s.Conn.t())
   def list do
     Enum.reduce(Config.all(), [], fn {cluster_name, conf}, agg ->
-      with {:ok, conn} <- config_to_conn(conf, cluster_name) do
-        [conn | agg]
-      else
-        _error ->
-          agg
+      case config_to_conn(conf, cluster_name) do
+        {:ok, conn} -> [conn | agg]
+        _error -> agg
       end
     end)
   end
@@ -190,20 +188,22 @@ defmodule K8s.Conn do
     cert_path = Path.join(root_sa_path, "ca.crt")
     token_path = Path.join(root_sa_path, "token")
 
-    with {:ok, token} <- File.read(token_path) do
-      # TODO: PKI.cert_from_pem/1 will raise an exception if the file is not present. #97
-      ca_cert = PKI.cert_from_pem(cert_path)
+    case File.read(token_path) do
+      {:ok, token} ->
+        # Open Issue #97: PKI.cert_from_pem/1 will raise an exception if the file is not present.
+        ca_cert = PKI.cert_from_pem(cert_path)
 
-      conn = %Conn{
-        cluster_name: cluster_name,
-        url: kubernetes_service_url(),
-        ca_cert: ca_cert,
-        auth: %K8s.Conn.Auth.Token{token: token}
-      }
+        conn = %Conn{
+          cluster_name: cluster_name,
+          url: kubernetes_service_url(),
+          ca_cert: ca_cert,
+          auth: %K8s.Conn.Auth.Token{token: token}
+        }
 
-      {:ok, conn}
-    else
-      error -> error
+        {:ok, conn}
+
+      error ->
+        error
     end
   end
 
@@ -226,8 +226,8 @@ defmodule K8s.Conn do
     Application.get_env(:k8s, :auth_providers, []) ++ @auth_providers
   end
 
-  @spec kubernetes_service_url() :: String.t()
-  defp kubernetes_service_url() do
+  @spec kubernetes_service_url :: String.t()
+  defp kubernetes_service_url do
     host = System.get_env("KUBERNETES_SERVICE_HOST")
     port = System.get_env("KUBERNETES_SERVICE_PORT")
     "https://#{host}:#{port}"
