@@ -9,7 +9,7 @@ defmodule K8s.ConnTest do
     test "returns a list of all registered Conns" do
       conns = K8s.Conn.list()
       conn_names = Enum.map(conns, & &1.cluster_name)
-      assert conn_names == ["docker-for-desktop-cluster"]
+      assert conn_names == ["k8s-elixir-client-cluster"]
     end
   end
 
@@ -49,8 +49,8 @@ defmodule K8s.ConnTest do
       {:ok, conn} = K8s.Conn.from_file("test/support/kube-config.yaml")
       assert %Certificate{} = conn.auth
       assert conn.url == "https://localhost:6443"
-      assert conn.cluster_name == "docker-for-desktop-cluster"
-      assert conn.user_name == "docker-for-desktop"
+      assert conn.cluster_name == "k8s-elixir-client-cluster"
+      assert conn.user_name == "k8s-elixir-client"
     end
 
     test "using an alternate cluster: cluster-with-cert-data" do

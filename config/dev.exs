@@ -5,7 +5,6 @@ config :k8s,
   clusters: %{
     dev: %{
       conn: "~/.kube/config",
-      conn_opts: [context: "docker-for-desktop"]
+      conn_opts: [context: "k8s-elixir-client"]
     }
-  },
-  cluster_connections: %{}
+  }

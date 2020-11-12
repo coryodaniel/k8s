@@ -54,7 +54,7 @@ defmodule K8s.Conn do
 
   ```elixir
   K8s.Conn.list()
-  [%K8s.Conn{ca_cert: nil, auth: %K8s.Conn.Auth{}, cluster_name: "docker-for-desktop-cluster", discovery_driver: K8s.Discovery.Driver.File, discovery_opts: [config: "test/support/discovery/example.json"], insecure_skip_tls_verify: true, url: "https://localhost:6443", user_name: "docker-for-desktop"}]
+  [%K8s.Conn{ca_cert: nil, auth: %K8s.Conn.Auth{}, cluster_name: "k8s-elixir-client-cluster", discovery_driver: K8s.Discovery.Driver.File, discovery_opts: [config: "test/support/discovery/example.json"], insecure_skip_tls_verify: true, url: "https://localhost:6443", user_name: "k8s-elixir-client"}]
   ```
   """
   @spec list :: list(K8s.Conn.t())
@@ -76,7 +76,7 @@ defmodule K8s.Conn do
 
   ```elixir
   K8s.Conn.lookup("test")
-  {:ok, %K8s.Conn{ca_cert: nil, auth: %K8s.Conn.Auth{}, cluster_name: "docker-for-desktop-cluster", discovery_driver: K8s.Discovery.Driver.File, discovery_opts: [config: "test/support/discovery/example.json"], insecure_skip_tls_verify: true, url: "https://localhost:6443", user_name: "docker-for-desktop"}}
+  {:ok, %K8s.Conn{ca_cert: nil, auth: %K8s.Conn.Auth{}, cluster_name: "k8s-elixir-client-cluster", discovery_driver: K8s.Discovery.Driver.File, discovery_opts: [config: "test/support/discovery/example.json"], insecure_skip_tls_verify: true, url: "https://localhost:6443", user_name: "k8s-elixir-client"}}
   ```
   """
   @spec lookup(String.t()) :: {:ok, __MODULE__.t()} | {:error, atom()}

@@ -109,7 +109,7 @@ There are a few helper functions for creating `K8s.Conn`s, but they can also be 
 Using a kube config file will set the cluster name to the name of the cluster in the kube config.
 
 ```elixir
-{:ok, conn} = K8s.Conn.from_file("/path/to/kube/config", context: "docker-for-desktop")
+{:ok, conn} = K8s.Conn.from_file("/path/to/kube/config", context: "your-context-name-here")
 ```
 
 **Using `K8s.Conn.from_service_account/2`:**
