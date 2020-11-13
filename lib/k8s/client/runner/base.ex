@@ -108,13 +108,15 @@ defmodule K8s.Client.Runner.Base do
     end
   end
 
-  @spec new_request(Conn.t(), String.t(), K8s.Operation.t(), body_t, Keyword.t()) ::
+  @spec new_request(Conn.t(), String.t(), Operation.t(), body_t, Keyword.t()) ::
           Request.t()
   defp new_request(%Conn{} = conn, url, %Operation{} = operation, body, opts) do
     req = %Request{conn: conn, method: operation.method, body: body}
 
     params = merge_deprecated_params(operation.query_params, opts[:params])
-    http_opts_params = build_http_params(params, params[:labelSelector])
+
+    label_selector = Operation.get_label_selector(operation)
+    http_opts_params = build_http_params(params, label_selector)
 
     opts_with_selector_params = Keyword.put(opts, :params, http_opts_params)
     http_opts = Keyword.merge(req.opts, opts_with_selector_params)

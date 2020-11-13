@@ -306,8 +306,9 @@ defmodule K8s.Selector do
 
   @spec merge(t | Operation.t(), t) :: t
   defp merge(%Operation{} = op, %__MODULE__{} = next) do
-    prev = Operation.get_query_param(op, :labelSelector) || %__MODULE__{}
-    Operation.put_query_param(op, :labelSelector, merge(prev, next))
+    prev = Operation.get_label_selector(op) || %__MODULE__{}
+    merged_selector = merge(prev, next)
+    Operation.put_label_selector(op, merged_selector)
   end
 
   defp merge(%__MODULE__{} = prev, %__MODULE__{} = next) do

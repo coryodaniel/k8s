@@ -1,10 +1,11 @@
 defmodule K8s.Operation do
   @moduledoc "Encapsulates Kubernetes REST API operations."
 
-  alias K8s.Operation
+  alias K8s.{Operation, Selector}
   @derive {Jason.Encoder, except: [:path_params]}
 
   @allow_http_body [:put, :patch, :post]
+  @label_selector :labelSelector
   @verb_map %{
     list_all_namespaces: :get,
     list: :get,
@@ -173,6 +174,41 @@ defmodule K8s.Operation do
   @spec to_path(Operation.t()) ::
           {:ok, String.t()} | {:error, :missing_required_param, list(atom)}
   def to_path(%Operation{} = operation), do: Operation.Path.build(operation)
+
+  @doc """
+  Puts a `K8s.Selector` on the operation.
+
+  ## Examples
+      iex> operation = %K8s.Operation{}
+      ...> selector = K8s.Selector.label({"component", "redis"})
+      ...> K8s.Operation.put_label_selector(operation, selector)
+      %K8s.Operation{
+        query_params: %{
+          labelSelector: %K8s.Selector{
+            match_expressions: [],
+            match_labels: %{"component" => "redis"}
+          }
+        }
+      }
+  """
+  @spec put_label_selector(Operation.t(), Selector.t()) :: Operation.t()
+  def put_label_selector(%Operation{} = op, %Selector{} = selector),
+    do: put_query_param(op, @label_selector, selector)
+
+  @doc """
+  Gets a `K8s.Selector` on the operation.
+
+  ## Examples
+      iex> operation = %K8s.Operation{query_params: %{labelSelector: K8s.Selector.label({"component", "redis"})}}
+      ...> K8s.Operation.get_label_selector(operation)
+      %K8s.Selector{
+        match_expressions: [],
+        match_labels: %{"component" => "redis"}
+      }
+  """
+  @spec get_label_selector(K8s.Operation.t()) :: K8s.Selector.t() | nil
+  def get_label_selector(%Operation{} = op),
+    do: get_query_param(op, @label_selector)
 
   @doc """
   Add a query param to an operation
