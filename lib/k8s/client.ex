@@ -16,11 +16,11 @@ defmodule K8s.Client do
   "HorizontalPodAutoscaler", "horizontalpodautoscaler", :HorizontalPodAutoscaler, :horizontalpodautoscaler
   ```
 
-  `opts` to `K8s.Client.Runner` modules are HTTPoison HTTP option overrides.
+  `http_opts` to `K8s.Client.Runner` modules are `K8s.Client.HTTPProvider` HTTP options.
   """
 
-  @type option :: {:name, String.t()} | {:namespace, binary() | :all}
-  @type options :: [option]
+  @type path_param :: {:name, String.t()} | {:namespace, binary() | :all}
+  @type path_params :: [path_param]
 
   alias K8s.Operation
   alias K8s.Client.Runner.{Async, Base, Stream, Wait, Watch}
@@ -29,34 +29,34 @@ defmodule K8s.Client do
   defdelegate run(conn, operation), to: Base
 
   @doc "alias of `K8s.Client.Runner.Base.run/3`"
-  defdelegate run(conn, operation, opts), to: Base
+  defdelegate run(conn, operation, http_opts), to: Base
 
   @doc "alias of `K8s.Client.Runner.Base.run/4`"
-  defdelegate run(conn, operation, resource, opts), to: Base
+  defdelegate run(conn, operation, resource, http_opts), to: Base
 
   @doc "alias of `K8s.Client.Runner.Async.run/3`"
   defdelegate async(operations, conn), to: Async, as: :run
 
   @doc "alias of `K8s.Client.Runner.Async.run/3`"
-  defdelegate async(operations, conn, opts), to: Async, as: :run
+  defdelegate async(operations, conn, http_opts), to: Async, as: :run
 
   @doc "alias of `K8s.Client.Runner.Async.run/3`"
-  defdelegate parallel(operations, conn, opts), to: Async, as: :run
+  defdelegate parallel(operations, conn, http_opts), to: Async, as: :run
 
   @doc "alias of `K8s.Client.Runner.Wait.run/3`"
-  defdelegate wait_until(conn, operation, opts), to: Wait, as: :run
+  defdelegate wait_until(conn, operation, http_opts), to: Wait, as: :run
 
   @doc "alias of `K8s.Client.Runner.Watch.run/3`"
-  defdelegate watch(conn, operation, opts), to: Watch, as: :run
+  defdelegate watch(conn, operation, http_opts), to: Watch, as: :run
 
   @doc "alias of `K8s.Client.Runner.Watch.run/4`"
-  defdelegate watch(conn, operation, rv, opts), to: Watch, as: :run
+  defdelegate watch(conn, operation, rv, http_opts), to: Watch, as: :run
 
   @doc "alias of `K8s.Client.Runner.Stream.run/2`"
   defdelegate stream(conn, operation), to: Stream, as: :run
 
   @doc "alias of `K8s.Client.Runner.Stream.run/3`"
-  defdelegate stream(conn, operation, opts), to: Stream, as: :run
+  defdelegate stream(conn, operation, http_opts), to: Stream, as: :run
 
   @doc """
   Returns a `GET` operation for a resource given a Kubernetes manifest. May be a partial manifest as long as it contains:
@@ -137,8 +137,9 @@ defmodule K8s.Client do
         path_params: [namespace: "test", name: "nginx"]}
 
   """
-  @spec get(binary, binary | atom, options | nil) :: Operation.t()
-  def get(api_version, kind, opts \\ []), do: Operation.build(:get, api_version, kind, opts)
+  @spec get(binary, binary | atom, path_params | nil) :: Operation.t()
+  def get(api_version, kind, path_params \\ []),
+    do: Operation.build(:get, api_version, kind, path_params)
 
   @doc """
   Returns a `GET` operation to list all resources by version, kind, and namespace.
@@ -171,14 +172,14 @@ defmodule K8s.Client do
       }
 
   """
-  @spec list(binary, binary | atom, options | nil) :: Operation.t()
-  def list(api_version, kind, opts \\ [])
+  @spec list(binary, binary | atom, path_params | nil) :: Operation.t()
+  def list(api_version, kind, path_params \\ [])
 
   def list(api_version, kind, namespace: :all),
     do: Operation.build(:list_all_namespaces, api_version, kind, [])
 
-  def list(api_version, kind, opts),
-    do: Operation.build(:list, api_version, kind, opts)
+  def list(api_version, kind, path_params),
+    do: Operation.build(:list, api_version, kind, path_params)
 
   @doc """
   Returns a `POST` `K8s.Operation` to create the given resource.
@@ -723,8 +724,9 @@ defmodule K8s.Client do
       }
 
   """
-  @spec delete(binary, binary | atom, options | nil) :: Operation.t()
-  def delete(api_version, kind, opts), do: Operation.build(:delete, api_version, kind, opts)
+  @spec delete(binary, binary | atom, path_params | nil) :: Operation.t()
+  def delete(api_version, kind, path_params),
+    do: Operation.build(:delete, api_version, kind, path_params)
 
   @doc """
   Returns a `DELETE` collection operation for all instances of a cluster scoped resource kind.

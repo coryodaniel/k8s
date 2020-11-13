@@ -85,24 +85,24 @@ defmodule K8s.Client.Runner.Base do
     do: run(conn, operation, [])
 
   @doc """
-  Run an operation and pass `opts` to HTTPoison.
+  Run an operation and pass `http_opts` to `K8s.Client.HTTPProvider`
   Destructures `Operation` data and passes as the HTTP body.
 
   See `run/2`
   """
   @spec run(Conn.t(), Operation.t(), keyword()) :: result_t
-  def run(%Conn{} = conn, %Operation{} = operation, opts) when is_list(opts) do
-    run(conn, operation, operation.data, opts)
+  def run(%Conn{} = conn, %Operation{} = operation, http_opts) when is_list(http_opts) do
+    run(conn, operation, operation.data, http_opts)
   end
 
   @doc """
-  Run an operation with an HTTP Body (map) and pass `opts` to `K8s.Client.HTTPProvider`.
+  Run an operation with an HTTP Body (map) and pass `http_opts` to `K8s.Client.HTTPProvider`.
   See `run/2`
   """
   @spec run(Conn.t(), Operation.t(), map(), keyword()) :: result_t
-  def run(%Conn{} = conn, %Operation{} = operation, body, opts \\ []) do
+  def run(%Conn{} = conn, %Operation{} = operation, body, http_opts \\ []) do
     with {:ok, url} <- K8s.Discovery.url_for(conn, operation),
-         req <- new_request(conn, url, operation, body, opts),
+         req <- new_request(conn, url, operation, body, http_opts),
          {:ok, req} <- K8s.Middleware.run(req) do
       conn.http_provider.request(req.method, req.url, req.body, req.headers, req.opts)
     end
@@ -110,18 +110,18 @@ defmodule K8s.Client.Runner.Base do
 
   @spec new_request(Conn.t(), String.t(), Operation.t(), body_t, Keyword.t()) ::
           Request.t()
-  defp new_request(%Conn{} = conn, url, %Operation{} = operation, body, opts) do
-    req = %Request{conn: conn, method: operation.method, body: body}
+  defp new_request(%Conn{} = conn, url, %Operation{} = operation, body, http_opts) do
+    req = %Request{conn: conn, method: operation.method, body: body, url: url}
 
-    params = merge_deprecated_params(operation.query_params, opts[:params])
+    params = merge_deprecated_params(operation.query_params, http_opts[:params])
 
     label_selector = Operation.get_label_selector(operation)
     http_opts_params = build_http_params(params, label_selector)
 
-    opts_with_selector_params = Keyword.put(opts, :params, http_opts_params)
-    http_opts = Keyword.merge(req.opts, opts_with_selector_params)
+    opts_with_selector_params = Keyword.put(http_opts, :params, http_opts_params)
+    updated_http_opts = Keyword.merge(req.opts, opts_with_selector_params)
 
-    %Request{req | opts: http_opts, url: url}
+    %Request{req | opts: updated_http_opts}
   end
 
   @spec merge_deprecated_params(map(), nil | map()) :: map()
