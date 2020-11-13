@@ -18,12 +18,13 @@ defmodule K8s.Client.Runner.Stream do
   Validates operation type before calling `stream/3`. Only supports verbs: `list_all_namespaces` and `list`.
   """
   @spec run(Conn.t(), Operation.t(), keyword()) :: {:ok, Enumerable.t()} | {:error, atom}
-  def run(conn, op, opts \\ [])
+  def run(conn, op, http_opts \\ [])
 
-  def run(%Conn{} = conn, %Operation{verb: :list_all_namespaces} = op, opts),
-    do: {:ok, stream(conn, op, opts)}
+  def run(%Conn{} = conn, %Operation{verb: :list_all_namespaces} = op, http_opts),
+    do: {:ok, stream(conn, op, http_opts)}
 
-  def run(%Conn{} = conn, %Operation{verb: :list} = op, opts), do: {:ok, stream(conn, op, opts)}
+  def run(%Conn{} = conn, %Operation{verb: :list} = op, http_opts),
+    do: {:ok, stream(conn, op, http_opts)}
 
   def run(_, _, _), do: {:error, :unsupported_operation}
 
@@ -35,11 +36,11 @@ defmodule K8s.Client.Runner.Stream do
   Encountering an HTTP error mid-stream will halt the stream.
   """
   @spec stream(Conn.t(), Operation.t(), keyword | nil) :: Enumerable.t()
-  def stream(%Conn{} = conn, %Operation{} = op, opts \\ []) do
+  def stream(%Conn{} = conn, %Operation{} = op, http_opts \\ []) do
     request = %ListRequest{
       operation: op,
       conn: conn,
-      opts: opts
+      http_opts: http_opts
     }
 
     Stream.resource(
@@ -79,11 +80,11 @@ defmodule K8s.Client.Runner.Stream do
   # Make a list request and convert response to stream state
   @spec list(ListRequest.t()) :: state_t
   def list(%ListRequest{} = request) do
-    default_params = request.opts[:params] || %{}
+    default_params = request.http_opts[:params] || %{}
     pagination_params = %{limit: request.limit, continue: request.continue}
     request_params = Map.merge(default_params || %{}, pagination_params)
-    opts = Keyword.put(request.opts, :params, request_params)
-    response = Base.run(request.conn, request.operation, opts)
+    http_opts = Keyword.put(request.http_opts, :params, request_params)
+    response = Base.run(request.conn, request.operation, http_opts)
 
     case response do
       {:ok, response} ->

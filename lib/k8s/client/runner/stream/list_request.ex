@@ -14,9 +14,9 @@ defmodule K8s.Client.Runner.Stream.ListRequest do
           conn: K8s.Conn.t(),
           continue: continue_t,
           limit: pos_integer,
-          opts: opts_t
+          http_opts: opts_t
         }
-  defstruct operation: nil, conn: nil, continue: nil, opts: [], limit: @limit
+  defstruct operation: nil, conn: nil, continue: nil, http_opts: [], limit: @limit
 
   @doc """
   Creates a `ListRequest` struct for the next HTTP request from the previous HTTP response
