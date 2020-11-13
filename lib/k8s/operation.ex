@@ -20,8 +20,7 @@ defmodule K8s.Operation do
             name: nil,
             data: nil,
             path_params: [],
-            query_params: %{},
-            label_selector: nil
+            query_params: %{}
 
   @typedoc "`K8s.Operation` name. May be an atom, string, or tuple of `{resource, subresource}`."
   @type name_t :: binary() | atom() | {binary(), binary()}
@@ -72,7 +71,6 @@ defmodule K8s.Operation do
           name: name_t(),
           data: map() | nil,
           path_params: keyword(atom()),
-          label_selector: K8s.Selector.t() | nil,
           query_params: map()
         }
 

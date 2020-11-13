@@ -114,26 +114,13 @@ defmodule K8s.Client.Runner.Base do
     req = %Request{conn: conn, method: operation.method, body: body}
 
     params = merge_deprecated_params(operation.query_params, opts[:params])
-
-    # if label_selector is set, the end user is setting it manually, respect that value until removed in #73
-    label_selector =
-      maybe_get_deprecated_label_selector(params[:labelSelector], operation.label_selector)
-
-    http_opts_params = build_http_params(params, label_selector)
+    http_opts_params = build_http_params(params, params[:labelSelector])
 
     opts_with_selector_params = Keyword.put(opts, :params, http_opts_params)
     http_opts = Keyword.merge(req.opts, opts_with_selector_params)
 
     %Request{req | opts: http_opts, url: url}
   end
-
-  @spec maybe_get_deprecated_label_selector(K8s.Selector.t() | nil, K8s.Selector.t() | nil) ::
-          K8s.Selector.t() | nil
-  defp maybe_get_deprecated_label_selector(new_label_selector, nil), do: new_label_selector
-
-  @deprecated "K8s.Operation label_selector is deprecated. Use K8s.Selector functions instead."
-  defp maybe_get_deprecated_label_selector(nil, deprecated_label_selector),
-    do: deprecated_label_selector
 
   @spec merge_deprecated_params(map(), nil | map()) :: map()
   defp merge_deprecated_params(op_params, nil), do: op_params
