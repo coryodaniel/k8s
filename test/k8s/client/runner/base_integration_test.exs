@@ -1,31 +1,6 @@
-defmodule K8s.ClientIntegrationTest do
+defmodule K8s.Client.Runner.BaseIntegrationTest do
   use ExUnit.Case, async: false
-
-  @spec conn() :: K8s.Conn.t()
-  def conn do
-    {:ok, conn} =
-      "TEST_KUBECONFIG"
-      |> System.get_env()
-      |> K8s.Conn.from_file()
-
-    # Override the defaults for testing
-    %K8s.Conn{
-      conn
-      | discovery_driver: K8s.Discovery.Driver.HTTP,
-        discovery_opts: [],
-        http_provider: K8s.Client.HTTPProvider
-    }
-  end
-
-  @spec pod(String.t()) :: Map.t()
-  def pod(name) do
-    %{
-      "apiVersion" => "v1",
-      "kind" => "Pod",
-      "metadata" => %{"name" => name, "namespace" => "default"},
-      "spec" => %{"containers" => [%{"image" => "nginx", "name" => "nginx"}]}
-    }
-  end
+  import K8s.Test.IntegrationHelper
 
   setup do
     test_id = :rand.uniform(10_000)
@@ -77,7 +52,7 @@ defmodule K8s.ClientIntegrationTest do
   describe "namespaced scoped resources" do
     @tag external: true
     test "creating a resource", %{conn: conn, test_id: test_id} do
-      pod = pod("k8s-ex-#{test_id}")
+      pod = build_pod("k8s-ex-#{test_id}")
       operation = K8s.Client.create(pod)
       result = K8s.Client.run(conn, operation)
       assert {:ok, _pod} = result

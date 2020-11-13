@@ -6,7 +6,7 @@ defmodule K8s.Client.Runner.BaseTest do
   alias K8s.Client
   alias K8s.Client.Runner.Base
   alias K8s.Client.DynamicHTTPProvider
-  import K8s.Test.KubeHelper
+  import K8s.Test.IntegrationHelper
 
   defmodule HTTPMock do
     @base_url "https://localhost:6443"
@@ -75,17 +75,17 @@ defmodule K8s.Client.Runner.BaseTest do
     end
 
     test "running an operation without an HTTP body", %{conn: conn} do
-      operation = Client.get(make_namespace("test"))
+      operation = Client.get(build_namespace("test"))
       assert {:ok, _} = Base.run(conn, operation)
     end
 
     test "running an operation with an HTTP body", %{conn: conn} do
-      operation = Client.create(make_namespace("test"))
+      operation = Client.create(build_namespace("test"))
       assert {:ok, _} = Base.run(conn, operation)
     end
 
     test "running an operation with options", %{conn: conn} do
-      operation = Client.get(make_namespace("test-query-params"))
+      operation = Client.get(build_namespace("test-query-params"))
       params = %{"watch" => "true"}
       operation_w_params = Map.put(operation, :query_params, params)
 
@@ -98,9 +98,9 @@ defmodule K8s.Client.Runner.BaseTest do
     end
 
     test "running an operation with a custom HTTP body", %{conn: conn} do
-      operation = Client.create(make_namespace("test"))
+      operation = Client.create(build_namespace("test"))
       labels = %{"env" => "test"}
-      body = put_in(make_namespace("test"), ["metadata", "labels"], labels)
+      body = put_in(build_namespace("test"), ["metadata", "labels"], labels)
 
       assert {:ok, body} = Base.run(conn, operation, body)
 
@@ -113,9 +113,9 @@ defmodule K8s.Client.Runner.BaseTest do
     test "[DEPRECATED] running an operation with a custom HTTP body and options", %{
       conn: conn
     } do
-      operation = Client.create(make_namespace("test"))
+      operation = Client.create(build_namespace("test"))
       labels = %{"env" => "test"}
-      body = put_in(make_namespace("test"), ["metadata", "labels"], labels)
+      body = put_in(build_namespace("test"), ["metadata", "labels"], labels)
 
       opts = [params: %{"watch" => "true"}]
       assert {:ok, _} = Base.run(conn, operation, body, opts)

@@ -10,21 +10,21 @@ defmodule K8s.Client.Runner.StreamTest do
     @base_url "https://localhost:6443"
     @namespaced_url @base_url <> "/api/v1/namespaces"
     import K8s.Test.HTTPHelper
-    import K8s.Test.KubeHelper
+    import K8s.Test.IntegrationHelper
 
     def request(:get, @namespaced_url <> "/stream-empty-test/services", _body, _headers, _opts) do
-      data = make_list([])
+      data = build_list([])
       render(data, 200)
     end
 
     def request(:get, @namespaced_url <> "/stream-failure-test/services", _, _, opts) do
       params = opts[:params]
-      page1_items = [make_service("foo", "stream-failure-test")]
+      page1_items = [build_service("foo", "stream-failure-test")]
       continue_token = "stream-failure-test"
 
       case params do
         %{continue: nil, limit: _limit} ->
-          data = make_list(page1_items, continue_token)
+          data = build_list(page1_items, continue_token)
           render(data, 200, [{"Content-Type", "application/json"}])
 
         %{continue: ^continue_token} ->
@@ -36,15 +36,15 @@ defmodule K8s.Client.Runner.StreamTest do
 
     def request(:get, @namespaced_url <> "/stream-runner-test/services", _, _, opts) do
       params = opts[:params]
-      page1_items = [make_service("foo", "stream-runner-test")]
-      page2_items = [make_service("bar", "stream-runner-test")]
-      page3_items = [make_service("qux", "stream-runner-test")]
+      page1_items = [build_service("foo", "stream-runner-test")]
+      page2_items = [build_service("bar", "stream-runner-test")]
+      page3_items = [build_service("qux", "stream-runner-test")]
 
       body =
         case params do
-          %{continue: nil, limit: _limit} -> make_list(page1_items, "start")
-          %{continue: "start"} -> make_list(page2_items, "end")
-          %{continue: "end"} -> make_list(page3_items)
+          %{continue: nil, limit: _limit} -> build_list(page1_items, "start")
+          %{continue: "start"} -> build_list(page2_items, "end")
+          %{continue: "end"} -> build_list(page3_items)
         end
 
       render(body, 200)

@@ -8,6 +8,7 @@ help:
 .PHONY: clean
 clean: ## Remove build/doc dirs
 	rm -rf {_build,cover,deps,doc}
+	rm -f integration.yaml
 
 .PHONY: all
 all: ## Run format, credo, dialyzer, and test all supported k8s versions
