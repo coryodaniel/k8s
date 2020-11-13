@@ -8,6 +8,8 @@ defmodule K8s.Client.Runner.Stream do
   alias K8s.Conn
   alias K8s.Operation
 
+  @supported_operations [:list, :list_all_namespaces]
+
   @typedoc "List of items and pagination request"
   @type state_t :: {list(), ListRequest.t()}
 
@@ -20,11 +22,9 @@ defmodule K8s.Client.Runner.Stream do
   @spec run(Conn.t(), Operation.t(), keyword()) :: {:ok, Enumerable.t()} | {:error, atom}
   def run(conn, op, http_opts \\ [])
 
-  def run(%Conn{} = conn, %Operation{verb: :list_all_namespaces} = op, http_opts),
-    do: {:ok, stream(conn, op, http_opts)}
-
-  def run(%Conn{} = conn, %Operation{verb: :list} = op, http_opts),
-    do: {:ok, stream(conn, op, http_opts)}
+  def run(%Conn{} = conn, %Operation{verb: verb} = op, http_opts)
+      when verb in @supported_operations,
+      do: {:ok, stream(conn, op, http_opts)}
 
   def run(_, _, _), do: {:error, :unsupported_operation}
 
@@ -79,22 +79,36 @@ defmodule K8s.Client.Runner.Stream do
   @doc false
   # Make a list request and convert response to stream state
   @spec list(ListRequest.t()) :: state_t
-  def list(%ListRequest{} = request) do
-    default_params = request.http_opts[:params] || %{}
+  def list(%ListRequest{operation: operation} = request) do
+    default_params = operation.query_params || %{}
     pagination_params = %{limit: request.limit, continue: request.continue}
-    request_params = Map.merge(default_params || %{}, pagination_params)
-    http_opts = Keyword.put(request.http_opts, :params, request_params)
-    response = Base.run(request.conn, request.operation, http_opts)
+    merged_params = Map.merge(default_params, pagination_params)
+
+    updated_operation = %Operation{operation | query_params: merged_params}
+
+    paginated_request = %ListRequest{request | operation: updated_operation}
+
+    response =
+      Base.run(
+        paginated_request.conn,
+        paginated_request.operation,
+        paginated_request.http_opts
+      )
 
     case response do
       {:ok, response} ->
         items = Map.get(response, "items", [])
-        next_request = ListRequest.make_next_request(request, response)
+        next_request = ListRequest.make_next_request(paginated_request, response)
         {items, next_request}
 
       {:error, error} ->
         items = [{:error, error}]
-        halt_requests = ListRequest.make_next_request(request, :halt)
+        halt_requests = ListRequest.make_next_request(paginated_request, :halt)
+        {items, halt_requests}
+
+      {:error, error, _info} ->
+        items = [{:error, error}]
+        halt_requests = ListRequest.make_next_request(paginated_request, :halt)
         {items, halt_requests}
     end
   end

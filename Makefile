@@ -27,12 +27,17 @@ integration.yaml: ## Create a k3d cluster
 	k3d kubeconfig get k8s-ex > ${K3D_KUBECONFIG_PATH}
 	sleep 5
 
-.PHONY: integration-tests
-integration-tests: integration.yaml
-integration-tests: ## Run integration tests using k3d `make cluster`
+.PHONY: tests.integration
+tests.integration: integration.yaml
+tests.integration: ## Run integration tests using k3d `make cluster`
 	TEST_KUBECONFIG=${K3D_KUBECONFIG_PATH} mix test --only external
 
-.PHONY: all-tests
-all-tests: integration.yaml
-all-tests: ## Run all tests
+.PHONY: tests.all
+tests.all: integration.yaml
+tests.all: ## Run all tests
 	TEST_KUBECONFIG=${K3D_KUBECONFIG_PATH} mix test --include external
+
+.PHONY: tests.watch-all
+tests.watch-all: integration.yaml
+tests.watch-all: ## Run all tests with mix watchers
+	TEST_KUBECONFIG=${K3D_KUBECONFIG_PATH} mix test.watch --include external

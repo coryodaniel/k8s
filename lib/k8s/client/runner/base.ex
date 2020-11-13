@@ -7,7 +7,7 @@ defmodule K8s.Client.Runner.Base do
           {:ok, map() | reference()}
           | {:error, K8s.Middleware.Error.t()}
           | {:error, :connection_not_registered}
-          | {:error, :missing_required_param}
+          | {:error, :missing_required_param, list(atom)}
           | {:error, atom()}
           | {:error, binary()}
 
@@ -113,7 +113,8 @@ defmodule K8s.Client.Runner.Base do
   defp new_request(%Conn{} = conn, url, %Operation{} = operation, body, http_opts) do
     req = %Request{conn: conn, method: operation.method, body: body, url: url}
 
-    params = merge_deprecated_params(operation.query_params, http_opts[:params])
+    params = operation.query_params
+    # merge_deprecated_params(operation.query_params, http_opts[:params])
 
     label_selector = Operation.get_label_selector(operation)
     http_opts_params = build_http_params(params, label_selector)

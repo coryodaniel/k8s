@@ -1,5 +1,5 @@
+# credo:disable-for-this-file
 defmodule K8s.Client.Runner.StreamTest do
-  # credo:disable-for-this-file
   use ExUnit.Case, async: true
   doctest K8s.Client.Runner.Stream
   doctest K8s.Client.Runner.Stream.ListRequest
