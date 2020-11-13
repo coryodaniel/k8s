@@ -96,7 +96,7 @@ defmodule K8s.Client.Runner.Base do
   end
 
   @doc """
-  Run an operation with an HTTP Body (map) and pass `opts` to HTTPoison.
+  Run an operation with an HTTP Body (map) and pass `opts` to `K8s.Client.HTTPProvider`.
   See `run/2`
   """
   @spec run(Conn.t(), Operation.t(), map(), keyword()) :: result_t
@@ -127,7 +127,7 @@ defmodule K8s.Client.Runner.Base do
   @spec merge_deprecated_params(map(), nil | map()) :: map()
   defp merge_deprecated_params(op_params, nil), do: op_params
 
-  @deprecated "Providing HTTPoison options to K8s.Client.Runner.Base.run/N is deprecated. Use K8s.Operation's query_params key instead."
+  @deprecated "Providing K8s.Client.HTTPProvider options to K8s.Client.Runner.Base.run/N is deprecated. Use K8s.Operation's query_params key instead."
   defp merge_deprecated_params(%{} = op_params, run_params) do
     run_params_as_map = Enum.into(run_params, %{})
     Map.merge(op_params, run_params_as_map)
