@@ -37,6 +37,12 @@ To enable the dynamic HTTP provider it must be turned on in your `config.exs`:
 config :k8s, http_provider: K8s.Client.DynamicHTTPProvider
 ```
 
+You must also start it before tests are run, usually in `test/test_helper.exs`:
+
+```elixir
+K8s.Client.DynamicHTTPProvider.start_link(nil)
+```
+
 ```elixir
 defmodule MyApp.ResourceTest do
   use ExUnit.Case, async: true
