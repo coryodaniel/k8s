@@ -37,4 +37,25 @@ defmodule K8s.ClientTest do
              verb: :create
            } = K8s.Client.create(job)
   end
+
+  test "generateName with create/1 for cluster scoped resources" do
+    ns = %{
+      "apiVersion" => "v1",
+      "kind" => "Namespace",
+      "metadata" => %{
+        "generateName" => "hello-"
+      }
+    }
+
+    assert %K8s.Operation{
+             api_version: "v1",
+             data: ^ns,
+             label_selector: nil,
+             method: :post,
+             name: "Namespace",
+             path_params: [],
+             query_params: %{},
+             verb: :create
+           } = K8s.Client.create(ns)
+  end
 end
