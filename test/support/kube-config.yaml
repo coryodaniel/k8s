@@ -36,6 +36,10 @@ users:
 - name: token-user
   user:
     token: just-a-token-user-pun-intended
+- name: basic-auth-user
+  user:
+    username: basic-auth-username
+    password: basic-auth-password
 - name: pem-cert-user
   user:
     client-certificate: tls/certificate.pem
@@ -59,3 +63,13 @@ users:
         expiry-key: '{.credential.token_expiry}'
         token-key: '{.credential.access_token}'
       name: gcp
+- name: exec-user
+  user:
+    exec:
+      apiVersion: client.authentication.k8s.io/v1alpha1
+      command: echo
+      args:
+        - "foo"
+      env:
+        - name: "FOO"
+          value: "bar"

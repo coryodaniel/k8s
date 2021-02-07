@@ -31,7 +31,7 @@ defmodule K8s.Operation do
   * `name` - The name of the REST operation (Kubernets kind/resource/subresource). This is *not* _always_ the same as the `kind` key in the `data` field. e.g: `deployments` when POSTing, GETting a deployment.
   * `data` - HTTP request body to submit when applicable. (POST, PUT, PATCH, etc)
   * `method` - HTTP Method
-  * `verb` - Kubernetes REST API verb (`deletecollection`, `update`, `create`, `watch`, etc)
+  * `verb` - Kubernetes [REST API verb](https://kubernetes.io/docs/reference/access-authn-authz/authorization/#determine-the-request-verb) (`deletecollection`, `update`, `create`, `watch`, etc)
   * `path_params` - Parameters to interpolate into the Kubernetes REST URL
   * `query_params` - Query parameter (`map`). Merged w/ params provided to any `K8s.Client.Runner`. `K8s.Client.Runner` options win.
 
@@ -191,24 +191,30 @@ defmodule K8s.Operation do
 
 
   """
+  @spec put_query_param(Operation.t(), atom(), String.t() | K8s.Selector.t()) :: Operation.t()
+
   # covers when query_params have not been set yet and they are intended to be a Map
   def put_query_param(%Operation{query_params: nil} = op, key, value) do
     new_params = Map.put(%{}, key, value)
     %Operation{op | query_params: new_params}
   end
+
   def put_query_param(%Operation{query_params: params} = op, key, value) when is_map(params) do
     new_params = Map.put(params, key, value)
     %Operation{op | query_params: new_params}
   end
+
   # covers when query_params are a keyword list for operations like for Pod Connect
-  def put_query_param(%Operation{query_params: params} = op, opts) when is_list(opts) and is_list(params) do
+  def put_query_param(%Operation{query_params: params} = op, opts)
+      when is_list(opts) and is_list(params) do
     new_params = params ++ opts
     %Operation{op | query_params: new_params}
   end
+
   def put_query_param(%Operation{query_params: _params} = op, opts) when is_list(opts) do
     %Operation{op | query_params: opts}
   end
-  
+
   @doc """
   Get a query param of an operation
 
@@ -216,9 +222,12 @@ defmodule K8s.Operation do
       iex> operation = %K8s.Operation{query_params: %{foo: "bar"}}
       ...> K8s.Operation.get_query_param(operation, :foo)
       "bar"
-  """  
+  """
+  @spec get_query_param(Operation.t(), atom()) :: any()
+
   # covers when query_params are not set so there is not value to retun
   def get_query_param(%Operation{query_params: nil}, _key), do: nil
+
   def get_query_param(%Operation{query_params: params}, key) when is_list(params) do
     Keyword.get(params, key)
   end

@@ -15,11 +15,10 @@ defmodule K8s.Client.Runner.Base do
   @type body_t :: list(map()) | map() | binary() | nil
 
   alias K8s.Conn
-  alias K8s.Operation
   alias K8s.Middleware.Request
+  alias K8s.Operation
   alias K8s.Conn.RequestOptions
   alias K8s.Discovery
-
 
   require Logger
 
@@ -98,7 +97,6 @@ defmodule K8s.Client.Runner.Base do
     with {:ok, url} <- Discovery.url_for(conn, operation),
          req <- new_request(conn, url, operation, [], opts),
          {:ok, request_options} <- RequestOptions.generate(conn) do
-
       ## headers for websocket connection to k8s API
       headers =
         request_options.headers ++ [{"Accept", "*/*"}, {"Content-Type", "application/json"}]
@@ -107,7 +105,15 @@ defmodule K8s.Client.Runner.Base do
       query_params = "?#{URI.encode_query(req.opts[:params])}"
 
       url = URI.merge(req.url, query_params)
-      K8s.websocket_provider().request(url, false, request_options.ssl_options, cacerts, headers, opts)
+
+      K8s.websocket_provider().request(
+        url,
+        false,
+        request_options.ssl_options,
+        cacerts,
+        headers,
+        opts
+      )
     else
       {:error, message} -> {:error, message}
       error -> {:error, inspect(error)}
@@ -117,7 +123,6 @@ defmodule K8s.Client.Runner.Base do
   def run(%Operation{} = operation, %Conn{} = conn, opts) when is_list(opts) do
     run(operation, conn, operation.data, opts)
   end
-
 
   @doc """
   Run an operation with an HTTP Body (map) and pass `opts` to HTTPoison.
@@ -139,7 +144,9 @@ defmodule K8s.Client.Runner.Base do
     params = merge_deprecated_params(operation.query_params, opts[:params])
 
     # if label_selector is set, the end user is setting it manually, respect that value until removed in #73
-    label_selector = maybe_get_deprecated_label_selector(params[:labelSelector], operation.label_selector)  
+    label_selector =
+      maybe_get_deprecated_label_selector(params[:labelSelector], operation.label_selector)
+
     http_opts_params = build_http_params(params, label_selector)
 
     opts_with_selector_params = Keyword.put(opts, :params, http_opts_params)
@@ -148,12 +155,18 @@ defmodule K8s.Client.Runner.Base do
     %Request{req | opts: http_opts, url: url}
   end
 
-  @spec maybe_get_deprecated_label_selector(K8s.Selector.t() | nil, K8s.Selector.t() | nil) :: K8s.Selector.t() | nil
+  @spec maybe_get_deprecated_label_selector(K8s.Selector.t() | nil, K8s.Selector.t() | nil) ::
+          K8s.Selector.t() | nil
   defp maybe_get_deprecated_label_selector(new_label_selector, deprecated_label_selector) do
     case deprecated_label_selector do
-      nil -> new_label_selector
-      deprecated_label_selector -> 
-        Logger.warn("K8s.Operation label_selector is deprecated. Use K8s.Selector functions instead.")
+      nil ->
+        new_label_selector
+
+      deprecated_label_selector ->
+        Logger.warn(
+          "K8s.Operation label_selector is deprecated. Use K8s.Selector functions instead."
+        )
+
         deprecated_label_selector
     end
   end
@@ -169,20 +182,24 @@ defmodule K8s.Client.Runner.Base do
   end
 
   defp merge_deprecated_params(%{} = op_params, run_params) do
-    Logger.warn("Providing HTTPoison options to K8s.Client.Runner.Base.run/N is deprecated. Use K8s.Operation's query_params key intead.")
+    Logger.warn(
+      "Providing HTTPoison options to K8s.Client.Runner.Base.run/N is deprecated. Use K8s.Operation's query_params key instead."
+    )
+
     run_params_as_map = Enum.into(run_params, %{})
     Map.merge(op_params, run_params_as_map)
   end
 
   @spec build_http_params(keyword | map, nil | K8s.Selector.t()) :: map()
-  # defp build_http_params(nil, nil), do: %{}  
+  # defp build_http_params(nil, nil), do: %{}
   # for Pod connect
   defp build_http_params(params, nil) when is_list(params) do
     process_opts(params)
     |> Keyword.drop([:stream_to])
   end
-  defp build_http_params(params, nil), do: Enum.into(params, %{})  
-  
+
+  defp build_http_params(params, nil), do: Enum.into(params, %{})
+
   # Supplying a `labelSelector` to `run/4 should take precedence
   defp build_http_params(params, %K8s.Selector{} = s) do
     # After HTTPoison options are removed from run/N, this will always be a map()
@@ -195,5 +212,4 @@ defmodule K8s.Client.Runner.Base do
     default = [stdin: true, stdout: true, stderr: true, tty: true]
     Keyword.merge(default, opts)
   end
-
 end

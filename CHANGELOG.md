@@ -9,10 +9,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 ### Added
-- K8s.Operation `query_params` map. `labelSelector` 
+
+- `K8s.Resource.NamedList.access!/1` raises if item is missing
+
+### Changed
+
+- `K8s.Resource.NamedList.access/1` deals better with missing items now
+
+## [0.5.2] - 2020-07-31
+
+### Added
+- Added auth `exec` support
+
+## [0.5.1] - 2020-07-17
+
+### Added
+- K8s.Operation struct `query_params` field
+- BasicAuth auth provider
 - Deprecated HTTPoison options being passed to K8s.Client.Runner.base
 - K8s.Operation.put_query_param/3 to add query parameters by key 
 - K8s.Operation.get_query_param/3 to get a query parameter by key
+- DigitalOcean authentication
+- `K8s.Resource.NamedList.access/1` - Accessor for lists with named items (containers, env, ...) ([#82](https://github.com/coryodaniel/k8s/pull/82))
 
 ### Changed
 - Refactored old references to `cluster_name` to `conn`

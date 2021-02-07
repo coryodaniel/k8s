@@ -3,7 +3,7 @@ defmodule K8s.Discovery.ResourceFinderTest do
   doctest K8s.Discovery.ResourceFinder
   alias K8s.Discovery.ResourceFinder
 
-  defp daemonset() do
+  defp daemonset do
     %{
       "kind" => "DaemonSet",
       "name" => "daemonsets",
@@ -11,7 +11,7 @@ defmodule K8s.Discovery.ResourceFinderTest do
     }
   end
 
-  defp deployment() do
+  defp deployment do
     %{
       "kind" => "Deployment",
       "name" => "deployments",
@@ -19,7 +19,7 @@ defmodule K8s.Discovery.ResourceFinderTest do
     }
   end
 
-  defp deployment_status() do
+  defp deployment_status do
     %{
       "kind" => "Deployment",
       "name" => "deployments/status",
@@ -27,7 +27,7 @@ defmodule K8s.Discovery.ResourceFinderTest do
     }
   end
 
-  defp resources() do
+  defp resources do
     [daemonset(), deployment(), deployment_status()]
   end
 

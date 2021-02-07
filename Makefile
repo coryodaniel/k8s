@@ -20,11 +20,15 @@ deps: ## Fetch deps
 
 .PHONY: all
 all: ## Run format, credo, dialyzer, and test all supported k8s versions
-all: deps docs lint test/all analyze
+all: deps doc lint test analyze inch
 
 .PHONY: doc
 doc:
 	mix docs
+
+.PHONY: inch
+inch:
+	mix inch
 
 .PHONY: test
 test: ## Run fast tests on k8s latest stable
