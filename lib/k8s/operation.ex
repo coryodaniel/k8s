@@ -1,5 +1,7 @@
 defmodule K8s.Operation do
-  @moduledoc "Encapsulates Kubernetes REST API operations."
+  @moduledoc """
+  Encapsulates Kubernetes REST API operations.
+  """
 
   alias K8s.Operation
   @derive {Jason.Encoder, except: [:path_params]}
@@ -64,6 +66,7 @@ defmodule K8s.Operation do
     path_params: [name: "nginx", namespace: "default"]
   }
   ```
+
   """
   @type t :: %__MODULE__{
           method: atom(),
@@ -91,6 +94,7 @@ defmodule K8s.Operation do
         api_version: "apps/v1",
         name: "Deployment"
       }
+
   """
   @spec build(atom, map) :: __MODULE__.t()
   def build(
@@ -129,7 +133,9 @@ defmodule K8s.Operation do
   Use `K8s.Discovery.ResourceFinder.resource_name_for_kind/3` to get the correct REST resource name, given a `kind`.
 
   ## Examples
-    Building a GET deployment operation:
+
+  Building a GET deployment operation:
+
       iex> K8s.Operation.build(:get, "apps/v1", :deployment, [namespace: "default", name: "nginx"])
       %K8s.Operation{
         method: :get,
@@ -141,6 +147,7 @@ defmodule K8s.Operation do
       }
 
   Building a GET deployments/status operation:
+
       iex> K8s.Operation.build(:get, "apps/v1", "deployments/status", [namespace: "default", name: "nginx"])
       %K8s.Operation{
         method: :get,
@@ -150,6 +157,7 @@ defmodule K8s.Operation do
         api_version: "apps/v1",
         name: "deployments/status"
       }
+
   """
   @spec build(atom, binary, name_t(), keyword(), map() | nil) :: __MODULE__.t()
   def build(verb, api_version, name_or_kind, path_params, data \\ nil) do
@@ -177,12 +185,14 @@ defmodule K8s.Operation do
   def to_path(%Operation{} = operation), do: Operation.Path.build(operation)
 
   @doc """
-  Add a query param to an operation
+  Add a query param to an operation.
 
   ## Examples
+
       iex> operation = %K8s.Operation{}
       ...> K8s.Operation.put_query_param(operation, "foo", "bar")
       %K8s.Operation{query_params: %{"foo" => "bar"}}
+
   """
   @spec put_query_param(Operation.t(), atom(), String.t() | K8s.Selector.t()) :: Operation.t()
   def put_query_param(%Operation{query_params: params} = op, key, value) do
@@ -194,9 +204,11 @@ defmodule K8s.Operation do
   Get a query param of an operation
 
   ## Examples
+
       iex> operation = %K8s.Operation{query_params: %{foo: "bar"}}
       ...> K8s.Operation.get_query_param(operation, :foo)
       "bar"
+
   """
   @spec get_query_param(Operation.t(), atom()) :: any()
   def get_query_param(%Operation{query_params: params}, key), do: Map.get(params, key)

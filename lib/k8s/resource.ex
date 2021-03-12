@@ -1,6 +1,6 @@
 defmodule K8s.Resource do
   @moduledoc """
-  Kubernetes manifest attribute helpers
+  Kubernetes manifest attribute helpers.
   """
 
   defdelegate kind(resource), to: K8s.Resource.FieldAccessors
@@ -21,6 +21,7 @@ defmodule K8s.Resource do
   Helper for building a kubernetes' resource `Map`
 
   ## Examples
+
       iex> K8s.Resource.build("v1", "Pod")
       %{"apiVersion" => "v1", "kind" => "Pod", "metadata" => %{}}
 
@@ -29,6 +30,7 @@ defmodule K8s.Resource do
 
       iex> K8s.Resource.build("v1", "Pod", "default", "foo")
       %{"apiVersion" => "v1", "kind" => "Pod", "metadata" => %{"namespace" => "default", "name" => "foo"}}
+
   """
   @spec build(binary(), binary()) :: map()
   def build(api_version, kind) do
@@ -95,6 +97,7 @@ defmodule K8s.Resource do
           }
         }
       }
+
   """
   @spec from_file!(String.t(), keyword()) :: map | no_return
   def from_file!(path, assigns) do
@@ -136,6 +139,7 @@ defmodule K8s.Resource do
           }
         }
       }}
+
   """
   @spec from_file(String.t(), keyword()) :: {:ok, map()} | {:error, atom() | map()}
   def from_file(path, assigns \\ []) do
@@ -186,6 +190,7 @@ defmodule K8s.Resource do
           }
         }
       ]
+
   """
   @spec all_from_file!(String.t(), keyword()) :: list(map) | no_return
   def all_from_file!(path, assigns \\ []) do
@@ -235,6 +240,7 @@ defmodule K8s.Resource do
           }
         }
       ]}
+
   """
   @spec all_from_file(String.t(), keyword()) :: {:ok, list(map)} | {:error, atom() | map()}
   def all_from_file(path, assigns \\ []) do

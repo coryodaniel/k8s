@@ -1,13 +1,14 @@
 # K8s
 
-[K8s](https://hexdocs.pm/k8s/usage.html) - Kubernetes API Client for Elixir
-
 [![Build Status](https://travis-ci.org/coryodaniel/k8s.svg?branch=master)](https://travis-ci.org/coryodaniel/k8s)
 [![Coverage Status](https://coveralls.io/repos/github/coryodaniel/k8s/badge.svg?branch=master)](https://coveralls.io/github/coryodaniel/k8s?branch=master)
-[![Hex.pm](http://img.shields.io/hexpm/v/k8s.svg?style=flat)](https://hex.pm/packages/k8s)
-[![Documentation](https://img.shields.io/badge/documentation-on%20hexdocs-green.svg)](https://hexdocs.pm/k8s/)
-![Hex.pm](https://img.shields.io/hexpm/l/k8s.svg?style=flat)
+[![Module Version](https://img.shields.io/hexpm/v/k8s.svg)](https://hex.pm/packages/k8s)
+[![Hex Docs](https://img.shields.io/badge/hex-docs-lightgreen.svg)](https://hexdocs.pm/k8s/)
+[![Total Download](https://img.shields.io/hexpm/dt/k8s.svg)](https://hex.pm/packages/k8s)
+[![License](https://img.shields.io/hexpm/l/k8s.svg)](https://github.com/coryodaniel/k8s/blob/master/LICENSE)
+[![Last Updated](https://img.shields.io/github/last-commit/coryodaniel/k8s.svg)](https://github.com/coryodaniel/k8s/commits/master)
 
+[K8s](https://hexdocs.pm/k8s/usage.html) - Kubernetes API Client for Elixir
 
 ## Features
 
@@ -31,7 +32,7 @@
 
 ## Installation
 
-The package can be installed by adding `k8s` to your list of dependencies in `mix.exs`:
+The package can be installed by adding `:k8s` to your list of dependencies in `mix.exs`:
 
 ```elixir
 def deps do
@@ -54,10 +55,10 @@ Most functions are also written using doctests.
 
 If you are interested in building Kubernetes Operators or Schedulers, check out [Bonny](https://github.com/coryodaniel/bonny).
 
-### tl;dr Examples
+## Examples
 
 
-#### Configure a cluster
+### Configure a cluster
 
 There are many ways to configure cluster connections. Check out the [guide](https://hexdocs.pm/k8s/connections.html) for additional options.
 
@@ -76,7 +77,7 @@ config :k8s,
 ```
 
 
-#### Creating a deployment
+### Creating a deployment
 
 ```elixir
 {:ok, conn} = K8s.Conn.lookup(:prod_us_east1)
@@ -88,7 +89,7 @@ operation = K8s.Client.create(resource)
 {:ok, deployment} = K8s.Client.run(operation, conn)
 ```
 
-#### Listing deployments
+### Listing deployments
 
 In a namespace:
 
@@ -108,7 +109,7 @@ operation = K8s.Client.list("apps/v1", "Deployment", namespace: :all)
 {:ok, deployments} = K8s.Client.run(operation, conn)
 ```
 
-#### Getting a deployment
+### Getting a deployment
 
 ```elixir
 {:ok, conn} = K8s.Conn.lookup(:prod_us_east1)
@@ -116,3 +117,9 @@ operation = K8s.Client.list("apps/v1", "Deployment", namespace: :all)
 operation = K8s.Client.get("apps/v1", :deployment, [namespace: "default", name: "nginx-deployment"])
 {:ok, deployment} = K8s.Client.run(operation, conn)
 ```
+
+## Copyright and License
+
+Copyright (c) 2019 Cory O'Daniel
+
+Released under the MIT License, which can be found in the repository in [`LICENSE`](https://github.com/coryodaniel/k8s/blob/master/LICENSE).

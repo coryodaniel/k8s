@@ -5,13 +5,11 @@ defmodule K8s.Discovery.Driver do
   Errors returned by adapters should return an error tuple with an `atom()` describing the error or alternatively an "error" struct with more details.
 
   ## Examples
-  ```elixir
-  {:error, :file_not_found}
-  ```
 
-  ```elixir
-  {:error, %K8s.Discovery.Driver.MyDriver.FileNotFoundError{config: "path-to-file"}}
-  ```
+      {:error, :file_not_found}
+
+      {:error, %K8s.Discovery.Driver.MyDriver.FileNotFoundError{config: "path-to-file"}}
+
   """
   @type driver_error_t :: {:error, atom()} | {:error, struct()}
 
@@ -28,9 +26,10 @@ defmodule K8s.Discovery.Driver do
               {:ok, list(String.t())} | driver_error_t
 
   @doc """
-  List of Kubernetes `APIResourceList`s
+  List of Kubernetes `APIResourceList`s.
 
   ## Examples
+
       iex> {:ok, conn} = K8s.Conn.lookup(:test)
       ...> K8s.Discovery.Driver.HTTP.resources("autoscaling/v1", conn)
       {:ok, [
@@ -47,6 +46,7 @@ defmodule K8s.Discovery.Driver do
                  "name" => "deployments/status"
                }
              ]}
+
   """
   @callback resources(api_version :: String.t(), conn :: K8s.Conn.t()) ::
               {:ok, list(map())} | driver_error_t

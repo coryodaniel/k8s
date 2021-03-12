@@ -48,10 +48,9 @@ defmodule K8s.Conn do
 
   ## Examples
 
-  ```elixir
-  K8s.Conn.list()
-  [%K8s.Conn{ca_cert: nil, auth: %K8s.Conn.Auth{}, cluster_name: :"docker-for-desktop-cluster", discovery_driver: K8s.Discovery.Driver.File, discovery_opts: [config: "test/support/discovery/example.json"], insecure_skip_tls_verify: true, url: "https://localhost:6443", user_name: "docker-for-desktop"}]
-  ```
+    iex> K8s.Conn.list()
+    [%K8s.Conn{ca_cert: nil, auth: %K8s.Conn.Auth{}, cluster_name: :"docker-for-desktop-cluster", discovery_driver: K8s.Discovery.Driver.File, discovery_opts: [config: "test/support/discovery/example.json"], insecure_skip_tls_verify: true, url: "https://localhost:6443", user_name: "docker-for-desktop"}]
+
   """
   @spec list :: list(K8s.Conn.t())
   def list do
@@ -66,10 +65,9 @@ defmodule K8s.Conn do
 
   ## Examples
 
-  ```elixir
-  K8s.Conn.lookup(:test)
-  {:ok, %K8s.Conn{ca_cert: nil, auth: %K8s.Conn.Auth{}, cluster_name: :"docker-for-desktop-cluster", discovery_driver: K8s.Discovery.Driver.File, discovery_opts: [config: "test/support/discovery/example.json"], insecure_skip_tls_verify: true, url: "https://localhost:6443", user_name: "docker-for-desktop"}}
-  ```
+    iex> K8s.Conn.lookup(:test)
+    {:ok, %K8s.Conn{ca_cert: nil, auth: %K8s.Conn.Auth{}, cluster_name: :"docker-for-desktop-cluster", discovery_driver: K8s.Discovery.Driver.File, discovery_opts: [config: "test/support/discovery/example.json"], insecure_skip_tls_verify: true, url: "https://localhost:6443", user_name: "docker-for-desktop"}}
+
   """
   @spec lookup(atom()) :: {:ok, K8s.Conn.t()} | {:error, :connection_not_registered}
   def lookup(cluster_name) do
@@ -101,7 +99,7 @@ defmodule K8s.Conn do
 
   Defaults to `current-context`.
 
-  ### Options
+  ## Options
 
   * `context` sets an alternate context
   * `cluster` set or override the cluster read from the context
@@ -141,8 +139,6 @@ defmodule K8s.Conn do
 
   @doc """
   Generates configuration from kubernetes service account.
-
-
 
   ## Links
 

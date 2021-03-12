@@ -1,6 +1,6 @@
 defmodule K8s.Conn.PKI do
   @moduledoc """
-  Retrieves information from certificates
+  Retrieves information from certificates.
   """
 
   alias K8s.Conn
@@ -14,7 +14,7 @@ defmodule K8s.Conn.PKI do
   ]
 
   @doc """
-  Reads the certificate from PEM file or base64 encoding
+  Reads the certificate from PEM file or base64 encoding.
   """
   @spec cert_from_map(map(), String.t()) :: binary
   def cert_from_map(%{"certificate-authority-data" => data}, _) when not is_nil(data),
@@ -26,11 +26,11 @@ defmodule K8s.Conn.PKI do
     |> PKI.cert_from_pem()
   end
 
-  # Handles the case for docker-for-desktop kubernetes cluster as there is no ca
+  # Handles the case for docker-for-desktop kubernetes cluster as there is no ca.
   def cert_from_map(_, _), do: nil
 
   @doc """
-  Reads the certificate from a PEM file
+  Reads the certificate from a PEM file.
   """
   @spec cert_from_pem(String.t()) :: nil | binary
   def cert_from_pem(nil), do: nil
@@ -42,7 +42,7 @@ defmodule K8s.Conn.PKI do
   end
 
   @doc """
-  Decodes the certificate from a base64 encoded string
+  Decodes the certificate from a base64 encoded string.
   """
   @spec cert_from_base64(String.t()) :: nil | binary
   def cert_from_base64(nil), do: nil
@@ -67,7 +67,7 @@ defmodule K8s.Conn.PKI do
   def private_key_from_pem(nil), do: nil
 
   @doc """
-  Reads private key from a PEM file
+  Reads private key from a PEM file.
   """
   def private_key_from_pem(file) do
     file
@@ -76,7 +76,7 @@ defmodule K8s.Conn.PKI do
   end
 
   @doc """
-  Decodes private key from a base64 encoded string
+  Decodes private key from a base64 encoded string.
   """
   @spec private_key_from_base64(String.t()) :: nil | {atom, binary}
   def private_key_from_base64(nil), do: nil

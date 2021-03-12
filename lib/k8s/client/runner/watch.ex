@@ -15,17 +15,14 @@ defmodule K8s.Client.Runner.Watch do
 
   ## Examples
 
-  ```elixir
-  {:ok, conn} = K8s.Conn.lookup(:test)
-  operation = K8s.Client.list("v1", "Namespace")
-  {:ok, reference} = Watch.run(operation, conn, stream_to: self())
-  ```
+      {:ok, conn} = K8s.Conn.lookup(:test)
+      operation = K8s.Client.list("v1", "Namespace")
+      {:ok, reference} = Watch.run(operation, conn, stream_to: self())
 
-  ```elixir
-  {:ok, conn} = K8s.Conn.lookup(:test)
-  operation = K8s.Client.get("v1", "Namespace", [name: "test"])
-  {:ok, reference} = Watch.run(operation, conn, stream_to: self())
-  ```
+      {:ok, conn} = K8s.Conn.lookup(:test)
+      operation = K8s.Client.get("v1", "Namespace", [name: "test"])
+      {:ok, reference} = Watch.run(operation, conn, stream_to: self())
+
   """
   @spec run(Operation.t(), K8s.Conn.t(), keyword(atom)) :: Base.result_t()
   def run(%Operation{method: :get} = operation, conn, opts) do
@@ -43,19 +40,16 @@ defmodule K8s.Client.Runner.Watch do
 
   ## Examples
 
-  ```elixir
-  {:ok, conn} = K8s.Conn.lookup(:test)
-  operation = K8s.Client.list("v1", "Namespace")
-  resource_version = 3003
-  {:ok, reference} = Watch.run(operation, conn, resource_version, stream_to: self())
-  ```
+      {:ok, conn} = K8s.Conn.lookup(:test)
+      operation = K8s.Client.list("v1", "Namespace")
+      resource_version = 3003
+      {:ok, reference} = Watch.run(operation, conn, resource_version, stream_to: self())
 
-  ```elixir
-  {:ok, conn} = K8s.Conn.lookup(:test)
-  operation = K8s.Client.get("v1", "Namespace", [name: "test"])
-  resource_version = 3003
-  {:ok, reference} = Watch.run(operation, conn, resource_version, stream_to: self())
-  ```
+      {:ok, conn} = K8s.Conn.lookup(:test)
+      operation = K8s.Client.get("v1", "Namespace", [name: "test"])
+      resource_version = 3003
+      {:ok, reference} = Watch.run(operation, conn, resource_version, stream_to: self())
+
   """
   @spec run(Operation.t(), K8s.Conn.t(), binary, keyword(atom)) :: Base.result_t()
   def run(%Operation{method: :get, verb: verb} = operation, conn, rv, opts)

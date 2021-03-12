@@ -1,5 +1,7 @@
 defmodule K8s.Resource.Utilization do
-  @moduledoc "Deserializers for CPU and Memory values"
+  @moduledoc """
+  Deserializers for CPU and Memory values.
+  """
 
   # Symbol -> bytes
   @binary_multipliers %{
@@ -26,15 +28,19 @@ defmodule K8s.Resource.Utilization do
   Deserializes CPU quantity
 
   ## Examples
-    Parses whole values
+
+  Parses whole values:
+
       iex> K8s.Resource.Utilization.cpu("3")
       3
 
-    Parses millicpu values
+  Parses millicpu values:
+
       iex> K8s.Resource.Utilization.cpu("500m")
       0.5
 
-    Parses decimal values
+  Parses decimal values:
+
       iex> K8s.Resource.Utilization.cpu("1.5")
       1.5
 
@@ -61,26 +67,32 @@ defmodule K8s.Resource.Utilization do
   end
 
   @doc """
-  Deserializes memory quantity
+  Deserializes memory quantity.
 
   ## Examples
-    Parses whole values
+
+  Parses whole values:
+
       iex> K8s.Resource.Utilization.memory("1000000")
       1000000
 
-    Parses decimal values
+  Parses decimal values:
+
       iex> K8s.Resource.Utilization.memory("10.75")
       10.75
 
-    Parses decimalSI values
+  Parses decimalSI values:
+
       iex> K8s.Resource.Utilization.memory("10M")
       10000000
 
-    Parses binarySI suffixes
+  Parses binarySI suffixes:
+
       iex> K8s.Resource.Utilization.memory("50Mi")
       52428800
 
-    Returns the numeric value when the suffix is unrecognized
+  Returns the numeric value when the suffix is unrecognized:
+
       iex> K8s.Resource.Utilization.memory("50Foo")
       50
 

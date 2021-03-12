@@ -1,5 +1,8 @@
 defmodule K8s.Middleware.Registry do
-  @moduledoc "Cluster middleware registry"
+  @moduledoc """
+  Cluster middleware registry.
+  """
+
   use Agent
   alias K8s.Middleware.Request
 
@@ -15,7 +18,9 @@ defmodule K8s.Middleware.Registry do
   def defaults(:request), do: [Request.Initialize, Request.EncodeBody]
   def defaults(:response), do: []
 
-  @doc "Adds a middleware to the end of the middleware stack"
+  @doc """
+  Adds a middleware to the end of the middleware stack
+  """
   @spec add(atom, K8s.Middleware.type_t(), module()) :: :ok
   def add(cluster, type, middleware) do
     Agent.update(__MODULE__, fn registry ->
@@ -29,7 +34,9 @@ defmodule K8s.Middleware.Registry do
     end)
   end
 
-  @doc "Sets/replaces the middleware stack"
+  @doc """
+  Sets/replaces the middleware stack.
+  """
   @spec set(atom, K8s.Middleware.type_t(), list(module())) :: :ok
   def set(cluster, type, middlewares) do
     Agent.update(__MODULE__, fn registry ->
@@ -40,7 +47,9 @@ defmodule K8s.Middleware.Registry do
     end)
   end
 
-  @doc "Returns middleware stack for a cluster and (request or response)"
+  @doc """
+  Returns middleware stack for a cluster and (request or response).
+  """
   @spec list(atom, K8s.Middleware.type_t()) :: stack_t()
   def list(cluster, type) do
     registry = Agent.get(__MODULE__, & &1[cluster]) || %{}

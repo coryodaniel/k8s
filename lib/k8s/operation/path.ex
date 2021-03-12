@@ -1,5 +1,7 @@
 defmodule K8s.Operation.Path do
-  @moduledoc "Generates Kubernetes REST API Paths"
+  @moduledoc """
+  Generates Kubernetes REST API Paths.
+  """
 
   @path_params [:namespace, :name, :path, :logpath]
 
@@ -40,7 +42,7 @@ defmodule K8s.Operation.Path do
       ...> K8s.Operation.Path.build(operation)
       {:ok, "/api/v1/namespaces/default/pods/foo"}
 
-  Generate a path for a namespace scoped resource on the collection: (ie create, list)
+  Generate a path for a namespace scoped resource on the collection (i.e. create, list):
 
       iex> resource = K8s.Resource.build("v1", "Pod", "default", "foo")
       ...> operation = %K8s.Operation{

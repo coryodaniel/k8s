@@ -1,10 +1,12 @@
 defmodule K8s.Sys.Logger do
-  @moduledoc "Attaches telemetry events to the Elixir Logger"
+  @moduledoc """
+  Attaches telemetry events to the Elixir Logger.
+  """
 
   require Logger
 
   @doc """
-  Attaches telemetry events to the Elixir Logger
+  Attaches telemetry events to the Elixir Logger.
   """
   @spec attach() :: :ok
   def attach do

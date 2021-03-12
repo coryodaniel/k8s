@@ -1,4 +1,4 @@
-# Discovery (`K8s.Discovery`)
+# Discovery
 
 `k8s` supports _just-in-time_ discovery of cluster APIs and resource kinds. This is important because depending on the CRDs, Kubernetes version, and enabled APIs, URL paths can vary.
 

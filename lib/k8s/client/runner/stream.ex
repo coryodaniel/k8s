@@ -1,6 +1,6 @@
 defmodule K8s.Client.Runner.Stream do
   @moduledoc """
-  Takes a `K8s.Client.list/3` operation and returns an Elixir [`Stream`](https://hexdocs.pm/elixir/Stream.html)
+  Takes a `K8s.Client.list/3` operation and returns an Elixir [`Stream`](https://hexdocs.pm/elixir/Stream.html).
   """
 
   alias K8s.Client.Runner.Base
@@ -15,7 +15,9 @@ defmodule K8s.Client.Runner.Stream do
   @type halt_t :: {:halt, state_t}
 
   @doc """
-  Validates operation type before calling `stream/3`. Only supports verbs: `list_all_namespaces` and `list`.
+  Validates operation type before calling `stream/3`.
+
+  Only supports verbs: `list_all_namespaces` and `list`.
   """
   @spec run(Operation.t(), Conn.t(), keyword()) :: {:ok, Enumerable.t()} | {:error, atom}
   def run(operation, conn, opts \\ [])

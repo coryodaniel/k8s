@@ -1,5 +1,7 @@
 defmodule K8s.Middleware.Request do
-  @moduledoc "HTTP Request middleware"
+  @moduledoc """
+  HTTP Request middleware.
+  """
 
   @typedoc "Middleware Request type"
   @type t :: %__MODULE__{

@@ -1,6 +1,6 @@
 defmodule K8s.Conn.Auth.BasicAuth do
   @moduledoc """
-  basic auth cluster authentication
+  Basic auth cluster authentication.
   """
 
   @behaviour K8s.Conn.Auth

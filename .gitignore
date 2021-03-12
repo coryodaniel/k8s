@@ -7,7 +7,7 @@
 # The directory Mix downloads your dependencies sources to.
 /deps/
 
-# Where 3rd-party dependencies like ExDoc output generated docs.
+# Where third-party dependencies like ExDoc output generated docs.
 /doc/
 
 # Ignore .fetch files in case you like to edit your project deps locally.
@@ -22,13 +22,15 @@ erl_crash.dump
 # Ignore package tarball (built via "mix hex.build").
 k8s-*.tar
 
-.elixir_ls
+# Temporary files for e.g. tests.
+/tmp/
 
+# Misc.
 .iex.exs
 
-# Ignore master version as its always pulled w/ make test/all
+# Ignore master version as its always pulled w/ make test/all.
 test/support/swagger/master.json
 
-# Ignore dialyzer files
+# Ignore dialyzer files.
 /priv/plts/*.plt
 /priv/plts/*.plt.hash

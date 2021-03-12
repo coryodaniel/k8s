@@ -22,16 +22,15 @@ defmodule K8s.Client.Runner.Wait do
   @doc """
   Continually perform a GET based operation until a condition is met.
 
-  ## Example
+  ## Examples
 
   Checking the number of job completions:
 
-  ```elixir
-  op = K8s.Client.get("batch/v1", :job, namespace: "default", name: "sleep")
-  opts = [find: ["status", "succeeded"], eval: 1, timeout: 60]
-  conn = K8s.Conn.lookup(:my_cluster)
-  resp = K8s.Client.Runner.Wait.run(op, conn, opts)
-  ```
+      op = K8s.Client.get("batch/v1", :job, namespace: "default", name: "sleep")
+      opts = [find: ["status", "succeeded"], eval: 1, timeout: 60]
+      conn = K8s.Conn.lookup(:my_cluster)
+      resp = K8s.Client.Runner.Wait.run(op, conn, opts)
+
   """
   @spec run(Operation.t(), binary, keyword(atom())) ::
           {:ok, map()} | {:error, binary()}

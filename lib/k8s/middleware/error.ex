@@ -1,5 +1,7 @@
 defmodule K8s.Middleware.Error do
-  @moduledoc "Encapsulates middleware process errors"
+  @moduledoc """
+  Encapsulates middleware process errors.
+  """
 
   @typedoc """
   Middleware processing error

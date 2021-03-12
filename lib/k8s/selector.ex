@@ -1,9 +1,10 @@
 defmodule K8s.Selector do
   @moduledoc """
-  Builds [label selectors](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/) and [field selectors](https://kubernetes.io/docs/concepts/overview/working-with-objects/field-selectors/) for `K8s.Operation`s
+  Builds [label selectors](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/) and [field selectors](https://kubernetes.io/docs/concepts/overview/working-with-objects/field-selectors/) for `K8s.Operation`s.
 
   ## Examples
-    Parse from a YAML map
+
+  Parse from a YAML map:
 
       iex> deployment = %{
       ...>   "kind" => "Deployment",
@@ -33,7 +34,7 @@ defmodule K8s.Selector do
       ...> K8s.Selector.parse(deployment)
       %K8s.Selector{match_labels: %{"app" => "nginx"}}
 
-    Provides a composable interface for building label selectors
+  Provides a composable interface for building label selectors:
 
       iex> {"component", "redis"}
       ...> |> K8s.Selector.label()
@@ -51,12 +52,13 @@ defmodule K8s.Selector do
         ]
       }
 
-    Provides a composable interface for adding selectors to `K8s.Operation`s.
+  Provides a composable interface for adding selectors to `K8s.Operation`s:
 
       iex> K8s.Client.get("v1", :pods)
       ...> |> K8s.Selector.label({"app", "nginx"})
       ...> |> K8s.Selector.label_in({"environment", ["qa", "prod"]})
       %K8s.Operation{data: nil, api_version: "v1", query_params: %{labelSelector: %K8s.Selector{match_expressions: [%{"key" => "environment", "operator" => "In", "values" => ["qa", "prod"]}], match_labels: %{"app" => "nginx"}}}, method: :get, name: :pods, path_params: [], verb: :get}
+
   """
 
   alias K8s.{Operation, Resource}
@@ -69,27 +71,32 @@ defmodule K8s.Selector do
   defstruct match_labels: %{}, match_expressions: []
 
   @doc """
-  Checks if a `K8s.Resource` matches all `matchLabels` using a logcal `AND`
+  Checks if a `K8s.Resource` matches all `matchLabels` using a logcal `AND`.
 
   ## Examples
-    Accepts `K8s.Selector`s:
+
+  Accepts `K8s.Selector`s:
+
       iex> labels = %{"env" => "prod", "tier" => "frontend"}
       ...> selector = %K8s.Selector{match_labels: labels}
       ...> resource = K8s.Resource.build("v1", "Pod", "default", "test", labels)
       ...> K8s.Selector.match_labels?(resource, selector)
       true
 
-    Accepts maps:
+  Accepts maps:
+
       iex> labels = %{"env" => "prod", "tier" => "frontend"}
       ...> resource = K8s.Resource.build("v1", "Pod", "default", "test", labels)
       ...> K8s.Selector.match_labels?(resource, labels)
       true
 
-    Returns `false` when not matching all labels:
+  Returns `false` when not matching all labels:
+
       iex> not_a_match = %{"env" => "prod", "tier" => "frontend", "nope" => "not-a-match"}
       ...> resource = K8s.Resource.build("v1", "Pod", "default", "test", %{"env" => "prod", "tier" => "frontend"})
       ...> K8s.Selector.match_labels?(resource, not_a_match)
       false
+
   """
   @spec match_labels?(map, map | t) :: boolean
   def match_labels?(resource, %K8s.Selector{match_labels: labels}),
@@ -107,10 +114,12 @@ defmodule K8s.Selector do
   end
 
   @doc """
-  Checks if a `K8s.Resource` matches all `matchExpressions` using a logical `AND`
+  Checks if a `K8s.Resource` matches all `matchExpressions` using a logical `AND`.
 
   ## Examples
-    Accepts `K8s.Selector`s:
+
+  Accepts `K8s.Selector`s:
+
       iex> resource = %{"kind" => "Node", "metadata" => %{"labels" => %{"env" => "prod", "tier" => "frontend"}}}
       ...> expr1 = %{"operator" => "In", "key" => "env", "values" => ["prod", "qa"]}
       ...> expr2 = %{"operator" => "Exists", "key" => "tier"}
@@ -118,7 +127,7 @@ defmodule K8s.Selector do
       ...> K8s.Selector.match_expressions?(resource, selector)
       true
 
-    Accepts `map`s:
+  Accepts `map`s:
 
       iex> resource = %{"kind" => "Node", "metadata" => %{"labels" => %{"env" => "prod", "tier" => "frontend"}}}
       ...> expr1 = %{"operator" => "In", "key" => "env", "values" => ["prod", "qa"]}
@@ -126,13 +135,14 @@ defmodule K8s.Selector do
       ...> K8s.Selector.match_expressions?(resource, [expr1, expr2])
       true
 
-    Returns `false` when not matching all expressions:
+  Returns `false` when not matching all expressions:
 
       iex> resource = %{"kind" => "Node", "metadata" => %{"labels" => %{"env" => "prod", "tier" => "frontend"}}}
       ...> expr1 = %{"operator" => "In", "key" => "env", "values" => ["prod", "qa"]}
       ...> expr2 = %{"operator" => "Exists", "key" => "foo"}
       ...> K8s.Selector.match_expressions?(resource, [expr1, expr2])
       false
+
   """
   @spec match_expressions?(map, list(map) | t) :: boolean
   def match_expressions?(resource, %K8s.Selector{match_expressions: exprs}),
@@ -146,53 +156,63 @@ defmodule K8s.Selector do
   Checks whether a resource matches a single selector `matchExpressions`
 
   ## Examples
-    When an `In` expression matches
+
+  When an `In` expression matches:
+
       iex> resource = %{"kind" => "Node", "metadata" => %{"labels" => %{"env" => "prod"}}}
       ...> expr = %{"operator" => "In", "key" => "env", "values" => ["prod", "qa"]}
       ...> K8s.Selector.match_expression?(resource, expr)
       true
 
-    When an `In` expression doesnt match
+  When an `In` expression doesnt match:
+
       iex> resource = %{"kind" => "Node", "metadata" => %{"labels" => %{"env" => "dev"}}}
       ...> expr = %{"operator" => "In", "key" => "env", "values" => ["prod", "qa"]}
       ...> K8s.Selector.match_expression?(resource, expr)
       false
 
-    When an `NotIn` expression matches
+  When an `NotIn` expression matches:
+
       iex> resource = %{"kind" => "Node", "metadata" => %{"labels" => %{"env" => "dev"}}}
       ...> expr = %{"operator" => "NotIn", "key" => "env", "values" => ["prod"]}
       ...> K8s.Selector.match_expression?(resource, expr)
       true
 
-    When an `NotIn` expression doesnt match
+  When an `NotIn` expression doesnt match:
+
       iex> resource = %{"kind" => "Node", "metadata" => %{"labels" => %{"env" => "dev"}}}
       ...> expr = %{"operator" => "NotIn", "key" => "env", "values" => ["dev"]}
       ...> K8s.Selector.match_expression?(resource, expr)
       false
 
-    When an `Exists` expression matches
+  When an `Exists` expression matches:
+
       iex> resource = %{"kind" => "Node", "metadata" => %{"labels" => %{"env" => "dev"}}}
       ...> expr = %{"operator" => "Exists", "key" => "env"}
       ...> K8s.Selector.match_expression?(resource, expr)
       true
 
-    When an `Exists` expression doesnt match
+  When an `Exists` expression doesnt match:
+
       iex> resource = %{"kind" => "Node", "metadata" => %{"labels" => %{"env" => "dev"}}}
       ...> expr = %{"operator" => "Exists", "key" => "tier"}
       ...> K8s.Selector.match_expression?(resource, expr)
       false
 
-    When an `DoesNotExist` expression matches
+  When an `DoesNotExist` expression matches:
+
       iex> resource = %{"kind" => "Node", "metadata" => %{"labels" => %{"env" => "dev"}}}
       ...> expr = %{"operator" => "DoesNotExist", "key" => "tier"}
       ...> K8s.Selector.match_expression?(resource, expr)
       true
 
-    When an `DoesNotExist` expression doesnt match
+  When an `DoesNotExist` expression doesnt match:
+
       iex> resource = %{"kind" => "Node", "metadata" => %{"labels" => %{"env" => "dev"}}}
       ...> expr = %{"operator" => "DoesNotExist", "key" => "env"}
       ...> K8s.Selector.match_expression?(resource, expr)
       false
+
   """
   @spec match_expression?(map(), map()) :: boolean()
   def match_expression?(resource, %{"operator" => "In", "key" => k, "values" => v}) do
@@ -219,8 +239,10 @@ defmodule K8s.Selector do
   `matchLabels` helper that creates a composable `K8s.Selector`.
 
   ## Examples
+
       iex> K8s.Selector.label({"component", "redis"})
       %K8s.Selector{match_labels: %{"component" => "redis"}}
+
   """
   @spec label({binary | atom, binary}) :: t()
   def label({key, value}), do: %K8s.Selector{match_labels: %{key => value}}
@@ -229,9 +251,11 @@ defmodule K8s.Selector do
   `matchLabels` helper that creates a composable `K8s.Selector`.
 
   ## Examples
+
       iex> selector = K8s.Selector.label({"component", "redis"})
       ...> K8s.Selector.label(selector, {"environment", "dev"})
       %K8s.Selector{match_labels: %{"component" => "redis", "environment" => "dev"}}
+
   """
   @spec label(selector_or_operation_t, {binary | atom, binary}) :: t()
   def label(%{} = selector_or_operation, label), do: merge(selector_or_operation, label(label))
@@ -240,8 +264,10 @@ defmodule K8s.Selector do
   `In` expression helper that creates a composable `K8s.Selector`.
 
   ## Examples
+
       iex> K8s.Selector.label_in({"component", "redis"})
       %K8s.Selector{match_expressions: [%{"key" => "component", "operator" => "In", "values" => ["redis"]}]}
+
   """
   @spec label_in({binary, binary | list(binary())}) :: t()
   def label_in({key, values}) when is_binary(values), do: label_in({key, [values]})
@@ -259,8 +285,10 @@ defmodule K8s.Selector do
   `NotIn` expression helper that creates a composable `K8s.Selector`.
 
   ## Examples
+
       iex> K8s.Selector.label_not_in({"component", "redis"})
       %K8s.Selector{match_expressions: [%{"key" => "component", "operator" => "NotIn", "values" => ["redis"]}]}
+
   """
   @spec label_not_in({binary, binary | list(binary())}) :: t()
   def label_not_in({key, values}) when is_binary(values), do: label_not_in({key, [values]})
@@ -278,8 +306,10 @@ defmodule K8s.Selector do
   `Exists` expression helper that creates a composable `K8s.Selector`.
 
   ## Examples
+
       iex> K8s.Selector.label_exists("environment")
       %K8s.Selector{match_expressions: [%{"key" => "environment", "operator" => "Exists"}]}
+
   """
   @spec label_exists(binary) :: t()
   def label_exists(key),
@@ -293,8 +323,10 @@ defmodule K8s.Selector do
   `DoesNotExist` expression helper that creates a composable `K8s.Selector`.
 
   ## Examples
+
       iex> K8s.Selector.label_does_not_exist("environment")
       %K8s.Selector{match_expressions: [%{"key" => "environment", "operator" => "DoesNotExist"}]}
+
   """
   @spec label_does_not_exist(binary) :: t()
   def label_does_not_exist(key),
@@ -329,6 +361,7 @@ defmodule K8s.Selector do
     iex> selector = K8s.Selector.label({"component", "redis"})
     ...> K8s.Selector.to_s(selector)
     "component=redis"
+
   """
   @spec to_s(t) :: binary()
   def to_s(%K8s.Selector{match_labels: labels, match_expressions: expr}) do
@@ -341,15 +374,16 @@ defmodule K8s.Selector do
 
   ## Examples
 
-    iex> selector = %{
-    ...>   "matchLabels" => %{"component" => "redis"},
-    ...>   "matchExpressions" => [
-    ...>     %{"operator" => "In", "key" => "tier", "values" => ["cache"]},
-    ...>     %{"operator" => "NotIn", "key" => "environment", "values" => ["dev"]}
-    ...>   ]
-    ...> }
-    ...> K8s.Selector.parse(selector)
-    %K8s.Selector{match_labels: %{"component" => "redis"}, match_expressions: [%{"operator" => "In", "key" => "tier", "values" => ["cache"]},%{"operator" => "NotIn", "key" => "environment", "values" => ["dev"]}]}
+      iex> selector = %{
+      ...>   "matchLabels" => %{"component" => "redis"},
+      ...>   "matchExpressions" => [
+      ...>     %{"operator" => "In", "key" => "tier", "values" => ["cache"]},
+      ...>     %{"operator" => "NotIn", "key" => "environment", "values" => ["dev"]}
+      ...>   ]
+      ...> }
+      ...> K8s.Selector.parse(selector)
+      %K8s.Selector{match_labels: %{"component" => "redis"}, match_expressions: [%{"operator" => "In", "key" => "tier", "values" => ["cache"]},%{"operator" => "NotIn", "key" => "environment", "values" => ["dev"]}]}
+
   """
   @spec parse(map) :: t
   def parse(%{"spec" => %{"selector" => selector}}), do: parse(selector)
@@ -372,15 +406,17 @@ defmodule K8s.Selector do
   Returns a `labelSelector` query string value for a set of label matches.
 
   ## Examples
-    Builds a query string for a single label (`kubectl get pods -l environment=production`):
+
+  Builds a query string for a single label (`kubectl get pods -l environment=production`):
 
       iex> K8s.Selector.serialize_match_labels(%{"environment" => "prod"})
       ["environment=prod"]
 
-    Builds a query string for multiple labels (`kubectl get pods -l environment=production,tier=frontend`):
+  Builds a query string for multiple labels (`kubectl get pods -l environment=production,tier=frontend`):
 
       iex> K8s.Selector.serialize_match_labels(%{"environment" => "prod", "tier" => "frontend"})
       ["environment=prod", "tier=frontend"]
+
   """
   @spec serialize_match_labels(map()) :: list(binary())
   def serialize_match_labels(%{} = labels) do
@@ -393,7 +429,8 @@ defmodule K8s.Selector do
   For `!=` matches, use a `NotIn` set-based expression.
 
   ## Examples
-    Builds a query string for `In` expressions (`kubectl get pods -l 'environment in (production,qa),tier in (frontend)`):
+
+  Builds a query string for `In` expressions (`kubectl get pods -l 'environment in (production,qa),tier in (frontend)`):
 
       iex> expressions = [
       ...>   %{"operator" => "In", "key" => "environment", "values" => ["production", "qa"]},
@@ -402,7 +439,7 @@ defmodule K8s.Selector do
       ...> K8s.Selector.serialize_match_expressions(expressions)
       ["environment in (production,qa)", "tier in (frontend)"]
 
-    Builds a query string for `NotIn` expressions (`kubectl get pods -l 'environment notin (frontend)`):
+  Builds a query string for `NotIn` expressions (`kubectl get pods -l 'environment notin (frontend)`):
 
       iex> expressions = [
       ...>   %{"operator" => "NotIn", "key" => "environment", "values" => ["frontend"]}
@@ -410,7 +447,7 @@ defmodule K8s.Selector do
       ...> K8s.Selector.serialize_match_expressions(expressions)
       ["environment notin (frontend)"]
 
-    Builds a query string for `Exists` expressions (`kubectl get pods -l 'environment'`):
+  Builds a query string for `Exists` expressions (`kubectl get pods -l 'environment'`):
 
       iex> expressions = [
       ...>   %{"operator" => "Exists", "key" => "environment"}
@@ -418,13 +455,14 @@ defmodule K8s.Selector do
       ...> K8s.Selector.serialize_match_expressions(expressions)
       ["environment"]
 
-    Builds a query string for `DoesNotExist` expressions (`kubectl get pods -l '!environment'`):
+  Builds a query string for `DoesNotExist` expressions (`kubectl get pods -l '!environment'`):
 
       iex> expressions = [
       ...>   %{"operator" => "DoesNotExist", "key" => "environment"}
       ...> ]
       ...> K8s.Selector.serialize_match_expressions(expressions)
       ["!environment"]
+
   """
   @spec serialize_match_expressions(list(map())) :: list(binary())
   def serialize_match_expressions(exps) do

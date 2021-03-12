@@ -1,4 +1,4 @@
-# Server Connections and Configuration
+# Connections
 
 A connection (`K8s.Conn`) is the encapsulation of cluster information and authentication. They can be registered at compile time, runtime via environment variables, and runtime manually by creating a struct.
 
@@ -134,7 +134,7 @@ For the use case of having an unbound number of connections (a multi-tenant K8s 
 
 ```elixir
  %K8s.Conn{
-    cluster_name: :default, 
+    cluster_name: :default,
     user_name: "optional-user-name-in-kubeconfig",
     url: "https://ip-address-of-cluster",
     ca_cert: K8s.Conn.PKI.cert_from_map(cluster, base_path),

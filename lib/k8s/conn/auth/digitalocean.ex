@@ -1,6 +1,6 @@
 defmodule K8s.Conn.Auth.DigitalOcean do
   @moduledoc """
-  Cluster authentication for kube configs created by doctl, the DigitalOcean CLI
+  Cluster authentication for kube configs created by doctl, the DigitalOcean CLI.
   """
 
   @behaviour K8s.Conn.Auth

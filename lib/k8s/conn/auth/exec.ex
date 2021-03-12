@@ -5,29 +5,28 @@ defmodule K8s.Conn.Auth.Exec do
   Useful for Kubernetes clusters running on AWS which use IAM authentication (eg. the `aws-iam-authenticator` binary).
   An applicable kube config may look something like this:
 
-  ```
-  # ...
-  users:
-  - name: staging-user
-    user:
-      exec:
-        # API version to use when decoding the ExecCredentials resource. Required.
-        apiVersion: client.authentication.k8s.io/v1alpha1
+      # ...
+      users:
+      - name: staging-user
+        user:
+          exec:
+            # API version to use when decoding the ExecCredentials resource. Required.
+            apiVersion: client.authentication.k8s.io/v1alpha1
 
-        # Command to execute. Required.
-        command: aws-iam-authenticator
+            # Command to execute. Required.
+            command: aws-iam-authenticator
 
-        # Arguments to pass when executing the plugin. Optional.
-        args:
-        - token
-        - -i
-        - staging
+            # Arguments to pass when executing the plugin. Optional.
+            args:
+            - token
+            - -i
+            - staging
 
-        # Environment variables to set when executing the plugin. Optional.
-        env:
-        - name: "FOO"
-          value: "bar"
-  ```
+            # Environment variables to set when executing the plugin. Optional.
+            env:
+            - name: "FOO"
+              value: "bar"
+
   """
 
   @behaviour K8s.Conn.Auth

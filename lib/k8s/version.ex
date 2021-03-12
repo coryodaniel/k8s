@@ -1,7 +1,8 @@
 defmodule K8s.Version do
   @moduledoc """
-  Kubernetes [API Versioning](https://kubernetes.io/docs/concepts/overview/kubernetes-api/#api-versioning)
+  Kubernetes [API Versioning](https://kubernetes.io/docs/concepts/overview/kubernetes-api/#api-versioning).
   """
+
   alias K8s.Version
 
   @type t :: %__MODULE__{major: pos_integer, minor: binary, patch: pos_integer}
@@ -71,7 +72,7 @@ defmodule K8s.Version do
   defp compare(_, _), do: false
 
   @doc """
-  Returns only stable versions
+  Returns only stable versions.
 
   ## Examples
 
@@ -92,7 +93,7 @@ defmodule K8s.Version do
     do: "v#{major}#{minor}#{patch}"
 
   @doc """
-  Returns only stable versions
+  Returns only stable versions.
 
   ## Examples
 
@@ -104,7 +105,7 @@ defmodule K8s.Version do
   def stable(versions), do: parse_filter(versions, "stable")
 
   @doc """
-  Returns only alpha versions
+  Returns only alpha versions.
 
   ## Examples
 
@@ -116,7 +117,7 @@ defmodule K8s.Version do
   def alpha(versions), do: parse_filter(versions, "alpha")
 
   @doc """
-  Returns only beta versions
+  Returns only beta versions.
 
   ## Examples
 
@@ -128,7 +129,7 @@ defmodule K8s.Version do
   def beta(versions), do: parse_filter(versions, "beta")
 
   @doc """
-  Retuns all non-stable versions
+  Returns all non-stable versions.
 
   ## Examples
 
@@ -151,7 +152,7 @@ defmodule K8s.Version do
   defp is(_, _), do: false
 
   @doc """
-  Parses a Kubernetes API version into a `K8s.Version` struct
+  Parses a Kubernetes API version into a `K8s.Version` struct.
 
   ## Examples
 
