@@ -284,7 +284,7 @@ defmodule K8s.Client do
 
   ## Examples
 
-  Eviction a pod
+  Evicting a pod
       iex> eviction = %{
       ...> "apiVersion" => "policy/v1beta1",
       ...>     "kind" => "Eviction",
@@ -307,7 +307,7 @@ defmodule K8s.Client do
 
   ## Examples
 
-  Eviction a pod
+  Evicting a pod
       iex> pod = %{
       ...>   "apiVersion" => "v1",
       ...>   "kind" => "Pod",
