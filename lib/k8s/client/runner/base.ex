@@ -113,18 +113,16 @@ defmodule K8s.Client.Runner.Base do
   defp new_request(%Conn{} = conn, url, %Operation{} = operation, body, http_opts) do
     req = %Request{conn: conn, method: operation.method, body: body, url: url}
 
-    params = operation.query_params
-    label_selector = Operation.get_label_selector(operation)
-    http_opts_params = build_http_params(params, label_selector)
-
-    opts_with_selector_params = Keyword.put(http_opts, :params, http_opts_params)
-    updated_http_opts = Keyword.merge(req.opts, opts_with_selector_params)
+    query_params = build_query_params(operation)
+    http_opts_with_selector_params = Keyword.put(http_opts, :params, query_params)
+    updated_http_opts = Keyword.merge(req.opts, http_opts_with_selector_params)
 
     %Request{req | opts: updated_http_opts}
   end
 
-  @spec build_http_params(keyword, K8s.Selector.t()) :: keyword()
-  defp build_http_params(params, %K8s.Selector{} = s) do
-    Keyword.merge(params, labelSelector: K8s.Selector.to_s(s))
+  @spec build_query_params(Operation.t()) :: keyword()
+  defp build_query_params(%Operation{} = operation) do
+    label_selector = Operation.get_label_selector(operation)
+    Keyword.merge(operation.query_params, labelSelector: K8s.Selector.to_s(label_selector))
   end
 end
