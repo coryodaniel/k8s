@@ -10,7 +10,7 @@ jobs:
         elixir: [1.9.x, 1.10.2]
     steps:
       - uses: actions/checkout@v1.0.0
-      - uses: actions/setup-elixir@v1.0.0
+      - uses: erlef/setup-beam@v1
         with:
           otp-version: ${{matrix.otp}}
           elixir-version: ${{matrix.elixir}}
