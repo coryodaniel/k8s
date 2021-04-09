@@ -114,8 +114,6 @@ defmodule K8s.Client.Runner.Base do
     req = %Request{conn: conn, method: operation.method, body: body, url: url}
 
     params = operation.query_params
-    # merge_deprecated_params(operation.query_params, http_opts[:params])
-
     label_selector = Operation.get_label_selector(operation)
     http_opts_params = build_http_params(params, label_selector)
 
@@ -125,22 +123,8 @@ defmodule K8s.Client.Runner.Base do
     %Request{req | opts: updated_http_opts}
   end
 
-  @spec merge_deprecated_params(map(), nil | map()) :: map()
-  defp merge_deprecated_params(op_params, nil), do: op_params
-
-  @deprecated "Providing K8s.Client.HTTPProvider options to K8s.Client.Runner.Base.run/N is deprecated. Use K8s.Operation's query_params key instead."
-  defp merge_deprecated_params(%{} = op_params, run_params) do
-    run_params_as_map = Enum.into(run_params, %{})
-    Map.merge(op_params, run_params_as_map)
-  end
-
-  @spec build_http_params(keyword | map, nil | K8s.Selector.t()) :: map()
-  defp build_http_params(params, nil), do: Enum.into(params, %{})
-
-  # Supplying a `labelSelector` to `run/4 should take precedence
+  @spec build_http_params(keyword, K8s.Selector.t()) :: keyword()
   defp build_http_params(params, %K8s.Selector{} = s) do
-    # After HTTPoison options are removed from run/N, this will always be a map()
-    params_as_map = Enum.into(params, %{})
-    Map.merge(params_as_map, %{labelSelector: K8s.Selector.to_s(s)})
+    Keyword.merge(params, labelSelector: K8s.Selector.to_s(s))
   end
 end
