@@ -37,6 +37,8 @@ defmodule K8s.Middleware do
   """
   @spec run(Request.t()) :: {:ok, Request.t()} | {:error, Error.t()}
   def run(%Request{conn: conn} = req) do
+    # TODO: this will need to come from the operation or request...
+    # Registry can go be removed
     middlewares = K8s.Middleware.Registry.list(conn.cluster_name, :request)
     run(req, middlewares)
   end

@@ -55,7 +55,7 @@ defmodule K8s.Discovery.Driver.HTTPTest do
 
   describe "resources/2" do
     test "returns a list of API resources" do
-      {:ok, conn} = K8s.Conn.lookup("test")
+      {:ok, conn} = K8s.Conn.from_file("test/support/kube-config.yaml")
       {:ok, resources} = K8s.Discovery.Driver.HTTP.resources("apps/v1", conn)
 
       assert resources == [
@@ -77,7 +77,7 @@ defmodule K8s.Discovery.Driver.HTTPTest do
 
   describe "versions/1" do
     test "returns a list of API versions" do
-      {:ok, conn} = K8s.Conn.lookup("test")
+      {:ok, conn} = K8s.Conn.from_file("test/support/kube-config.yaml")
       {:ok, versions} = K8s.Discovery.Driver.HTTP.versions(conn)
 
       sorted_versions = Enum.sort(versions)

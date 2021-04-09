@@ -1,18 +1,13 @@
 defmodule K8s.Conn do
   @moduledoc """
   Handles authentication and connection configuration details for a Kubernetes cluster.
-
-  Connections can be registered via Mix.Config or environment variables.
-
-  Connections can also be dynamically built during application runtime.
   """
 
   alias __MODULE__
-  alias K8s.Conn.{Config, PKI, RequestOptions}
+  alias K8s.Conn.{PKI, RequestOptions}
   alias K8s.Resource.NamedList
   require Logger
 
-  @default_service_account_cluster_name "cluster.local"
   @default_service_account_path "/var/run/secrets/kubernetes.io/serviceaccount"
 
   @auth_providers [
@@ -34,8 +29,13 @@ defmodule K8s.Conn do
             discovery_opts: K8s.default_discovery_opts(),
             http_provider: K8s.default_http_provider()
 
+  @typedoc """
+  * `cluster_name` - The cluster name if read from a kubeconfig file
+  * `user_name` - The user name if read from a kubeconfig file
+  * `url` - The Kubernetes API URL
+  """
   @type t :: %__MODULE__{
-          cluster_name: String.t(),
+          cluster_name: String.t() | nil,
           user_name: String.t() | nil,
           url: String.t(),
           insecure_skip_tls_verify: boolean(),
@@ -45,62 +45,6 @@ defmodule K8s.Conn do
           discovery_opts: Keyword.t(),
           http_provider: module()
         }
-
-  @doc """
-  List of all registered connections.
-  Connections are registered via Mix.Config or env variables.
-
-  ## Examples
-
-  ```elixir
-  K8s.Conn.list()
-  [%K8s.Conn{ca_cert: nil, auth: %K8s.Conn.Auth{}, cluster_name: "k8s-elixir-client-cluster", discovery_driver: K8s.Discovery.Driver.File, discovery_opts: [config: "test/support/discovery/example.json"], insecure_skip_tls_verify: true, url: "https://localhost:6443", user_name: "k8s-elixir-client"}]
-  ```
-  """
-  @spec list :: list(K8s.Conn.t())
-  def list do
-    Enum.reduce(Config.all(), [], fn {cluster_name, conf}, agg ->
-      case config_to_conn(conf, cluster_name) do
-        {:ok, conn} -> [conn | agg]
-        _error -> agg
-      end
-    end)
-  end
-
-  @doc """
-  Lookup a registered connection by name. See `K8s.Conn.Config`.
-
-  ## Examples
-
-  ```elixir
-  K8s.Conn.lookup("test")
-  {:ok, %K8s.Conn{ca_cert: nil, auth: %K8s.Conn.Auth{}, cluster_name: "k8s-elixir-client-cluster", discovery_driver: K8s.Discovery.Driver.File, discovery_opts: [config: "test/support/discovery/example.json"], insecure_skip_tls_verify: true, url: "https://localhost:6443", user_name: "k8s-elixir-client"}}
-  ```
-  """
-  @spec lookup(String.t()) :: {:ok, __MODULE__.t()} | {:error, atom()}
-  def lookup(cluster_name) do
-    config = Map.get(Config.all(), cluster_name)
-
-    case config do
-      nil -> {:error, :connection_not_registered}
-      config -> config_to_conn(config, cluster_name)
-    end
-  end
-
-  @spec config_to_conn(map, String.t()) :: {:ok, __MODULE__.t()} | {:error, atom()}
-  defp config_to_conn(config, cluster_name) do
-    case Map.get(config, :conn) do
-      nil ->
-        K8s.Conn.from_service_account(cluster_name)
-
-      %{use_sa: true} ->
-        K8s.Conn.from_service_account(cluster_name)
-
-      conn_path ->
-        opts = config[:conn_opts] || []
-        K8s.Conn.from_file(conn_path, opts)
-    end
-  end
 
   @doc """
   Reads configuration details from a kubernetes config file.
@@ -142,6 +86,41 @@ defmodule K8s.Conn do
     end
   end
 
+  @doc """
+  Generates configuration from kubernetes service account.
+
+  ## Links
+
+  [kubernetes.io :: Accessing the API from a Pod](https://kubernetes.io/docs/tasks/access-application-cluster/access-cluster/#accessing-the-api-from-a-pod)
+  """
+  @spec from_service_account :: {:ok, __MODULE__.t()} | {:error, atom()}
+  def from_service_account do
+    from_service_account(@default_service_account_path)
+  end
+
+  @spec from_service_account(String.t()) :: {:ok, __MODULE__.t()} | {:error, atom()}
+  def from_service_account(service_account_path) do
+    cert_path = Path.join(service_account_path, "ca.crt")
+    token_path = Path.join(service_account_path, "token")
+
+    case File.read(token_path) do
+      {:ok, token} ->
+        # Open Issue #97: PKI.cert_from_pem/1 will raise an exception if the file is not present.
+        ca_cert = PKI.cert_from_pem(cert_path)
+
+        conn = %Conn{
+          url: kubernetes_service_url(),
+          ca_cert: ca_cert,
+          auth: %K8s.Conn.Auth.Token{token: token}
+        }
+
+        {:ok, conn}
+
+      error ->
+        error
+    end
+  end
+
   @spec find_configuration([map()], String.t(), String.t()) ::
           {:ok, map()} | {:error, :invalid_configuration, String.t()}
   defp find_configuration(items, name, type) do
@@ -164,47 +143,6 @@ defmodule K8s.Conn do
       config_value = Map.get(config, k)
       %{conn | k => config_value || conn_value}
     end)
-  end
-
-  @doc """
-  Generates configuration from kubernetes service account.
-
-  ## Links
-
-  [kubernetes.io :: Accessing the API from a Pod](https://kubernetes.io/docs/tasks/access-application-cluster/access-cluster/#accessing-the-api-from-a-pod)
-  """
-  @spec from_service_account :: {:ok, __MODULE__.t()} | {:error, atom()}
-  def from_service_account do
-    from_service_account(@default_service_account_cluster_name)
-  end
-
-  @spec from_service_account(String.t()) :: {:ok, __MODULE__.t()} | {:error, atom()}
-  def from_service_account(cluster_name) do
-    from_service_account(cluster_name, @default_service_account_path)
-  end
-
-  @spec from_service_account(String.t(), String.t()) :: {:ok, __MODULE__.t()} | {:error, atom()}
-  def from_service_account(cluster_name, root_sa_path) do
-    cert_path = Path.join(root_sa_path, "ca.crt")
-    token_path = Path.join(root_sa_path, "token")
-
-    case File.read(token_path) do
-      {:ok, token} ->
-        # Open Issue #97: PKI.cert_from_pem/1 will raise an exception if the file is not present.
-        ca_cert = PKI.cert_from_pem(cert_path)
-
-        conn = %Conn{
-          cluster_name: cluster_name,
-          url: kubernetes_service_url(),
-          ca_cert: ca_cert,
-          auth: %K8s.Conn.Auth.Token{token: token}
-        }
-
-        {:ok, conn}
-
-      error ->
-        error
-    end
   end
 
   @doc false

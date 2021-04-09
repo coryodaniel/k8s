@@ -30,7 +30,7 @@ defmodule K8s.Client.Runner.Base do
   Running a list pods operation:
 
   ```elixir
-  {:ok, conn} = K8s.Conn.lookup("test")
+  {:ok, conn} = K8s.Conn.from_file("test/support/kube-config.yaml")
   operation = K8s.Client.list("v1", "Pod", namespace: :all)
   {:ok, %{"items" => pods}} = K8s.Client.run(conn, operation)
   ```
@@ -76,7 +76,7 @@ defmodule K8s.Client.Runner.Base do
     |> K8s.Client.create()
     |> K8s.Operation.put_query_param(:dryRun, "all")
 
-  {:ok, conn} = K8s.Conn.lookup("test")
+  {:ok, conn} = K8s.Conn.from_file("test/support/kube-config.yaml")
   {:ok, result} = K8s.Client.Runner.Base.run(conn, operation)
   ```
   """
@@ -103,6 +103,9 @@ defmodule K8s.Client.Runner.Base do
   def run(%Conn{} = conn, %Operation{} = operation, body, http_opts \\ []) do
     with {:ok, url} <- K8s.Discovery.url_for(conn, operation),
          req <- new_request(conn, url, operation, body, http_opts),
+         # TODO: Conn will no longer have a cluster_name
+         # Operation should have a middleware_stack: field instead
+         # It should default to a ~"DefaultK8sStack" stack if not set
          {:ok, req} <- K8s.Middleware.run(req) do
       conn.http_provider.request(req.method, req.url, req.body, req.headers, req.opts)
     end

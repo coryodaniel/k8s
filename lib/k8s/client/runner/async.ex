@@ -26,7 +26,7 @@ defmodule K8s.Client.Runner.Async do
     end)
 
     # Get the results asynchronously
-    {:ok, conn} = K8s.Conn.lookup("my_cluster")
+    {:ok, conn} = K8s.Conn.from_file("test/support/kube-config.yaml")
     results = K8s.Client.Async.run(operations, conn)
     ```
   """

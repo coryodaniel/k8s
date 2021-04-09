@@ -33,13 +33,13 @@ defmodule K8s.Discovery.ResourceFinderTest do
 
   describe "resource_name_for_kind/3" do
     test "returns the REST resource name given a kubernetes kind" do
-      {:ok, conn} = K8s.Conn.lookup("test")
+      {:ok, conn} = K8s.Conn.from_file("test/support/kube-config.yaml")
       {:ok, name} = ResourceFinder.resource_name_for_kind(conn, "v1", "Pod")
       assert name == "pods"
     end
 
     test "returns the REST resoruce name given a subresource name" do
-      {:ok, conn} = K8s.Conn.lookup("test")
+      {:ok, conn} = K8s.Conn.from_file("test/support/kube-config.yaml")
       {:ok, name} = ResourceFinder.resource_name_for_kind(conn, "v1", "pods/eviction")
       assert name == "pods/eviction"
     end

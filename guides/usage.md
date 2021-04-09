@@ -8,20 +8,12 @@
 * [Testing](./testing.html)
 * [Advanced Topics](./advanced.html) - CRDs, Multiple Clusters, and Subresource Requests
 
-## Removal of `cluster_name` based operation runners
-
-Versions previous to `0.5` used the `cluster_name`'s atom to lookup the kubernetes connection information (`K8s.Conn`). When executing any HTTP operation on `K8s.Client`. This has been removed and now `K8s.Conn`s must be provided.
-
-See [the connection's guide](./connections.html) for more information.
-
-`cluster_name` are now strings and are only used to identify cluster connection configurations (`K8s.Conn.lookup/1`) and to register middleware `K8s.Middleware.Registry.set/3`.
-
 ## tl;dr Examples
 
 ### Creating a deployment
 
 ```elixir
-{:ok, conn} = K8s.Conn.lookup("prod_us_east1")
+{:ok, conn} = K8s.Conn.from_file("path/to/kubeconfig.yaml")
 
 opts = [namespace: "default", name: "nginx", image: "nginx:nginx:1.7.9"]
 {:ok, resource} = K8s.Resource.from_file("priv/deployment.yaml", opts)
@@ -35,7 +27,7 @@ operation = K8s.Client.create(resource)
 In a namespace:
 
 ```elixir
-{:ok, conn} = K8s.Conn.lookup("prod_us_east1")
+{:ok, conn} = K8s.Conn.from_file("path/to/kubeconfig.yaml")
 
 operation = K8s.Client.list("apps/v1", "Deployment", namespace: "prod")
 {:ok, deployments} = K8s.Client.run(conn, operation)
@@ -44,7 +36,7 @@ operation = K8s.Client.list("apps/v1", "Deployment", namespace: "prod")
 Across all namespaces:
 
 ```elixir
-{:ok, conn} = K8s.Conn.lookup("prod_us_east1")
+{:ok, conn} = K8s.Conn.from_file("path/to/kubeconfig.yaml")
 
 operation = K8s.Client.list("apps/v1", "Deployment", namespace: :all)
 {:ok, deployments} = K8s.Client.run(conn, operation)
@@ -53,7 +45,7 @@ operation = K8s.Client.list("apps/v1", "Deployment", namespace: :all)
 ### Getting a deployment
 
 ```elixir
-{:ok, conn} = K8s.Conn.lookup("prod_us_east1")
+{:ok, conn} = K8s.Conn.from_file("path/to/kubeconfig.yaml")
 
 operation = K8s.Client.get("apps/v1", :deployment, [namespace: "default", name: "nginx-deployment"])
 {:ok, deployment} = K8s.Client.run(conn, operation)

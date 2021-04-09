@@ -5,24 +5,6 @@ defmodule K8s.ConnTest do
   alias K8s.Conn.Auth.{AuthProvider, Certificate, Exec, Token}
   alias K8s.Conn.RequestOptions
 
-  describe "list/0" do
-    test "returns a list of all registered Conns" do
-      conns = K8s.Conn.list()
-      conn_names = Enum.map(conns, & &1.cluster_name)
-      assert conn_names == ["k8s-elixir-client-cluster"]
-    end
-  end
-
-  describe "lookup/1" do
-    test "returns a conn by name" do
-      assert {:ok, %K8s.Conn{}} = K8s.Conn.lookup("test")
-    end
-
-    test "returns an error when no connection was registered" do
-      assert {:error, :connection_not_registered} = K8s.Conn.lookup("foo")
-    end
-  end
-
   describe "from_file/2" do
     test "returns an error tuple when using an invalid cluster name" do
       assert {:error, :invalid_configuration} =
@@ -118,15 +100,15 @@ defmodule K8s.ConnTest do
     end
   end
 
-  describe "use_service_account/2" do
+  describe "use_service_account/1" do
     test "builds a Conn from a directory of serviceaccount related files" do
       System.put_env("KUBERNETES_SERVICE_HOST", "kewlhost")
       System.put_env("KUBERNETES_SERVICE_PORT", "1337")
 
-      {:ok, conn} = K8s.Conn.from_service_account("test_sa_cluster", "test/support/tls")
+      {:ok, conn} = K8s.Conn.from_service_account("test/support/tls")
 
       assert %Token{} = conn.auth
-      assert conn.cluster_name == "test_sa_cluster"
+      assert conn.cluster_name == nil
       assert conn.url == "https://kewlhost:1337"
       assert conn.ca_cert
       assert conn.auth.token

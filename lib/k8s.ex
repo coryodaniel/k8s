@@ -29,22 +29,7 @@ defmodule K8s do
 
   config :k8s,
     discovery_driver: K8s.Discovery.Driver.File,
-    discovery_opts: [config: "test/support/discovery/example.json"],
-
-    clusters: %{
-      test: %{
-        conn: "test/support/kube-config.yaml"
-      },
-      dev: %{
-        conn: "test/support/kube-config.yaml"
-      },
-      prod: %{
-        conn: "test/support/kube-config.yaml",
-        conn_opts: [
-          discovery_driver: K8s.Discovery.Driver.HTTP
-        ]
-      }
-    }
+    discovery_opts: [config: "test/support/discovery/example.json"]
   ```
   """
   @spec default_discovery_driver() :: module()
