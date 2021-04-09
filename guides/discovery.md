@@ -128,7 +128,7 @@ K8s.Discovery.Driver.HTTP.resources("apps/v1", conn)
 
 ## Using the File Driver (`K8s.Discovery.Driver.File`)
 
-The file driver is primarly intended for testing. The format for a driver configuration file is a JSON file with API version as the key to a list of resource metadata.
+The file driver is primarily intended for testing. The format for a driver configuration file is a JSON file with API version as the key to a list of resource metadata.
 
 ```json
 {

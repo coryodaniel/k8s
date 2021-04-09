@@ -29,9 +29,9 @@ defmodule K8s.Client.Runner.Watch do
   ```
   """
   @spec run(Conn.t(), Operation.t(), keyword(atom)) :: Base.result_t()
-  def run(%Conn{} = conn, %Operation{method: :get} = operation, opts) do
+  def run(%Conn{} = conn, %Operation{method: :get} = operation, http_opts) do
     case get_resource_version(conn, operation) do
-      {:ok, rv} -> run(conn, operation, rv, opts)
+      {:ok, rv} -> run(conn, operation, rv, http_opts)
       error -> error
     end
   end
@@ -59,18 +59,18 @@ defmodule K8s.Client.Runner.Watch do
   ```
   """
   @spec run(Conn.t(), Operation.t(), binary, keyword(atom)) :: Base.result_t()
-  def run(%Conn{} = conn, %Operation{method: :get, verb: verb} = operation, rv, opts)
+  def run(%Conn{} = conn, %Operation{method: :get, verb: verb} = operation, rv, http_opts)
       when verb in [:list, :list_all_namespaces] do
-    opts_w_watch_params = add_watch_params_to_opts(opts, rv)
+    opts_w_watch_params = add_watch_params_to_opts(http_opts, rv)
     Base.run(conn, operation, opts_w_watch_params)
   end
 
-  def run(%Conn{} = conn, %Operation{method: :get, verb: :get} = operation, rv, opts) do
+  def run(%Conn{} = conn, %Operation{method: :get, verb: :get} = operation, rv, http_opts) do
     {list_op, field_selector_param} = get_to_list(operation)
 
-    params = Map.merge(opts[:params] || %{}, field_selector_param)
-    opts = Keyword.put(opts, :params, params)
-    run(conn, list_op, rv, opts)
+    params = Map.merge(http_opts[:params] || %{}, field_selector_param)
+    http_opts = Keyword.put(http_opts, :params, params)
+    run(conn, list_op, rv, http_opts)
   end
 
   def run(op, _, _, _),
@@ -89,9 +89,9 @@ defmodule K8s.Client.Runner.Watch do
   end
 
   @spec add_watch_params_to_opts(keyword, binary) :: keyword
-  defp add_watch_params_to_opts(opts, rv) do
-    params = Map.merge(opts[:params] || %{}, %{"resourceVersion" => rv, "watch" => true})
-    Keyword.put(opts, :params, params)
+  defp add_watch_params_to_opts(http_opts, rv) do
+    params = Map.merge(http_opts[:params] || %{}, %{"resourceVersion" => rv, "watch" => true})
+    Keyword.put(http_opts, :params, params)
   end
 
   @spec parse_resource_version(any) :: binary

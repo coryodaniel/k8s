@@ -8,7 +8,7 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
   end
 
   describe "cluster scoped resources" do
-    @tag external: true
+    @tag integration: true
     test "creating a resource", %{conn: conn, test_id: test_id} do
       namespace = %{
         "apiVersion" => "v1",
@@ -25,7 +25,7 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
       assert {:ok, _pod} = result
     end
 
-    @tag external: true
+    @tag integration: true
     test "getting a resource", %{conn: conn} do
       operation = K8s.Client.get("v1", "Namespace", name: "default")
       result = K8s.Client.run(conn, operation)
@@ -33,7 +33,7 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
       assert {:ok, %{"apiVersion" => "v1", "kind" => "Namespace"}} = result
     end
 
-    @tag external: true
+    @tag integration: true
     test "listing resources", %{conn: conn} do
       operation = K8s.Client.list("v1", "Namespace")
 
@@ -50,7 +50,7 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
   end
 
   describe "namespaced scoped resources" do
-    @tag external: true
+    @tag integration: true
     test "creating a resource", %{conn: conn, test_id: test_id} do
       pod = build_pod("k8s-ex-#{test_id}")
       operation = K8s.Client.create(pod)
@@ -62,7 +62,7 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
       assert {:ok, _pod} = result
     end
 
-    @tag external: true
+    @tag integration: true
     test "getting a resource", %{conn: conn} do
       operation = K8s.Client.get("v1", "ServiceAccount", name: "default", namespace: "default")
       result = K8s.Client.run(conn, operation)
@@ -70,7 +70,7 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
       assert {:ok, %{"apiVersion" => "v1", "kind" => "ServiceAccount"}} = result
     end
 
-    @tag external: true
+    @tag integration: true
     test "listing resources", %{conn: conn} do
       operation = K8s.Client.list("v1", "ServiceAccount", namespace: "default")
 

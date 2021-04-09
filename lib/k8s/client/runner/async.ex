@@ -31,9 +31,9 @@ defmodule K8s.Client.Runner.Async do
     ```
   """
   @spec run(Conn.t(), list(Operation.t()), keyword) :: list({:ok, struct} | {:error, struct})
-  def run(%Conn{} = conn, operations, opts \\ []) do
+  def run(%Conn{} = conn, operations, http_opts \\ []) do
     operations
-    |> Enum.map(&Task.async(fn -> Base.run(conn, &1, opts) end))
+    |> Enum.map(&Task.async(fn -> Base.run(conn, &1, http_opts) end))
     |> Enum.map(&Task.await/1)
   end
 end

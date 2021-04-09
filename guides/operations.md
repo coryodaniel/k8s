@@ -104,10 +104,13 @@ operation = K8s.Client.list("apps/v1", "Deployment", namespace: :all)
 
 ```elixir
 {:ok, conn} = K8s.Conn.lookup("my_connection")
-K8s.Client.list("apps/v1", :deployments)
-|> K8s.Selector.label({"app", "nginx"})
-|> K8s.Selector.label_in({"environment", ["qa", "prod"]})
-|> K8s.Client.run(conn)
+
+operation = 
+  K8s.Client.list("apps/v1", :deployments)
+  |> K8s.Selector.label({"app", "nginx"})
+  |> K8s.Selector.label_in({"environment", ["qa", "prod"]})
+
+K8s.Client.run(conn, operation)
 ```
 
 ## Getting a Deployment

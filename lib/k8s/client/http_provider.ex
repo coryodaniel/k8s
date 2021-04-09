@@ -7,8 +7,8 @@ defmodule K8s.Client.HTTPProvider do
   require Logger
 
   @impl true
-  def request(method, url, body, headers, opts) do
-    {duration, response} = :timer.tc(HTTPoison, :request, [method, url, body, headers, opts])
+  def request(method, url, body, headers, http_opts) do
+    {duration, response} = :timer.tc(HTTPoison, :request, [method, url, body, headers, http_opts])
     measurements = %{duration: duration}
     metadata = %{method: method}
 

@@ -42,7 +42,7 @@ defmodule K8s.Client.Runner.BaseTest do
           _body,
           _headers,
           ssl: _ssl,
-          params: %{labelSelector: "app=nginx"}
+          params: [labelSelector: "app=nginx"]
         ) do
       render(nil)
     end
@@ -86,10 +86,9 @@ defmodule K8s.Client.Runner.BaseTest do
 
     test "running an operation with options", %{conn: conn} do
       operation = Client.get(build_namespace("test-query-params"))
-      params = %{"watch" => "true"}
-      operation_w_params = Map.put(operation, :query_params, params)
+      operation_w_params = K8s.Operation.put_query_param(operation, :watch, true)
 
-      assert {:ok, ^params} = Base.run(conn, operation_w_params)
+      assert {:ok, _} = Base.run(conn, operation_w_params)
     end
 
     test "supports subresource operations", %{conn: conn} do
@@ -110,14 +109,14 @@ defmodule K8s.Client.Runner.BaseTest do
   end
 
   describe "run/4" do
-    test "[DEPRECATED] running an operation with a custom HTTP body and options", %{
-      conn: conn
-    } do
+    test "running an operation with a custom HTTP body and HTTP options", %{conn: conn} do
+      # TODO: This was deprecated, is it needed? Why an alternate body?
+      # The only place i see this being used is in this test. Does it have a benefit to end users?
       operation = Client.create(build_namespace("test"))
       labels = %{"env" => "test"}
       body = put_in(build_namespace("test"), ["metadata", "labels"], labels)
 
-      opts = [params: %{"watch" => "true"}]
+      opts = [params: [watch: true]]
       assert {:ok, _} = Base.run(conn, operation, body, opts)
     end
   end

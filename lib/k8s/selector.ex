@@ -56,7 +56,7 @@ defmodule K8s.Selector do
       iex> K8s.Client.get("v1", :pods)
       ...> |> K8s.Selector.label({"app", "nginx"})
       ...> |> K8s.Selector.label_in({"environment", ["qa", "prod"]})
-      %K8s.Operation{data: nil, api_version: "v1", query_params: %{labelSelector: %K8s.Selector{match_expressions: [%{"key" => "environment", "operator" => "In", "values" => ["qa", "prod"]}], match_labels: %{"app" => "nginx"}}}, method: :get, name: :pods, path_params: [], verb: :get}
+      %K8s.Operation{data: nil, api_version: "v1", query_params: [labelSelector: %K8s.Selector{match_expressions: [%{"key" => "environment", "operator" => "In", "values" => ["qa", "prod"]}], match_labels: %{"app" => "nginx"}}], method: :get, name: :pods, path_params: [], verb: :get}
   """
 
   alias K8s.{Operation, Resource}
@@ -306,8 +306,9 @@ defmodule K8s.Selector do
 
   @spec merge(t | Operation.t(), t) :: t
   defp merge(%Operation{} = op, %__MODULE__{} = next) do
-    prev = Operation.get_query_param(op, :labelSelector) || %__MODULE__{}
-    Operation.put_query_param(op, :labelSelector, merge(prev, next))
+    prev = Operation.get_label_selector(op)
+    merged_selector = merge(prev, next)
+    Operation.put_label_selector(op, merged_selector)
   end
 
   defp merge(%__MODULE__{} = prev, %__MODULE__{} = next) do
