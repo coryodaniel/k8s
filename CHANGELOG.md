@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - K8s.Operation.put_label_selector/2
 - K8s.Operation.get_label_selector/1
 - Per connection http provider configuration
+- K8s.Operation now uses keyword lists for query_params instead of maps
 
 ### Changed
 - removed dialyzer exceptions
