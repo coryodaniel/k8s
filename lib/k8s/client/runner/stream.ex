@@ -80,12 +80,19 @@ defmodule K8s.Client.Runner.Stream do
   # Make a list request and convert response to stream state
   @spec list(ListRequest.t()) :: state_t
   def list(%ListRequest{operation: operation} = request) do
-    default_params = operation.query_params || %{}
-    pagination_params = %{limit: request.limit, continue: request.continue}
-    merged_params = Map.merge(default_params, pagination_params)
+    query_params = operation.query_params || []
+    pagination_params = [limit: request.limit, continue: request.continue]
+
+    merged_params =
+      case query_params do
+        qp when is_map(qp) ->
+          Map.merge(qp, Enum.into(pagination_params, %{}))
+
+        qp when is_list(qp) ->
+          Keyword.merge(qp, pagination_params)
+      end
 
     updated_operation = %Operation{operation | query_params: merged_params}
-
     paginated_request = %ListRequest{request | operation: updated_operation}
 
     response =

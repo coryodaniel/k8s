@@ -56,7 +56,7 @@ defmodule K8s.Selector do
       iex> K8s.Client.get("v1", :pods)
       ...> |> K8s.Selector.label({"app", "nginx"})
       ...> |> K8s.Selector.label_in({"environment", ["qa", "prod"]})
-      %K8s.Operation{data: nil, api_version: "v1", query_params: %{labelSelector: %K8s.Selector{match_expressions: [%{"key" => "environment", "operator" => "In", "values" => ["qa", "prod"]}], match_labels: %{"app" => "nginx"}}}, method: :get, name: :pods, path_params: [], verb: :get}
+      %K8s.Operation{data: nil, api_version: "v1", query_params: [labelSelector: %K8s.Selector{match_expressions: [%{"key" => "environment", "operator" => "In", "values" => ["qa", "prod"]}], match_labels: %{"app" => "nginx"}}], method: :get, name: :pods, path_params: [], verb: :get}
   """
 
   alias K8s.{Operation, Resource}

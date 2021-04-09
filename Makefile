@@ -1,4 +1,4 @@
-K3D_KUBECONFIG_PATH=./integration.yaml
+K3D_KUBECONFIG_PATH?=./integration.yaml
 
 .PHONY: help
 help: ## Show this help
@@ -30,14 +30,14 @@ integration.yaml: ## Create a k3d cluster
 .PHONY: tests.integration
 tests.integration: integration.yaml
 tests.integration: ## Run integration tests using k3d `make cluster`
-	TEST_KUBECONFIG=${K3D_KUBECONFIG_PATH} mix test --only external
+	TEST_KUBECONFIG=${K3D_KUBECONFIG_PATH} mix test --only integration
 
 .PHONY: tests.all
 tests.all: integration.yaml
 tests.all: ## Run all tests
-	TEST_KUBECONFIG=${K3D_KUBECONFIG_PATH} mix test --include external
+	TEST_KUBECONFIG=${K3D_KUBECONFIG_PATH} mix test --include integration
 
 .PHONY: tests.watch-all
 tests.watch-all: integration.yaml
 tests.watch-all: ## Run all tests with mix watchers
-	TEST_KUBECONFIG=${K3D_KUBECONFIG_PATH} mix test.watch --include external
+	TEST_KUBECONFIG=${K3D_KUBECONFIG_PATH} mix test.watch --include integration
