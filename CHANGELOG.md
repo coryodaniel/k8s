@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 ### Added
+- `K8s.Resource.NamedList.access!/1` raises if item is missing
 - K8s.Operation.put_label_selector/2
 - K8s.Operation.get_label_selector/1
 - Per connection http provider configuration
@@ -22,14 +23,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - deprecated K8s.Discovery.default_opts/0
 - deprecated K8s.Discovery.default_driver/0
 - Refactored cluster names to strings
-
-### Added
-
-- `K8s.Resource.NamedList.access!/1` raises if item is missing
-
-### Changed
-
 - `K8s.Resource.NamedList.access/1` deals better with missing items now
+
+### Removed
+- K8s.Conn.lookup/1
+- config.exs based cluster registration is no longer supported, build K8s.Conn using K8s.Conn module
+- environment variable based cluster registration has been removed and may be moved to an external library
 
 ## [0.5.2] - 2020-07-31
 

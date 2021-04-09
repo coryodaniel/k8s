@@ -29,7 +29,7 @@ defmodule K8s.Client.Runner.Wait do
   ```elixir
   op = K8s.Client.get("batch/v1", :job, namespace: "default", name: "sleep")
   opts = [find: ["status", "succeeded"], eval: 1, timeout: 60]
-  conn = K8s.Conn.lookup("my_cluster")
+  {:ok, conn} = K8s.Conn.from_file("test/support/kube-config.yaml")
   resp = K8s.Client.Runner.Wait.run(op, conn, opts)
   ```
   """
