@@ -94,10 +94,7 @@ defmodule K8s.Client.Runner.Base do
 
     with {:ok, url} <- K8s.Discovery.url_for(conn, operation),
          req <- new_request(conn, url, operation, body, http_opts),
-         # TODO: Conn is not guaranteed to have a cluster_name
-         # Operation should have a middleware_stack: field instead
-         # It should default to a ~"DefaultK8sStack" stack if not set
-         {:ok, req} <- K8s.Middleware.run(req) do
+         {:ok, req} <- K8s.Middleware.run(req, conn.middleware.request) do
       conn.http_provider.request(req.method, req.url, req.body, req.headers, req.opts)
     end
   end

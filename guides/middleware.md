@@ -1,6 +1,6 @@
 # Middleware (`K8s.Middleware`)
 
-`K8s.Middleware` is registered by connection name. By default a few pieces of middleware are registered for all connections.
+`K8s.Middleware` is associated to a `K8s.Conn`. By default a `K8s.Middleware.Stack` are associated to all connections.
 
 * `K8s.Middleware.Request.Initialize`
 * `K8s.Middleware.Request.EncodeBody`
@@ -38,7 +38,7 @@ K8s.Middleware.Registry.list("foo", :request)
 
 To implement a piece of middleware, you need to define a function `call/1` that accepts a `K8s.Middleware.Request`.
 
-The example below will automatically add labels to a `:post` requests.
+The example below will automatically add labels to all `:post` requests.
 
 ```elixir
 def call(%Request{method: :post, body: body} = req) do

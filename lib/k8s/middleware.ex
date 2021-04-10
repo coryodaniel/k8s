@@ -29,18 +29,20 @@ defmodule K8s.Middleware do
 
   alias K8s.Middleware.{Error, Request}
 
-  @typedoc "Middleware type"
-  @type type_t :: :request | :response
+  defmodule Stack do
+    defstruct [:request, :response]
 
-  @doc """
-  Applies middlewares registered to a `K8s.Cluster` to a `K8s.Middleware.Request`
-  """
-  @spec run(Request.t()) :: {:ok, Request.t()} | {:error, Error.t()}
-  def run(%Request{conn: conn} = req) do
-    # TODO: this will need to come from the operation or request...
-    # Registry can go be removed
-    middlewares = K8s.Middleware.Registry.list(conn.cluster_name, :request)
-    run(req, middlewares)
+    @type t :: %__MODULE__{
+            request: list(module),
+            response: list(module)
+          }
+
+    @spec default :: K8s.Middleware.Stack.t()
+    def default(),
+      do: %__MODULE__{
+        request: [Request.Initialize, Request.EncodeBody],
+        response: []
+      }
   end
 
   @spec run(Request.t(), list(module())) :: {:ok, Request.t()} | {:error, Error.t()}
