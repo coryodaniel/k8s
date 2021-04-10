@@ -86,24 +86,15 @@ defmodule K8s.Client.Runner.Base do
 
   @doc """
   Run an operation and pass `http_opts` to `K8s.Client.HTTPProvider`
-  Destructures `Operation` data and passes as the HTTP body.
-
   See `run/2`
   """
   @spec run(Conn.t(), Operation.t(), keyword()) :: result_t
-  def run(%Conn{} = conn, %Operation{} = operation, http_opts) when is_list(http_opts) do
-    run(conn, operation, operation.data, http_opts)
-  end
+  def run(%Conn{} = conn, %Operation{} = operation, http_opts) do
+    body = operation.data
 
-  @doc """
-  Run an operation with an HTTP Body (map) and pass `http_opts` to `K8s.Client.HTTPProvider`.
-  See `run/2`
-  """
-  @spec run(Conn.t(), Operation.t(), map(), keyword()) :: result_t
-  def run(%Conn{} = conn, %Operation{} = operation, body, http_opts \\ []) do
     with {:ok, url} <- K8s.Discovery.url_for(conn, operation),
          req <- new_request(conn, url, operation, body, http_opts),
-         # TODO: Conn will no longer have a cluster_name
+         # TODO: Conn is not guaranteed to have a cluster_name
          # Operation should have a middleware_stack: field instead
          # It should default to a ~"DefaultK8sStack" stack if not set
          {:ok, req} <- K8s.Middleware.run(req) do

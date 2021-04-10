@@ -4,7 +4,7 @@ defmodule K8s.Client do
 
   Functions return `K8s.Operation`s that represent kubernetes operations.
 
-  To run operations pass them to: `run/2`, `run/3`, or `run/4`.
+  To run operations pass them to: `run/2`, or `run/3`
 
   When specifying kinds the format should either be in the literal kubernetes kind name (eg `"ServiceAccount"`)
   or the downcased version seen in kubectl (eg `"serviceaccount"`). A string or atom may be used.
@@ -30,9 +30,6 @@ defmodule K8s.Client do
 
   @doc "alias of `K8s.Client.Runner.Base.run/3`"
   defdelegate run(conn, operation, http_opts), to: Base
-
-  @doc "alias of `K8s.Client.Runner.Base.run/4`"
-  defdelegate run(conn, operation, resource, http_opts), to: Base
 
   @doc "alias of `K8s.Client.Runner.Async.run/3`"
   defdelegate async(operations, conn), to: Async, as: :run
