@@ -24,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - deprecated K8s.Discovery.default_driver/0
 - Refactored cluster names to strings
 - `K8s.Resource.NamedList.access/1` deals better with missing items now
-- Removed `K8s.Client.run/4`, use `K8s.Client.run/3` to pass options to HTTP provider
+- Removed K8s.Client.run/4, use `K8s.Client.run/3` to pass options to HTTP provider
 - Middleware moved to %K8s.Conn.middleware
 
 ### Removed

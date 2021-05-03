@@ -22,8 +22,7 @@ defmodule K8s.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [:logger],
-      mod: {K8s.Application, []}
+      extra_applications: [:logger]
     ]
   end
 
@@ -66,6 +65,7 @@ defmodule K8s.MixProject do
     [
       extras: [
         "README.md",
+        "CHANGELOG.md",
         "guides/usage.md",
         "guides/operations.md",
         "guides/connections.md",
