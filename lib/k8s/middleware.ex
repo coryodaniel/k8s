@@ -29,20 +29,6 @@ defmodule K8s.Middleware do
 
   alias K8s.Middleware.{Error, Request}
 
-  @typedoc "Middleware type"
-  @type type_t :: :request | :response
-
-  @doc """
-  Applies middlewares registered to a `K8s.Cluster` to a `K8s.Middleware.Request`
-  """
-  @spec run(Request.t()) :: {:ok, Request.t()} | {:error, Error.t()}
-  def run(%Request{conn: conn} = req) do
-    # TODO: this will need to come from the operation or request...
-    # Registry can go be removed
-    middlewares = K8s.Middleware.Registry.list(conn.cluster_name, :request)
-    run(req, middlewares)
-  end
-
   @spec run(Request.t(), list(module())) :: {:ok, Request.t()} | {:error, Error.t()}
   def run(%Request{} = req, middlewares) do
     result =

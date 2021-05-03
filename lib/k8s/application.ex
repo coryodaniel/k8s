@@ -4,10 +4,9 @@ defmodule K8s.Application do
 
   use Application
 
+  @spec start(any, any) :: {:error, any} | {:ok, pid}
   def start(_type, _args) do
-    children = [
-      {K8s.Middleware.Registry, []}
-    ]
+    children = []
 
     opts = [strategy: :one_for_one, name: K8s.Supervisor]
     Supervisor.start_link(children, opts)

@@ -14,7 +14,8 @@ defmodule K8s.MixProject do
       docs: docs(),
       package: package(),
       elixirc_paths: elixirc_paths(Mix.env()),
-      dialyzer: dialyzer()
+      dialyzer: dialyzer(),
+      xref: [exclude: [:cover]]
     ]
   end
 

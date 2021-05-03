@@ -31,5 +31,4 @@ k8s-*.tar
 /priv/plts/*.plt.hash
 
 # Ignore local k8s config/integration test files
-test/support/swagger/master.json
 integration.yaml

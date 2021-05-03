@@ -25,6 +25,7 @@ defmodule K8s.Conn do
             insecure_skip_tls_verify: false,
             ca_cert: nil,
             auth: nil,
+            middleware: K8s.Middleware.Stack.default(),
             discovery_driver: K8s.default_discovery_driver(),
             discovery_opts: K8s.default_discovery_opts(),
             http_provider: K8s.default_http_provider()
@@ -41,6 +42,7 @@ defmodule K8s.Conn do
           insecure_skip_tls_verify: boolean(),
           ca_cert: String.t() | nil,
           auth: auth_t,
+          middleware: K8s.Middleware.Stack.t(),
           discovery_driver: module(),
           discovery_opts: Keyword.t(),
           http_provider: module()
