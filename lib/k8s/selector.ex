@@ -304,11 +304,10 @@ defmodule K8s.Selector do
   def label_does_not_exist(%{} = selector_or_operation, key),
     do: merge(selector_or_operation, label_does_not_exist(key))
 
-  @spec merge(selector_or_operation_t, t) :: selector_or_operation_t
   def label_does_not_exist(%{} = selector_or_operation, key),
     do: merge(selector_or_operation, label_does_not_exist(key))
 
-  @spec merge(t | Operation.t(), t) :: t
+  @spec merge(selector_or_operation_t, t) :: selector_or_operation_t
   defp merge(%Operation{} = op, %__MODULE__{} = next) do
     prev = Operation.get_query_param(op, :labelSelector) || %__MODULE__{}
     Operation.put_query_param(op, :labelSelector, merge(prev, next))
