@@ -43,7 +43,7 @@ defmodule K8s.MixProject do
       {:inch_ex, github: "rrrene/inch_ex", only: [:dev, :test]},
       {:credo, "~> 1.5", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.0", only: [:test, :dev], runtime: false},
-      {:ex_doc, "~> 0.23", only: :dev},
+      {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
       {:excoveralls, "~> 0.12", only: [:test]},
       {:mix_test_watch, "~> 0.8", only: :dev, runtime: false}
     ]
@@ -55,8 +55,10 @@ defmodule K8s.MixProject do
       maintainers: ["Cory O'Daniel"],
       licenses: ["MIT"],
       links: %{
-        "GitHub" => "https://github.com/coryodaniel/k8s"
-      }
+        "GitHub" => "https://github.com/coryodaniel/k8s",
+        "Changelog" => "https://hexdocs.pm/k8s/changelog.html"       
+      },
+      exclude_patterns: ["priv/plts/*.plt"]
     ]
   end
 
@@ -73,7 +75,9 @@ defmodule K8s.MixProject do
         "guides/advanced.md",
         "guides/testing.md"
       ],
-      main: "readme"
+      main: "readme",
+      source_url: "https://github.com/coryodaniel/k8s",
+      formatters: ["html"]
     ]
   end
 

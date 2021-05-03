@@ -5,11 +5,13 @@ defmodule K8s.Discovery do
   @behaviour K8s.Discovery.Driver
 
   @impl true
+  @doc "Kubernetes API Resources supported by the cluster."
   def resources(api_version, %K8s.Conn{discovery_driver: driver} = conn, opts \\ []) do
     driver.resources(api_version, conn, opts)
   end
 
   @impl true
+  @doc "Kubernetes API Versions supported by the cluster."
   def versions(%K8s.Conn{discovery_driver: driver} = conn, opts \\ []) do
     driver.versions(conn, opts)
   end

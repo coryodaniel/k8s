@@ -94,7 +94,7 @@ defmodule K8s.Client.HTTPProvider do
   * Adds `{"Accept", "application/json"}` to all requests.
   * Adds `Content-Type` base on HTTP method.
 
-  ## Example
+  ## Examples
     Sets `Content-Type` to `application/merge-patch+json` for PATCH operations
       iex> opts = %K8s.Conn.RequestOptions{headers: [{"Authorization", "Basic AF"}]}
       ...> K8s.Client.HTTPProvider.headers(:patch, opts)

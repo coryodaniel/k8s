@@ -1,15 +1,14 @@
 # K8s
 
 [![Build Status](https://travis-ci.org/coryodaniel/k8s.svg?branch=master)](https://travis-ci.org/coryodaniel/k8s)
-[![Coverage Status](https://coveralls.io/repos/github/coryodaniel/k8s/badge.svg?branch=master)](https://coveralls.io/github/coryodaniel/k8s?branch=master)
-[![Hex.pm](http://img.shields.io/hexpm/v/k8s.svg?style=flat)](https://hex.pm/packages/k8s)
-[![Documentation](https://img.shields.io/badge/documentation-on%20hexdocs-green.svg)](https://hexdocs.pm/k8s/)
-![Hex.pm](https://img.shields.io/hexpm/l/k8s.svg?style=flat)
 [![Module Version](https://img.shields.io/hexpm/v/k8s.svg)](https://hex.pm/packages/k8s)
+[![Coverage Status](https://coveralls.io/repos/github/coryodaniel/k8s/badge.svg?branch=master)](https://coveralls.io/github/coryodaniel/k8s?branch=master)
+[![Last Updated](https://img.shields.io/github/last-commit/coryodaniel/k8s.svg)](https://github.com/coryodaniel/k8s/commits/master)
+
+
 [![Hex Docs](https://img.shields.io/badge/hex-docs-lightgreen.svg)](https://hexdocs.pm/k8s/)
 [![Total Download](https://img.shields.io/hexpm/dt/k8s.svg)](https://hex.pm/packages/k8s)
 [![License](https://img.shields.io/hexpm/l/k8s.svg)](https://github.com/coryodaniel/k8s/blob/master/LICENSE)
-[![Last Updated](https://img.shields.io/github/last-commit/coryodaniel/k8s.svg)](https://github.com/coryodaniel/k8s/commits/master)
 
 [K8s](https://hexdocs.pm/k8s/usage.html) - Kubernetes API Client for Elixir
 
@@ -41,7 +40,7 @@ The package can be installed by adding `:k8s` to your list of dependencies in `m
 ```elixir
 def deps do
   [
-    {:k8s, "~> 0.5"}
+    {:k8s, "~> 1.0.0-rc1"}
   ]
 end
 ```
@@ -59,9 +58,9 @@ Most functions are also written using doctests.
 
 If you are interested in building Kubernetes Operators or Schedulers, check out [Bonny](https://github.com/coryodaniel/bonny).
 
-### tl;dr Examples
+## tl;dr Examples
 
-#### Configure a cluster connection
+### Configure a cluster connection
 
 Cluster connections can be created using the `K8s.Conn` module. 
 
@@ -81,7 +80,7 @@ Connections can also be created in-cluster from a service account.
 
 Check out the [connection guide](https://hexdocs.pm/k8s/connections.html) for additional details.
 
-#### Creating a deployment
+### Creating a deployment
 
 ```elixir
 {:ok, conn} = K8s.Conn.from_file("path/to/kubeconfig.yaml")
@@ -93,7 +92,7 @@ operation = K8s.Client.create(resource)
 {:ok, deployment} = K8s.Client.run(conn, operation)
 ```
 
-#### Listing deployments
+### Listing deployments
 
 In a namespace:
 
@@ -113,7 +112,7 @@ operation = K8s.Client.list("apps/v1", "Deployment", namespace: :all)
 {:ok, deployments} = K8s.Client.run(conn, operation)
 ```
 
-#### Getting a deployment
+### Getting a deployment
 
 ```elixir
 {:ok, conn} = K8s.Conn.from_file("path/to/kubeconfig.yaml")

@@ -1,6 +1,6 @@
 defmodule K8s.Client.Runner.Base do
   @moduledoc """
-  Base HTTP processor for `K8s.Client`
+  Base HTTP processor for `K8s.Client`.
   """
 
   @type result_t ::

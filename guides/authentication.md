@@ -1,4 +1,4 @@
-# Authentication `K8s.Conn.Auth`
+# Authentication (`K8s.Conn.Auth`)
 
 `k8s` features pluggable authentication, but includes 5 strategies in the order of attempted application:
 
@@ -40,14 +40,14 @@ config :k8s,
   auth_providers: [CustomProvider1, CustomProvider2]
 ```
 
-This would result in authentication attemps in the following order:
+This would result in authentication attempts in the following order:
 
-1. CustomProvider1 
-2. CustomProvider2
-3. K8s.Conn.Auth.Certificate
-4. K8s.Conn.Auth.Token
-5. K8s.Conn.Auth.AuthProvider
-6. K8s.Conn.Auth.Exec
-7. K8s.Conn.Auth.BasicAuth
+1. `CustomProvider1`
+2. `CustomProvider2`
+3. `K8s.Conn.Auth.Certificate`
+4. `K8s.Conn.Auth.Token`
+5. `K8s.Conn.Auth.AuthProvider`
+6. `K8s.Conn.Auth.Exec`
+7. `K8s.Conn.Auth.BasicAuth`
 
-For protocol and behavior implementation examples check out `Certificate`, `Token`, or `AuthProvider` [here](https://github.com/coryodaniel/k8s/blob/develop/lib/k8s/conn/auth/).
+For protocol and behavior implementation examples check out `K8s.Conn.Auth` implementations [here](https://github.com/coryodaniel/k8s/blob/develop/lib/k8s/conn/auth/).

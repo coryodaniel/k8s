@@ -1,3 +1,5 @@
+# Advanced 
+
 ## Custom Resource Definitions
 
 Custom resources are discovered via the same mechanism as "standard" k8s resources and can be worked with as such:
