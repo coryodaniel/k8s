@@ -233,7 +233,7 @@ defmodule K8s.Selector do
       ...> K8s.Selector.label(selector, {"environment", "dev"})
       %K8s.Selector{match_labels: %{"component" => "redis", "environment" => "dev"}}
   """
-  @spec label(selector_or_operation_t, {binary | atom, binary}) :: t()
+  @spec label(selector_or_operation_t, {binary | atom, binary}) :: selector_or_operation_t()
   def label(%{} = selector_or_operation, label), do: merge(selector_or_operation, label(label))
 
   @doc """
@@ -251,7 +251,7 @@ defmodule K8s.Selector do
       match_expressions: [%{"operator" => "In", "values" => values, "key" => key}]
     }
 
-  @spec label_in(selector_or_operation_t, {binary, binary | list(binary())}) :: t()
+  @spec label_in(selector_or_operation_t, {binary, binary | list(binary())}) :: selector_or_operation_t()
   def label_in(%{} = selector_or_operation, label),
     do: merge(selector_or_operation, label_in(label))
 
@@ -270,7 +270,7 @@ defmodule K8s.Selector do
       match_expressions: [%{"operator" => "NotIn", "values" => values, "key" => key}]
     }
 
-  @spec label_not_in(selector_or_operation_t, {binary, binary | list(binary())}) :: t()
+  @spec label_not_in(selector_or_operation_t, {binary, binary | list(binary())}) :: selector_or_operation_t()
   def label_not_in(%{} = selector_or_operation, label),
     do: merge(selector_or_operation, label_not_in(label))
 
@@ -285,7 +285,7 @@ defmodule K8s.Selector do
   def label_exists(key),
     do: %K8s.Selector{match_expressions: [%{"operator" => "Exists", "key" => key}]}
 
-  @spec label_exists(selector_or_operation_t, binary) :: t()
+  @spec label_exists(selector_or_operation_t, binary) :: selector_or_operation_t()
   def label_exists(%{} = selector_or_operation, key),
     do: merge(selector_or_operation, label_exists(key))
 
@@ -300,11 +300,14 @@ defmodule K8s.Selector do
   def label_does_not_exist(key),
     do: %K8s.Selector{match_expressions: [%{"operator" => "DoesNotExist", "key" => key}]}
 
-  @spec label_does_not_exist(selector_or_operation_t, binary) :: t()
+  @spec label_does_not_exist(selector_or_operation_t, binary) :: selector_or_operation_t()
   def label_does_not_exist(%{} = selector_or_operation, key),
     do: merge(selector_or_operation, label_does_not_exist(key))
 
-  @spec merge(t | Operation.t(), t) :: t
+  def label_does_not_exist(%{} = selector_or_operation, key),
+    do: merge(selector_or_operation, label_does_not_exist(key))
+
+  @spec merge(selector_or_operation_t, t) :: selector_or_operation_t
   defp merge(%Operation{} = op, %__MODULE__{} = next) do
     prev = Operation.get_query_param(op, :labelSelector) || %__MODULE__{}
     Operation.put_query_param(op, :labelSelector, merge(prev, next))
