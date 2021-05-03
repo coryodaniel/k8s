@@ -1,40 +1,27 @@
 # Middleware (`K8s.Middleware`)
 
-`K8s.Middleware` is associated to a `K8s.Conn`. By default a `K8s.Middleware.Stack` are associated to all connections.
+`K8s.Middleware` is associated to a `K8s.Conn`. By default the following `K8s.Middleware.Stack` is associated to all connections:
 
 * `K8s.Middleware.Request.Initialize`
 * `K8s.Middleware.Request.EncodeBody`
 
-## Request Middleware
-
-Middleware can be added to a connection or the entire middleware stack can be replaced.
-
-### Adding Request Middleware
+## Changing a Connection's Middleware
 
 Given a registered `K8s.Conn` named `"foo"` the following example will add `ExampleMiddleware` to the end of the middleware stack
 
 ```elixir
-K8s.Middleware.Registry.add("foo", :request, MyMiddlewareModule)
+{:ok, conn} = K8s.Conn.from_service_account()
+new_stack = K8s.Middleware.Stack{request: [MyFirstMiddleware, MySecondMiddleware]}
+conn_with_new_middleware = %K8s.Conn{conn | middleware: new_stack}
 ```
 
-### Replacing the Middleware Stack
+## Writing Middleware
 
-Given a registered `K8s.Conn` named `"foo"` the following example will replace the middleware stack.
+### Request Middleware
 
-```elixir
-K8s.Middleware.Registry.set("foo", :request, [MyMiddlewareModule])
-```
+`K8s.Middleware.Request` is a behaviour and struct for encapsulating requests processed by the middleware stack. 
 
-### Listing Middleware for a `K8s.Conn`
-
-```elixir
-K8s.Middleware.Registry.list("foo", :request)
-[K8s.Middleware.Request.Initialize, K8s.Middleware.Request.EncodeBody]
-```
-
-### Writing Request Middleware
-
-`K8s.Middleware.Request` is a behaviour and struct for encapsulating requests processed by the middleware stack. Middleware is expected to return `{:ok, %Request{}}` to continue processing or `{:error, :my_error}` to halt. The error in the error tuple can be an atom or a struct. It will automatically be wrapped in `K8s.Middleware.Error` during processing.
+Middleware is expected to return `{:ok, %Request{}}` to continue processing or `{:error, :my_error}` to halt. The error in the error tuple can be an atom or a struct. It will automatically be wrapped in `K8s.Middleware.Error` during processing.
 
 To implement a piece of middleware, you need to define a function `call/1` that accepts a `K8s.Middleware.Request`.
 
@@ -51,6 +38,6 @@ def call(%Request{method: :post, body: body} = req) do
 end
 ```
 
-## Response Middleware 
+### Response Middleware 
 
 Response middleware has not been implemented at this time.

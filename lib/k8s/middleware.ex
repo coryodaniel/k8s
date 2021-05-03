@@ -29,22 +29,6 @@ defmodule K8s.Middleware do
 
   alias K8s.Middleware.{Error, Request}
 
-  defmodule Stack do
-    defstruct [:request, :response]
-
-    @type t :: %__MODULE__{
-            request: list(module),
-            response: list(module)
-          }
-
-    @spec default :: K8s.Middleware.Stack.t()
-    def default(),
-      do: %__MODULE__{
-        request: [Request.Initialize, Request.EncodeBody],
-        response: []
-      }
-  end
-
   @spec run(Request.t(), list(module())) :: {:ok, Request.t()} | {:error, Error.t()}
   def run(%Request{} = req, middlewares) do
     result =
