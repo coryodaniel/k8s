@@ -48,8 +48,8 @@ defmodule K8s.Client.Runner.WaitIntegrationTest do
     {:ok, _} = K8s.Client.run(conn, create_job)
 
     op = K8s.Client.get("batch/v1", :job, namespace: "default", name: "pi")
-    
-    eval_fn = fn(value_of_status_succeeded) -> 
+
+    eval_fn = fn value_of_status_succeeded ->
       value_of_status_succeeded == 1
     end
 

@@ -21,13 +21,13 @@ defmodule K8s.Client.Runner.Async do
     ]
 
     # Map each one to an individual `GET` operation.
-    operations = Enum.map(pods_to_get, fn(%{"name" => name, "namespace" => ns}}) ->
+    operations = Enum.map(pods_to_get, fn(%{"name" => name, "namespace" => ns}) ->
        K8s.Client.get("v1", "Pod", namespace: ns, name: name)
     end)
 
     # Get the results asynchronously
     {:ok, conn} = K8s.Conn.from_file("test/support/kube-config.yaml")
-    results = K8s.Client.Async.run(operations, conn)
+    results = K8s.Client.Async.run(conn, operations)
     ```
   """
   @spec run(Conn.t(), list(Operation.t()), keyword) :: list({:ok, struct} | {:error, struct})

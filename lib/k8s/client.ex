@@ -41,7 +41,7 @@ defmodule K8s.Client do
   defdelegate parallel(operations, conn, http_opts), to: Async, as: :run
 
   @doc "alias of `K8s.Client.Runner.Wait.run/3`"
-  defdelegate wait_until(conn, operation, http_opts), to: Wait, as: :run
+  defdelegate wait_until(conn, operation, wait_opts), to: Wait, as: :run
 
   @doc "alias of `K8s.Client.Runner.Watch.run/3`"
   defdelegate watch(conn, operation, http_opts), to: Watch, as: :run
