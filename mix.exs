@@ -55,7 +55,7 @@ defmodule K8s.MixProject do
       licenses: ["MIT"],
       links: %{
         "GitHub" => "https://github.com/coryodaniel/k8s",
-        "Changelog" => "https://hexdocs.pm/k8s/changelog.html"       
+        "Changelog" => "https://hexdocs.pm/k8s/changelog.html"
       },
       exclude_patterns: ["priv/plts/*.plt"]
     ]
