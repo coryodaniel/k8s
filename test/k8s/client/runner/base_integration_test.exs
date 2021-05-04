@@ -1,5 +1,5 @@
 defmodule K8s.Client.Runner.BaseIntegrationTest do
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
   import K8s.Test.IntegrationHelper
 
   setup do

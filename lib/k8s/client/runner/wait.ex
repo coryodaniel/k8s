@@ -24,7 +24,7 @@ defmodule K8s.Client.Runner.Wait do
 
   ## Example
 
-  Checking the number of job completions:
+  This follow example will wait 60 seconds for the field `status.succeeded` to equal `1`.
 
   ```elixir
   op = K8s.Client.get("batch/v1", :job, namespace: "default", name: "sleep")
