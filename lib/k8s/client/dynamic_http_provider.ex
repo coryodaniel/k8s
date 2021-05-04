@@ -19,10 +19,10 @@ defmodule K8s.Client.DynamicHTTPProvider do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
-  @doc "Locate the handler module for this process"
-  @spec locate(pid) :: module() | function() | nil
-  def locate(this_pid) do
-    GenServer.call(__MODULE__, {:locate, this_pid})
+  @doc "Lookup the handler module for this process"
+  @spec lookup(pid) :: module() | function() | nil
+  def lookup(this_pid) do
+    GenServer.call(__MODULE__, {:lookup, this_pid})
   end
 
   @doc "List all registered handlers"
@@ -42,7 +42,7 @@ defmodule K8s.Client.DynamicHTTPProvider do
   """
   @impl true
   def request(method, url, body, headers, opts) do
-    module = locate(self())
+    module = lookup(self())
 
     case module do
       nil ->
@@ -51,7 +51,7 @@ defmodule K8s.Client.DynamicHTTPProvider do
           |> Process.info(:links)
           |> elem(1)
           |> List.first()
-          |> locate()
+          |> lookup()
 
         case parent do
           nil ->
@@ -83,7 +83,7 @@ defmodule K8s.Client.DynamicHTTPProvider do
   end
 
   @impl true
-  def handle_call({:locate, this_pid}, _from, pids) do
+  def handle_call({:lookup, this_pid}, _from, pids) do
     {:reply, Map.get(pids, this_pid), pids}
   end
 

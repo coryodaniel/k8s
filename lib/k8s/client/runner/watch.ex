@@ -3,11 +3,10 @@ defmodule K8s.Client.Runner.Watch do
   `K8s.Client` runner that will watch a resource or resources and stream results back to a process.
   """
 
-  alias K8s.Client.Runner.Base
-  alias K8s.Conn
-  alias K8s.Operation
-
   @resource_version_json_path ~w(metadata resourceVersion)
+
+  alias K8s.Client.Runner.Base
+  alias K8s.Operation
 
   @doc """
   Watch a resource or list of resources. Provide the `stream_to` option or results will be stream to `self()`.
@@ -17,21 +16,21 @@ defmodule K8s.Client.Runner.Watch do
   ## Examples
 
   ```elixir
-  {:ok, conn} = K8s.Conn.from_file("test/support/kube-config.yaml")
+  {:ok, conn} = K8s.Conn.lookup(:test)
   operation = K8s.Client.list("v1", "Namespace")
-  {:ok, reference} = Watch.run(conn, operation, stream_to: self())
+  {:ok, reference} = Watch.run(operation, conn, stream_to: self())
   ```
 
   ```elixir
-  {:ok, conn} = K8s.Conn.from_file("test/support/kube-config.yaml")
+  {:ok, conn} = K8s.Conn.lookup(:test)
   operation = K8s.Client.get("v1", "Namespace", [name: "test"])
-  {:ok, reference} = Watch.run(conn, operation, stream_to: self())
+  {:ok, reference} = Watch.run(operation, conn, stream_to: self())
   ```
   """
-  @spec run(Conn.t(), Operation.t(), keyword(atom)) :: Base.result_t()
-  def run(%Conn{} = conn, %Operation{method: :get} = operation, http_opts) do
-    case get_resource_version(conn, operation) do
-      {:ok, rv} -> run(conn, operation, rv, http_opts)
+  @spec run(Operation.t(), K8s.Conn.t(), keyword(atom)) :: Base.result_t()
+  def run(%Operation{method: :get} = operation, conn, opts) do
+    case get_resource_version(operation, conn) do
+      {:ok, rv} -> run(operation, conn, rv, opts)
       error -> error
     end
   end
@@ -45,40 +44,40 @@ defmodule K8s.Client.Runner.Watch do
   ## Examples
 
   ```elixir
-  {:ok, conn} = K8s.Conn.from_file("test/support/kube-config.yaml")
+  {:ok, conn} = K8s.Conn.lookup(:test)
   operation = K8s.Client.list("v1", "Namespace")
   resource_version = 3003
-  {:ok, reference} = Watch.run(conn, operation, resource_version, stream_to: self())
+  {:ok, reference} = Watch.run(operation, conn, resource_version, stream_to: self())
   ```
 
   ```elixir
-  {:ok, conn} = K8s.Conn.from_file("test/support/kube-config.yaml")
+  {:ok, conn} = K8s.Conn.lookup(:test)
   operation = K8s.Client.get("v1", "Namespace", [name: "test"])
   resource_version = 3003
-  {:ok, reference} = Watch.run(conn, operation, resource_version, stream_to: self())
+  {:ok, reference} = Watch.run(operation, conn, resource_version, stream_to: self())
   ```
   """
-  @spec run(Conn.t(), Operation.t(), binary, keyword(atom)) :: Base.result_t()
-  def run(%Conn{} = conn, %Operation{method: :get, verb: verb} = operation, rv, http_opts)
+  @spec run(Operation.t(), K8s.Conn.t(), binary, keyword(atom)) :: Base.result_t()
+  def run(%Operation{method: :get, verb: verb} = operation, conn, rv, opts)
       when verb in [:list, :list_all_namespaces] do
-    opts_w_watch_params = add_watch_params_to_opts(http_opts, rv)
-    Base.run(conn, operation, opts_w_watch_params)
+    opts_w_watch_params = add_watch_params_to_opts(opts, rv)
+    Base.run(operation, conn, opts_w_watch_params)
   end
 
-  def run(%Conn{} = conn, %Operation{method: :get, verb: :get} = operation, rv, http_opts) do
+  def run(%Operation{method: :get, verb: :get} = operation, conn, rv, opts) do
     {list_op, field_selector_param} = get_to_list(operation)
-    params = Keyword.get(http_opts, :params, [])
-    updated_params = Keyword.merge(params, field_selector_param)
-    http_opts = Keyword.put(http_opts, :params, updated_params)
-    run(conn, list_op, rv, http_opts)
+
+    params = Map.merge(opts[:params] || %{}, field_selector_param)
+    opts = Keyword.put(opts, :params, params)
+    run(list_op, conn, rv, opts)
   end
 
   def run(op, _, _, _),
     do: {:error, "Only HTTP GET operations (list, get) are supported. #{inspect(op)}"}
 
-  @spec get_resource_version(Conn.t(), Operation.t()) :: {:ok, binary} | {:error, binary}
-  def get_resource_version(%Conn{} = conn, %Operation{} = operation) do
-    case Base.run(conn, operation) do
+  @spec get_resource_version(Operation.t(), K8s.Conn.t()) :: {:ok, binary} | {:error, binary}
+  defp get_resource_version(%Operation{} = operation, conn) do
+    case Base.run(operation, conn) do
       {:ok, payload} ->
         rv = parse_resource_version(payload)
         {:ok, rv}
@@ -89,11 +88,9 @@ defmodule K8s.Client.Runner.Watch do
   end
 
   @spec add_watch_params_to_opts(keyword, binary) :: keyword
-  defp add_watch_params_to_opts(http_opts, rv) do
-    params = Keyword.get(http_opts, :params, [])
-    watch_params = [resourceVersion: rv, watch: true]
-    updated_params = Keyword.merge(params, watch_params)
-    Keyword.put(http_opts, :params, updated_params)
+  defp add_watch_params_to_opts(opts, rv) do
+    params = Map.merge(opts[:params] || %{}, %{"resourceVersion" => rv, "watch" => true})
+    Keyword.put(opts, :params, params)
   end
 
   @spec parse_resource_version(any) :: binary
@@ -105,7 +102,7 @@ defmodule K8s.Client.Runner.Watch do
   defp get_to_list(get_op) do
     list_op = %{get_op | verb: :list, path_params: []}
     name = get_op.path_params[:name]
-    params = [fieldSelector: "metadata.name=#{name}"]
+    params = %{"fieldSelector" => "metadata.name=#{name}"}
     {list_op, params}
   end
 end
