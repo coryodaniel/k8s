@@ -32,13 +32,14 @@ defmodule K8s.Conn.PKI do
   @doc """
   Reads the certificate from a PEM file
   """
-  @spec cert_from_pem(String.t()) :: nil | binary
-  def cert_from_pem(nil), do: nil
+  @spec cert_from_pem(String.t()) :: :skip | {:ok, binary} | {:error, :noent}
+  def cert_from_pem(nil), do: :skip
 
   def cert_from_pem(file) do
-    file
-    |> File.read!()
-    |> decode_cert_data()
+    with {:ok, data} <- File.read(file) do
+      # TODO: this may be {:ok, nil}
+      {:ok, decode_cert_data(data)}
+    end
   end
 
   @doc """
@@ -71,8 +72,11 @@ defmodule K8s.Conn.PKI do
   """
   def private_key_from_pem(file) do
     file
-    |> File.read!()
-    |> decode_private_key_data
+
+    with {:ok, data} <- File.read(file) do
+      # TODO: this may be {:ok, nil}
+      {:ok, decode_private_key_data(data)}
+    end
   end
 
   @doc """

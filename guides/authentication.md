@@ -21,7 +21,7 @@
 
 Two things are required to implement a custom auth strategy:
 
-1. Implement the [K8s.Conn.Auth](https://github.com/coryodaniel/k8s/blob/develop/lib/k8s/conn/auth.ex) **behaviour** for auth strategies. The first strategy to return an `K8s.Conn.Auth` struct will be chosen. Any that cannot authenticate the connection should return `nil`.
+1. Implement the [K8s.Conn.Auth](https://github.com/coryodaniel/k8s/blob/develop/lib/k8s/conn/auth.ex) **behaviour** for auth strategies. The first strategy to return an `{:ok, K8s.Conn.Auth}` struct will be chosen. Any that cannot authenticate the connection should return `:skip`.
    
 2. Implement the [K8s.Conn.RequestOptions](https://github.com/coryodaniel/k8s/blob/develop/lib/k8s/conn/request_options.ex#L19) protocol which should create a `RequestOptions` struct. This struct is used to set HTTP Headers and SSL connection options.
 

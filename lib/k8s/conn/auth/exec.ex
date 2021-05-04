@@ -42,19 +42,21 @@ defmodule K8s.Conn.Auth.Exec do
         }
 
   @impl true
+  @spec create(map() | any, String.t() | any) :: {:ok, t} | {:error, any} | :skip
   def create(%{"exec" => %{"command" => command} = config}, _) do
     # Optional:
     args = Map.get(config, "args", [])
     env = Map.get(config, "env", [])
 
-    %__MODULE__{
-      command: command,
-      env: format_env(env),
-      args: args
-    }
+    {:ok,
+     %__MODULE__{
+       command: command,
+       env: format_env(env),
+       args: args
+     }}
   end
 
-  def create(_, _), do: nil
+  def create(_, _), do: :skip
 
   defp format_env(nil), do: %{}
   defp format_env(env) when is_list(env), do: Enum.into(env, %{}, &format_env/1)

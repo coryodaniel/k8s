@@ -8,14 +8,15 @@ defmodule K8s.Conn.Auth.BasicAuthTest do
   describe "create/2" do
     test "creates a BasicAuth struct from token data" do
       auth = %{"username" => "basic-auth-username", "password" => "basic-auth-password"}
-      assert %BasicAuth{token: token} = BasicAuth.create(auth, nil)
-      assert token == "YmFzaWMtYXV0aC11c2VybmFtZTpiYXNpYy1hdXRoLXBhc3N3b3Jk"
+
+      assert {:ok, %BasicAuth{token: "YmFzaWMtYXV0aC11c2VybmFtZTpiYXNpYy1hdXRoLXBhc3N3b3Jk"}} =
+               BasicAuth.create(auth, nil)
     end
   end
 
   test "creates http request signing options" do
-    {:ok, conn} = Conn.from_file("test/support/kube-config.yaml", user: "basic-auth-user")
-    assert %BasicAuth{token: token} = conn.auth
+    {:ok, conn = %Conn{auth: %BasicAuth{token: token}}} =
+      Conn.from_file("test/support/kube-config.yaml", user: "basic-auth-user")
 
     {:ok, %Conn.RequestOptions{headers: headers, ssl_options: ssl_options}} =
       Conn.RequestOptions.generate(conn.auth)

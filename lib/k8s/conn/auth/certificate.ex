@@ -12,15 +12,15 @@ defmodule K8s.Conn.Auth.Certificate do
   @type t :: %__MODULE__{certificate: binary, key: binary}
 
   @impl true
-  @spec create(map(), String.t()) :: K8s.Conn.Auth.Certificate.t() | nil
+  @spec create(map(), String.t()) :: {:ok, t()} | {:error, any} | :skip
   def create(%{"client-certificate" => cert_file, "client-key" => key_file}, base_path) do
     cert_path = Conn.resolve_file_path(cert_file, base_path)
     key_path = Conn.resolve_file_path(key_file, base_path)
 
-    %K8s.Conn.Auth.Certificate{
-      certificate: PKI.cert_from_pem(cert_path),
-      key: PKI.private_key_from_pem(key_path)
-    }
+    with {:ok, cert} <- PKI.cert_from_pem(cert_path),
+         {:ok, key} <- PKI.private_key_from_pem(key_path) do
+      {:ok, %K8s.Conn.Auth.Certificate{certificate: cert, key: key}}
+    end
   end
 
   def create(
@@ -30,13 +30,14 @@ defmodule K8s.Conn.Auth.Certificate do
         },
         _
       ) do
-    %K8s.Conn.Auth.Certificate{
-      certificate: PKI.cert_from_base64(cert_data),
-      key: PKI.private_key_from_base64(key_data)
-    }
+    {:ok,
+     %K8s.Conn.Auth.Certificate{
+       certificate: PKI.cert_from_base64(cert_data),
+       key: PKI.private_key_from_base64(key_data)
+     }}
   end
 
-  def create(_, _), do: nil
+  def create(_, _), do: :skip
 
   defimpl K8s.Conn.RequestOptions, for: __MODULE__ do
     @doc "Generates HTTP Authorization options for certificate authentication"

@@ -5,7 +5,7 @@ defmodule K8s.Conn.PKITest do
 
   describe "cert_from_pem/1" do
     test "reads the certificate from a PEM file" do
-      cert = PKI.cert_from_pem("test/support/tls/certificate.pem")
+      assert {:ok, cert} = PKI.cert_from_pem("test/support/tls/certificate.pem")
       assert cert
     end
   end
@@ -22,7 +22,7 @@ defmodule K8s.Conn.PKITest do
 
   describe "private_key_from_pem/1" do
     test "reads the private key from a PEM file" do
-      key = PKI.private_key_from_pem("test/support/tls/key.pem")
+      assert {:ok, {:RSAPrivateKey, key}} = PKI.private_key_from_pem("test/support/tls/key.pem")
       assert key
     end
   end

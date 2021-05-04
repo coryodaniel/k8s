@@ -9,9 +9,9 @@ defmodule K8s.Conn.Auth.Token do
   @type t :: %__MODULE__{token: binary}
 
   @impl true
-  @spec create(map() | any, String.t() | any) :: K8s.Conn.Auth.Token.t() | nil
-  def create(%{"token" => token}, _), do: %K8s.Conn.Auth.Token{token: token}
-  def create(_, _), do: nil
+  @spec create(map() | any, String.t() | any) :: {:ok, t()} | :skip
+  def create(%{"token" => token}, _), do: {:ok, %K8s.Conn.Auth.Token{token: token}}
+  def create(_, _), do: :skip
 
   defimpl K8s.Conn.RequestOptions, for: __MODULE__ do
     @doc "Generates HTTP Authorization options for certificate authentication"

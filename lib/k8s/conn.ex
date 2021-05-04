@@ -95,31 +95,27 @@ defmodule K8s.Conn do
 
   [kubernetes.io :: Accessing the API from a Pod](https://kubernetes.io/docs/tasks/access-application-cluster/access-cluster/#accessing-the-api-from-a-pod)
   """
-  @spec from_service_account :: {:ok, __MODULE__.t()} | {:error, atom()}
+  @spec from_service_account :: {:ok, t()} | {:error, atom()}
   def from_service_account do
     from_service_account(@default_service_account_path)
   end
 
-  @spec from_service_account(String.t()) :: {:ok, __MODULE__.t()} | {:error, atom()}
+  @spec from_service_account(String.t()) :: {:ok, t()} | {:error, atom()}
   def from_service_account(service_account_path) do
     cert_path = Path.join(service_account_path, "ca.crt")
     token_path = Path.join(service_account_path, "token")
 
-    case File.read(token_path) do
-      {:ok, token} ->
-        # Open Issue #97: PKI.cert_from_pem/1 will raise an exception if the file is not present.
-        ca_cert = PKI.cert_from_pem(cert_path)
+    with {:ok, token} <- File.read(token_path),
+         {:ok, ca_cert} <- PKI.cert_from_pem(cert_path) do
+      conn = %Conn{
+        url: kubernetes_service_url(),
+        ca_cert: ca_cert,
+        auth: %K8s.Conn.Auth.Token{token: token}
+      }
 
-        conn = %Conn{
-          url: kubernetes_service_url(),
-          ca_cert: ca_cert,
-          auth: %K8s.Conn.Auth.Token{token: token}
-        }
-
-        {:ok, conn}
-
-      error ->
-        error
+      {:ok, conn}
+    else
+      error -> error
     end
   end
 
@@ -158,11 +154,23 @@ defmodule K8s.Conn do
 
   @spec get_auth(map(), String.t()) :: auth_t
   defp get_auth(%{} = auth_map, base_path) do
-    Enum.find_value(providers(), fn provider -> provider.create(auth_map, base_path) end)
+    Enum.find_value(auth_providers(), fn provider ->
+      case provider.create(auth_map, base_path) do
+        {:ok, auth} ->
+          auth
+
+        {:error, msg} ->
+          Logger.error("Error creating auth provider (#{provider}): #{msg}")
+          nil
+
+        :skip ->
+          nil
+      end
+    end)
   end
 
-  @spec providers() :: list(atom)
-  defp providers do
+  @spec auth_providers() :: list(atom)
+  defp auth_providers do
     Application.get_env(:k8s, :auth_providers, []) ++ @auth_providers
   end
 
