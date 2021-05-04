@@ -32,11 +32,11 @@ defmodule K8s.Conn.Auth.CertificateTest do
   end
 
   test "creates http request signing options" do
-    config = Conn.from_file("test/support/kube-config.yaml", [])
-    assert %Certificate{} = config.auth
+    {:ok, conn} = Conn.from_file("test/support/kube-config.yaml", [])
+    assert %Certificate{} = conn.auth
 
     {:ok, %Conn.RequestOptions{headers: headers, ssl_options: ssl_options}} =
-      Conn.RequestOptions.generate(config.auth)
+      Conn.RequestOptions.generate(conn.auth)
 
     assert headers == []
     assert [cert: _, key: _] = ssl_options

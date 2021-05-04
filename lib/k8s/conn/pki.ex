@@ -26,7 +26,7 @@ defmodule K8s.Conn.PKI do
     |> PKI.cert_from_pem()
   end
 
-  # Handles the case for docker-for-desktop kubernetes cluster as there is no ca
+  # Handles the case for a Docker for Desktop Kubernetes cluster as there is no ca
   def cert_from_map(_, _), do: nil
 
   @doc """
