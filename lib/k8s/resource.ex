@@ -96,8 +96,8 @@ defmodule K8s.Resource do
         }
       }
   """
-  @spec from_file!(String.t(), keyword() | nil) :: map | no_return
-  def from_file!(path, assigns \\ []) do
+  @spec from_file!(String.t(), keyword()) :: map | no_return
+  def from_file!(path, assigns) do
     path
     |> File.read!()
     |> EEx.eval_string(assigns)
@@ -137,7 +137,7 @@ defmodule K8s.Resource do
         }
       }}
   """
-  @spec from_file(String.t(), keyword() | nil) :: {:ok, map()} | {:error, atom() | map()}
+  @spec from_file(String.t(), keyword()) :: {:ok, map()} | {:error, atom() | map()}
   def from_file(path, assigns \\ []) do
     with {:ok, template} <- File.read(path),
          interpolated_template <- EEx.eval_string(template, assigns) do
@@ -240,8 +240,8 @@ defmodule K8s.Resource do
   def all_from_file(path, assigns \\ []) do
     with {:ok, template} <- File.read(path),
          interpolated_template <- EEx.eval_string(template, assigns),
-         {:ok, items} <- YamlElixir.read_all_from_string(interpolated_template) do
-      no_empty_maps = Enum.filter(items, &(&1 != %{}))
+         {:ok, items} <- YamlElixir.read_all_from_string(interpolated_template),
+         no_empty_maps = Enum.filter(items, &(&1 != %{})) do
       {:ok, no_empty_maps}
     end
   end

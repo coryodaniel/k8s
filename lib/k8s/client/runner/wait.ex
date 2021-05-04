@@ -24,25 +24,25 @@ defmodule K8s.Client.Runner.Wait do
 
   ## Example
 
-  This follow example will wait 60 seconds for the field `status.succeeded` to equal `1`.
+  Checking the number of job completions:
 
   ```elixir
   op = K8s.Client.get("batch/v1", :job, namespace: "default", name: "sleep")
   opts = [find: ["status", "succeeded"], eval: 1, timeout: 60]
-  {:ok, conn} = K8s.Conn.from_file("test/support/kube-config.yaml")
-  resp = K8s.Client.Runner.Wait.run(conn, op, opts)
+  conn = K8s.Conn.lookup(:my_cluster)
+  resp = K8s.Client.Runner.Wait.run(op, conn, opts)
   ```
   """
-  @spec run(Conn.t(), Operation.t(), keyword(atom())) ::
+  @spec run(Operation.t(), binary, keyword(atom())) ::
           {:ok, map()} | {:error, binary()}
-  def run(%Conn{} = conn, %Operation{method: :get} = op, opts) do
+  def run(%Operation{method: :get} = op, %Conn{} = conn, opts) do
     conditions =
       Wait
       |> struct(opts)
       |> process_opts()
 
     case conditions do
-      {:ok, opts} -> run_operation(conn, op, opts)
+      {:ok, opts} -> run_operation(op, conn, opts)
       error -> error
     end
   end
@@ -69,29 +69,25 @@ defmodule K8s.Client.Runner.Wait do
     {:ok, processed}
   end
 
-  defp run_operation(
-         %Conn{} = conn,
-         %Operation{} = op,
-         %Wait{timeout_after: timeout_after} = opts
-       ) do
+  defp run_operation(op, conn, %Wait{timeout_after: timeout_after} = opts) do
     case timed_out?(timeout_after) do
       true -> {:error, :timeout}
-      false -> evaluate_operation(conn, op, opts)
+      false -> evaluate_operation(op, conn, opts)
     end
   end
 
   defp evaluate_operation(
-         %Conn{} = conn,
-         %Operation{} = op,
+         op,
+         conn,
          %Wait{processor: processor, sleep: sleep, eval: eval, find: find} = opts
        ) do
-    with {:ok, resp} <- processor.(conn, op),
+    with {:ok, resp} <- processor.(op, conn),
          true <- satisfied?(resp, find, eval) do
       {:ok, resp}
     else
       _not_satisfied ->
         Process.sleep(sleep)
-        run_operation(conn, op, opts)
+        run_operation(op, conn, opts)
     end
   end
 

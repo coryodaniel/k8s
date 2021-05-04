@@ -1,11 +1,10 @@
 defmodule K8s.Operation do
   @moduledoc "Encapsulates Kubernetes REST API operations."
 
-  alias K8s.{Operation, Selector}
+  alias K8s.Operation
   @derive {Jason.Encoder, except: [:path_params]}
 
   @allow_http_body [:put, :patch, :post]
-  @label_selector :labelSelector
   @verb_map %{
     list_all_namespaces: :get,
     list: :get,
@@ -21,7 +20,8 @@ defmodule K8s.Operation do
             name: nil,
             data: nil,
             path_params: [],
-            query_params: []
+            query_params: %{},
+            label_selector: nil
 
   @typedoc "`K8s.Operation` name. May be an atom, string, or tuple of `{resource, subresource}`."
   @type name_t :: binary() | atom() | {binary(), binary()}
@@ -33,7 +33,7 @@ defmodule K8s.Operation do
   * `method` - HTTP Method
   * `verb` - Kubernetes [REST API verb](https://kubernetes.io/docs/reference/access-authn-authz/authorization/#determine-the-request-verb) (`deletecollection`, `update`, `create`, `watch`, etc)
   * `path_params` - Parameters to interpolate into the Kubernetes REST URL
-  * `query_params` - Query parameters. Merged w/ params provided to any `K8s.Client.Runner`. `K8s.Client.Runner` options win.
+  * `query_params` - Query parameter (`map`). Merged w/ params provided to any `K8s.Client.Runner`. `K8s.Client.Runner` options win.
 
   `name` would be `deployments` in the case of a deployment, but may be `deployments/status` or `deployments/scale` for Status and Scale subresources.
 
@@ -72,7 +72,8 @@ defmodule K8s.Operation do
           name: name_t(),
           data: map() | nil,
           path_params: keyword(atom()),
-          query_params: keyword()
+          label_selector: K8s.Selector.t() | nil,
+          query_params: map()
         }
 
   @doc """
@@ -176,52 +177,16 @@ defmodule K8s.Operation do
   def to_path(%Operation{} = operation), do: Operation.Path.build(operation)
 
   @doc """
-  Puts a `K8s.Selector` on the operation.
-
-  ## Examples
-      iex> operation = %K8s.Operation{}
-      ...> selector = K8s.Selector.label({"component", "redis"})
-      ...> K8s.Operation.put_label_selector(operation, selector)
-      %K8s.Operation{
-        query_params: [
-          labelSelector: %K8s.Selector{
-            match_expressions: [],
-            match_labels: %{"component" => "redis"}
-          }
-        ]
-      }
-  """
-  @spec put_label_selector(Operation.t(), Selector.t()) :: Operation.t()
-  def put_label_selector(%Operation{} = op, %Selector{} = selector),
-    do: put_query_param(op, @label_selector, selector)
-
-  @doc """
-  Gets a `K8s.Selector` on the operation.
-
-  ## Examples
-      iex> operation = %K8s.Operation{query_params: [labelSelector: K8s.Selector.label({"component", "redis"})]}
-      ...> K8s.Operation.get_label_selector(operation)
-      %K8s.Selector{
-        match_expressions: [],
-        match_labels: %{"component" => "redis"}
-      }
-  """
-  @spec get_label_selector(K8s.Operation.t()) :: K8s.Selector.t()
-  def get_label_selector(%Operation{query_params: params}),
-    do: Keyword.get(params, @label_selector, %K8s.Selector{})
-
-  @doc """
   Add a query param to an operation
 
   ## Examples
-    Using a `keyword` list of params:
       iex> operation = %K8s.Operation{}
-      ...> K8s.Operation.put_query_param(operation, :foo, "bar")
-      %K8s.Operation{query_params: [foo: "bar"]}
+      ...> K8s.Operation.put_query_param(operation, "foo", "bar")
+      %K8s.Operation{query_params: %{"foo" => "bar"}}
   """
   @spec put_query_param(Operation.t(), atom(), String.t() | K8s.Selector.t()) :: Operation.t()
-  def put_query_param(%Operation{query_params: params} = op, key, value) when is_list(params) do
-    new_params = Keyword.put(params, key, value)
+  def put_query_param(%Operation{query_params: params} = op, key, value) do
+    new_params = Map.put(params, key, value)
     %Operation{op | query_params: new_params}
   end
   # covers when query_params are a keyword list for operations like for Pod Connect
@@ -237,11 +202,10 @@ defmodule K8s.Operation do
   Get a query param of an operation
 
   ## Examples
-    Using a `keyword` list of params:
-      iex> operation = %K8s.Operation{query_params: [foo: "bar"]}
+      iex> operation = %K8s.Operation{query_params: %{foo: "bar"}}
       ...> K8s.Operation.get_query_param(operation, :foo)
       "bar"
   """
   @spec get_query_param(Operation.t(), atom()) :: any()
-  def get_query_param(%Operation{query_params: params}, key), do: Keyword.get(params, key)
+  def get_query_param(%Operation{query_params: params}, key), do: Map.get(params, key)
 end

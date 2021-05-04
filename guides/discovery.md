@@ -31,16 +31,45 @@ use Mix.Config
 
 config :k8s,
   discovery_driver: K8s.Discovery.Driver.File,
-  discovery_opts: [config: "test/support/discovery/example.json"]
+  discovery_opts: [config: "test/support/discovery/example.json"],
+  clusters: %{
+    test: %{
+      conn: "test/support/kube-config.yaml"
+    }
+  }
+
 ```
 
 ## Setting Drivers per Connection
 
 Drivers can also be set per connection.
 
+In the example below the `:test` and `:dev` connections are using the default File driver, while the `:prod` connection is using the HTTP driver with caching enabled.
+
 ```elixir
-{:ok, conn} = K8s.Conn.from_file("....")
-conn = %K8s.Conn{conn | discovery_driver: AlternateDriver}
+use Mix.Config
+
+config :k8s,
+  discovery_driver: K8s.Discovery.Driver.File,
+  discovery_opts: [config: "test/support/discovery/example.json"],
+  clusters: %{
+    test: %{
+      conn: "test/support/kube-config.yaml",
+      conn_opts: [context: "test-context"]
+    },
+    dev: %{
+      conn: "test/support/kube-config.yaml",
+      conn_opts: [context: "dev-context"]
+    },
+    prod: %{
+      use_sa: true,
+      conn_opts: [
+        discovery_driver: K8s.Discovery.Driver.HTTP,
+        discovery_opts: [cache: true]
+      ]
+    }
+  }
+
 ```
 
 ## Using the HTTP Driver (`K8s.Discovery.Driver.HTTP`)
@@ -52,7 +81,7 @@ The HTTP driver can also be used directly to explore API support.
 List supported versions:
 
 ```elixir
-{:ok, conn} = K8s.Conn.from_file("path/to/kubeconfig.yaml")
+{:ok, conn} = K8s.Conn.lookup(:my_connection)
 K8s.Discovery.Driver.HTTP.versions(conn)
 ["v1", "apps/v1", "batch/v1"]
 ```
@@ -60,7 +89,7 @@ K8s.Discovery.Driver.HTTP.versions(conn)
 List supported resources of an API version.
 
 ```elixir
-{:ok, conn} = K8s.Conn.from_file("path/to/kubeconfig.yaml")
+{:ok, conn} = K8s.Conn.lookup(:my_connection)
 K8s.Discovery.Driver.HTTP.resources("apps/v1", conn)
 [
   {
@@ -99,7 +128,7 @@ K8s.Discovery.Driver.HTTP.resources("apps/v1", conn)
 
 ## Using the File Driver (`K8s.Discovery.Driver.File`)
 
-The file driver is primarily intended for testing. The format for a driver configuration file is a JSON file with API version as the key to a list of resource metadata.
+The file driver is primarly intended for testing. The format for a driver configuration file is a JSON file with API version as the key to a list of resource metadata.
 
 ```json
 {

@@ -97,17 +97,14 @@ defmodule K8s.Resource.NamedList do
   end
 
   defp create_accessor(:get_and_update, data, name, next, opts) when is_list(data) do
-    {value, rest} =
-      case Enum.find_index(data, match_name_callback(name)) do
+      {value, rest} = case Enum.find_index(data, match_name_callback(name)) do
         nil ->
           if Keyword.get(opts, :raise, false) do
             raise ArgumentError, "There is not item with name #{name} in the given named list."
           end
 
           {%{"name" => name}, data}
-
-        index ->
-          List.pop_at(data, index)
+        index -> List.pop_at(data, index)
       end
 
     case next.(value) do
