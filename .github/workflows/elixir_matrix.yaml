@@ -1,4 +1,4 @@
-name: Compatibility Matrix
+name: Elixir Compatibility Matrix
 on: push
 jobs:
   test:
@@ -10,11 +10,11 @@ jobs:
         elixir: [1.9.x, 1.10.2]
     steps:
       - uses: actions/checkout@v1.0.0
-      - uses: actions/setup-elixir@v1.0.0
+      - uses: erlef/setup-beam@v1
         with:
           otp-version: ${{matrix.otp}}
           elixir-version: ${{matrix.elixir}}
       - run: mix local.rebar --force
       - run: mix local.hex --force
       - run: mix deps.get
-      - run: mix test
+      - run: mix test --exclude integration
