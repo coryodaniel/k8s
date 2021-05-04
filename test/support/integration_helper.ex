@@ -17,13 +17,21 @@ defmodule K8s.Test.IntegrationHelper do
     }
   end
 
-  @spec build_pod(String.t()) :: Map.t()
-  def build_pod(name) do
+  @spec build_pod(String.t(), Map.t()) :: Map.t()
+  def build_pod(name, labels \\ %{}) do
     %{
       "apiVersion" => "v1",
       "kind" => "Pod",
-      "metadata" => %{"name" => name, "namespace" => "default"},
-      "spec" => %{"containers" => [%{"image" => "nginx", "name" => "nginx"}]}
+      "metadata" => %{
+        "name" => name, 
+        "namespace" => "default",
+        "labels" => labels
+      },
+      "spec" => %{
+        "containers" => [
+          %{"image" => "nginx", "name" => "nginx"}
+        ]
+      }
     }
   end
 

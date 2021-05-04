@@ -221,9 +221,15 @@ defmodule K8s.Selector do
   ## Examples
       iex> K8s.Selector.label({"component", "redis"})
       %K8s.Selector{match_labels: %{"component" => "redis"}}
+
+      iex> K8s.Selector.label(%{"component" => "redis", "env" => "prod"})
+      %K8s.Selector{match_labels: %{"component" => "redis", "env" => "prod"}}      
   """
   @spec label({binary | atom, binary}) :: t()
   def label({key, value}), do: %K8s.Selector{match_labels: %{key => value}}
+
+  @spec label(Map.t()) :: t()
+  def label(labels), do: %K8s.Selector{match_labels: labels}
 
   @doc """
   `matchLabels` helper that creates a composable `K8s.Selector`.

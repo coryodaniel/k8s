@@ -8,19 +8,9 @@ defmodule K8s.Client.Runner.AsyncIntegrationTest do
   end
 
   defp pod(name) do
-    K8s.Client.create(%{
-      "apiVersion" => "v1",
-      "kind" => "Pod",
-      "metadata" => %{"name" => name, "namespace" => "default"},
-      "spec" => %{
-        "containers" => [
-          %{
-            "image" => "nginx",
-            "name" => "nginx"
-          }
-        ]
-      }
-    })
+    name 
+    |> build_pod 
+    |> K8s.Client.create()
   end
 
   @tag integration: true

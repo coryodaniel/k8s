@@ -1,6 +1,6 @@
 defmodule K8s.Client.Runner.Stream do
   @moduledoc """
-  Takes a `K8s.Client.list/3` operation and returns an Elixir [`Stream`](https://hexdocs.pm/elixir/Stream.html)
+  Takes a `K8s.Client.list/3` operation and returns an Elixir [`Stream`](https://hexdocs.pm/elixir/Stream.html) of resources.
   """
 
   alias K8s.Client.Runner.Base
