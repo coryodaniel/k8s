@@ -23,7 +23,7 @@ defmodule K8s.Test.IntegrationHelper do
       "apiVersion" => "v1",
       "kind" => "Pod",
       "metadata" => %{
-        "name" => name, 
+        "name" => name,
         "namespace" => "default",
         "labels" => labels
       },

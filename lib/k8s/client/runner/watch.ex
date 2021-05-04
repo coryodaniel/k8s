@@ -3,11 +3,11 @@ defmodule K8s.Client.Runner.Watch do
   `K8s.Client` runner that will watch a resource or resources and stream results back to a process.
   """
 
-  @resource_version_json_path ~w(metadata resourceVersion)
-
   alias K8s.Client.Runner.Base
   alias K8s.Conn
   alias K8s.Operation
+
+  @resource_version_json_path ~w(metadata resourceVersion)
 
   @doc """
   Watch a resource or list of resources. Provide the `stream_to` option or results will be stream to `self()`.
@@ -67,9 +67,9 @@ defmodule K8s.Client.Runner.Watch do
 
   def run(%Conn{} = conn, %Operation{method: :get, verb: :get} = operation, rv, http_opts) do
     {list_op, field_selector_param} = get_to_list(operation)
-
-    params = Map.merge(http_opts[:params] || %{}, field_selector_param)
-    http_opts = Keyword.put(http_opts, :params, params)
+    params = Keyword.get(http_opts, :params, [])
+    updated_params = Keyword.merge(params, field_selector_param)
+    http_opts = Keyword.put(http_opts, :params, updated_params)
     run(conn, list_op, rv, http_opts)
   end
 
@@ -77,7 +77,7 @@ defmodule K8s.Client.Runner.Watch do
     do: {:error, "Only HTTP GET operations (list, get) are supported. #{inspect(op)}"}
 
   @spec get_resource_version(Conn.t(), Operation.t()) :: {:ok, binary} | {:error, binary}
-  defp get_resource_version(%Conn{} = conn, %Operation{} = operation) do
+  def get_resource_version(%Conn{} = conn, %Operation{} = operation) do
     case Base.run(conn, operation) do
       {:ok, payload} ->
         rv = parse_resource_version(payload)
@@ -90,8 +90,10 @@ defmodule K8s.Client.Runner.Watch do
 
   @spec add_watch_params_to_opts(keyword, binary) :: keyword
   defp add_watch_params_to_opts(http_opts, rv) do
-    params = Map.merge(http_opts[:params] || %{}, %{"resourceVersion" => rv, "watch" => true})
-    Keyword.put(http_opts, :params, params)
+    params = Keyword.get(http_opts, :params, [])
+    watch_params = [resourceVersion: rv, watch: true]
+    updated_params = Keyword.merge(params, watch_params)
+    Keyword.put(http_opts, :params, updated_params)
   end
 
   @spec parse_resource_version(any) :: binary
@@ -103,7 +105,7 @@ defmodule K8s.Client.Runner.Watch do
   defp get_to_list(get_op) do
     list_op = %{get_op | verb: :list, path_params: []}
     name = get_op.path_params[:name]
-    params = %{"fieldSelector" => "metadata.name=#{name}"}
+    params = [fieldSelector: "metadata.name=#{name}"]
     {list_op, params}
   end
 end

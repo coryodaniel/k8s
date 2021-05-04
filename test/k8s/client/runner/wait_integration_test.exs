@@ -18,7 +18,7 @@ defmodule K8s.Client.Runner.WaitIntegrationTest do
           "spec" => %{
             "containers" => [
               %{
-                "command" => ["perl", "-Mbignum=bpi", "-wle", "print bpi(2000)"],
+                "command" => ["perl", "-Mbignum=bpi", "-wle", "print bpi(100)"],
                 "image" => "perl",
                 "name" => "pi"
               }
@@ -35,7 +35,7 @@ defmodule K8s.Client.Runner.WaitIntegrationTest do
     create_job = job("wait-job-#{test_id}")
     {:ok, _} = K8s.Client.run(conn, create_job)
 
-    op = K8s.Client.get("batch/v1", :job, namespace: "default", name: "pi")
+    op = K8s.Client.get("batch/v1", :job, namespace: "default", name: "wait-job-#{test_id}")
     opts = [find: ["status", "succeeded"], eval: 1, timeout: 10]
 
     assert {:ok, result} = K8s.Client.Runner.Wait.run(conn, op, opts)
@@ -47,7 +47,7 @@ defmodule K8s.Client.Runner.WaitIntegrationTest do
     create_job = job("wait-job-#{test_id}")
     {:ok, _} = K8s.Client.run(conn, create_job)
 
-    op = K8s.Client.get("batch/v1", :job, namespace: "default", name: "pi")
+    op = K8s.Client.get("batch/v1", :job, namespace: "default", name: "wait-job-#{test_id}")
 
     eval_fn = fn value_of_status_succeeded ->
       value_of_status_succeeded == 1

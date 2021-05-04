@@ -21,10 +21,12 @@ all:
 	mix docs
 	mix inch
 
+CLUSTER_NAME=k8s-ex
 integration.yaml: ## Create a k3d cluster
-	- k3d cluster delete k8s-ex
-	k3d cluster create k8s-ex --servers 1 --wait
-	k3d kubeconfig get k8s-ex > ${K3D_KUBECONFIG_PATH}
+integration.yaml: 
+	- k3d cluster delete ${CLUSTER_NAME}
+	k3d cluster create ${CLUSTER_NAME} --servers 1 --wait
+	k3d kubeconfig get ${CLUSTER_NAME} > ${K3D_KUBECONFIG_PATH}
 	sleep 5
 
 .PHONY: tests.integration
@@ -41,3 +43,11 @@ tests.all: ## Run all tests
 tests.watch-all: integration.yaml
 tests.watch-all: ## Run all tests with mix watchers
 	TEST_KUBECONFIG=${K3D_KUBECONFIG_PATH} mix test.watch --include integration
+
+.PHONY: k3d.delete
+k3d.delete: ## Delete k3d cluster
+	- k3d cluster delete ${CLUSTER_NAME}
+
+.PHONY: k3d.create
+k3d.create: ## Created k3d cluster
+	k3d cluster create ${CLUSTER_NAME} --servers 1 --wait

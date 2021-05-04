@@ -8,8 +8,8 @@ defmodule K8s.Client.Runner.AsyncIntegrationTest do
   end
 
   defp pod(name) do
-    name 
-    |> build_pod 
+    name
+    |> build_pod
     |> K8s.Client.create()
   end
 
