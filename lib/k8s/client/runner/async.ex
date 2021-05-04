@@ -27,7 +27,7 @@ defmodule K8s.Client.Runner.Async do
 
     # Get the results asynchronously
     {:ok, conn} = K8s.Conn.from_file("test/support/kube-config.yaml")
-    results = K8s.Client.Async.run(conn, operations)
+    results = K8s.Client.Runner.Async.run(conn, operations)
     ```
   """
   @spec run(Conn.t(), list(Operation.t()), keyword) :: list({:ok, struct} | {:error, struct})

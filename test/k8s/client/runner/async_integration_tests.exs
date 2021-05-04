@@ -45,7 +45,7 @@ defmodule K8s.Client.Runner.AsyncIntegrationTest do
 
     # eh, the result shape here is gross...
     # [ok: pod1, ok: pod2]
-    assert {:ok, _} = pod_list |> List.first
-    assert {:ok, _} = pod_list |> List.last  
+    assert {:ok, _} = pod_list |> List.first()
+    assert {:ok, _} = pod_list |> List.last()
   end
 end
