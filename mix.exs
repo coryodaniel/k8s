@@ -5,7 +5,7 @@ defmodule K8s.MixProject do
     [
       app: :k8s,
       description: "Kubernetes API Client for Elixir",
-      version: "1.0.0-rc1",
+      version: "0.5.2",
       elixir: "~> 1.9",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -14,15 +14,15 @@ defmodule K8s.MixProject do
       docs: docs(),
       package: package(),
       elixirc_paths: elixirc_paths(Mix.env()),
-      dialyzer: dialyzer(),
-      xref: [exclude: [:cover]]
+      dialyzer: dialyzer()
     ]
   end
 
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [:logger]
+      extra_applications: [:logger],
+      mod: {K8s.Application, []}
     ]
   end
 
@@ -40,11 +40,12 @@ defmodule K8s.MixProject do
 
       # dev/test deps (e.g. code coverage)
       {:inch_ex, github: "rrrene/inch_ex", only: [:dev, :test]},
-      {:credo, "~> 1.5", only: [:dev, :test], runtime: false},
-      {:dialyxir, "~> 1.0", only: [:test, :dev], runtime: false},
-      {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
+      {:credo, "~> 1.0", only: [:dev, :test], runtime: false},
+      {:dialyxir, "~> 1.0.0", only: [:dev, :test], runtime: false},
+      {:ex_doc, "~> 0.20", only: :dev},
       {:excoveralls, "~> 0.12", only: [:test]},
-      {:mix_test_watch, "~> 0.8", only: :dev, runtime: false}
+      {:mix_test_watch, "~> 0.8", only: :dev, runtime: false},
+      {:stream_data, "~> 0.4", only: :test}
     ]
   end
 
@@ -54,10 +55,8 @@ defmodule K8s.MixProject do
       maintainers: ["Cory O'Daniel"],
       licenses: ["MIT"],
       links: %{
-        "GitHub" => "https://github.com/coryodaniel/k8s",
-        "Changelog" => "https://hexdocs.pm/k8s/changelog.html"
-      },
-      exclude_patterns: ["priv/plts/*.plt"]
+        "GitHub" => "https://github.com/coryodaniel/k8s"
+      }
     ]
   end
 
@@ -65,7 +64,6 @@ defmodule K8s.MixProject do
     [
       extras: [
         "README.md",
-        "CHANGELOG.md",
         "guides/usage.md",
         "guides/operations.md",
         "guides/connections.md",
@@ -75,9 +73,7 @@ defmodule K8s.MixProject do
         "guides/advanced.md",
         "guides/testing.md"
       ],
-      main: "readme",
-      source_url: "https://github.com/coryodaniel/k8s",
-      formatters: ["html"]
+      main: "readme"
     ]
   end
 

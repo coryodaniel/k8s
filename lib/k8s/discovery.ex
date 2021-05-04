@@ -5,13 +5,11 @@ defmodule K8s.Discovery do
   @behaviour K8s.Discovery.Driver
 
   @impl true
-  @doc "Kubernetes API Resources supported by the cluster."
   def resources(api_version, %K8s.Conn{discovery_driver: driver} = conn, opts \\ []) do
     driver.resources(api_version, conn, opts)
   end
 
   @impl true
-  @doc "Kubernetes API Versions supported by the cluster."
   def versions(%K8s.Conn{discovery_driver: driver} = conn, opts \\ []) do
     driver.versions(conn, opts)
   end
@@ -21,7 +19,7 @@ defmodule K8s.Discovery do
 
   ## Examples
 
-      iex> {:ok, conn} = K8s.Conn.from_file("./test/support/kube-config.yaml")
+      iex> conn = K8s.Conn.from_file("./test/support/kube-config.yaml")
       ...> op = K8s.Operation.build(:get, "apps/v1", :deployments, [namespace: "default", name: "nginx"])
       ...> K8s.Discovery.url_for(conn, op)
       {:ok, "https://localhost:6443/apis/apps/v1/namespaces/default/deployments/nginx"}
@@ -37,11 +35,48 @@ defmodule K8s.Discovery do
     end
   end
 
-  @spec default_driver() :: module()
-  @deprecated "Use K8s.default_discovery_driver/0 instead"
-  def default_driver, do: K8s.default_discovery_driver()
+  @doc """
+  Override the _default_ driver for discovery.
 
-  @deprecated "Use K8s.default_discovery_opts/0 instead"
+  Each `K8s.Conn` can have its own driver set. If unset, this value will be used.
+
+  Defaults to `K8s.Discovery.Driver.HTTP`
+
+  ## Example mix config
+  In the example below `dev` and `test` clusters will use the File driver, while `prod` will use the HTTP driver.
+  ```elixir
+  use Mix.Config
+
+  config :k8s,
+    discovery_driver: K8s.Discovery.Driver.File,
+    discovery_opts: [config: "test/support/discovery/example.json"],
+
+    clusters: %{
+      test: %{
+        conn: "test/support/kube-config.yaml"
+      },
+      dev: %{
+        conn: "test/support/kube-config.yaml"
+      },
+      prod: %{
+        conn: "test/support/kube-config.yaml",
+        conn_opts: [
+          discovery_driver: K8s.Discovery.Driver.HTTP
+        ]
+      }
+    }
+  ```
+  """
+  @spec default_driver() :: module()
+  def default_driver do
+    Application.get_env(:k8s, :discovery_driver, K8s.Discovery.Driver.HTTP)
+  end
+
+  @doc """
+  Override default opts for the discovery driver. This is also configurable per `K8s.Conn`
+  """
   @spec default_opts() :: Keyword.t()
-  def default_opts, do: K8s.default_discovery_opts()
+  def default_opts do
+    Application.get_env(:k8s, :discovery_opts, [])
+  end
 end

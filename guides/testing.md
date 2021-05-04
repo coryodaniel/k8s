@@ -13,12 +13,16 @@ The driver can be set for all clusters or per-cluster:
 ```elixir
 config :k8s,
   discovery_driver: K8s.Discovery.Driver.File,
-  discovery_opts: [config: "test/support/discovery/example.json"]
-```
-
-```elixir
-{:ok, conn} = K8s.Conn.from_file("....")
-conn = %K8s.Conn{conn | discovery_driver: AlternateDriver}
+  discovery_opts: [config: "test/support/discovery/example.json"],
+  clusters: %{
+    test: %{
+      conn: "test/support/kube-config.yaml",
+      conn_opts: [
+        discovery_driver: K8s.Discovery.Driver.File,
+        discovery_opts: [config: "test/support/discovery/example.json"]
+      ]
+    }
+  }
 ```
 
 ## Mocking HTTP Responses of `K8s.Operations` in your application
@@ -61,7 +65,7 @@ defmodule MyApp.ResourceTest do
   test "gets namespaces" do
     conn = %K8s.Conn{} # set up your conn
     operation = K8s.Client.get("v1", :namespaces)
-    assert {:ok, namespaces} = K8s.Client.run(conn, operation)
+    assert {:ok, namespaces} = K8s.Client.run(operation, conn)
     assert namespaces == [%{"metadata" => %{"name" => "default"}}]
   end
 end

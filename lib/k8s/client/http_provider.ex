@@ -4,11 +4,10 @@ defmodule K8s.Client.HTTPProvider do
   """
   @behaviour K8s.Client.Provider
   alias K8s.Conn.RequestOptions
-  require Logger
 
   @impl true
-  def request(method, url, body, headers, http_opts) do
-    {duration, response} = :timer.tc(HTTPoison, :request, [method, url, body, headers, http_opts])
+  def request(method, url, body, headers, opts) do
+    {duration, response} = :timer.tc(HTTPoison, :request, [method, url, body, headers, opts])
     measurements = %{duration: duration}
     metadata = %{method: method}
 
@@ -47,9 +46,7 @@ defmodule K8s.Client.HTTPProvider do
 
   Handles not found responses:
 
-      iex> body = ~s({"kind":"Status","apiVersion":"v1","metadata":{},"status":"Failure","message":"namespaces not found","reason":"NotFound","details":{"name":"i-dont-exist","kind":"namespaces"},"code":404})
-      ...> headers = [{"Content-Type", "application/json"}]
-      ...> K8s.Client.HTTPProvider.handle_response({:ok, %HTTPoison.Response{status_code: 404, body: body, headers: headers}})
+      iex> K8s.Client.HTTPProvider.handle_response({:ok, %HTTPoison.Response{status_code: 404}})
       {:error, :not_found}
 
   Passes through HTTPoison 4xx responses:
@@ -64,27 +61,27 @@ defmodule K8s.Client.HTTPProvider do
 
   """
   @impl true
-  def handle_response({:error, %HTTPoison.Error{} = err}), do: {:error, err}
-  def handle_response({:ok, %HTTPoison.AsyncResponse{id: ref}}), do: {:ok, ref}
-
-  def handle_response({:ok, resp}) do
+  def handle_response(resp) do
     case resp do
-      %HTTPoison.Response{status_code: code, body: body, headers: headers}
+      {:ok, %HTTPoison.Response{status_code: code, body: body, headers: headers}}
       when code in 200..299 ->
         content_type = List.keyfind(headers, "Content-Type", 0)
         {:ok, decode(body, content_type)}
 
-      %HTTPoison.Response{status_code: 404, body: body, headers: headers} ->
-        msg = format_log_message(body, headers)
-        Logger.error(msg)
+      {:ok, %HTTPoison.AsyncResponse{id: ref}} ->
+        {:ok, ref}
 
-        {:error, :not_found}
-
-      %HTTPoison.Response{status_code: 401} ->
+      {:ok, %HTTPoison.Response{status_code: 401}} ->
         {:error, :unauthorized}
 
-      %HTTPoison.Response{status_code: code} when code in 400..599 ->
+      {:ok, %HTTPoison.Response{status_code: 404}} ->
+        {:error, :not_found}
+
+      {:ok, %HTTPoison.Response{status_code: code} = resp} when code in 400..599 ->
         {:error, resp}
+
+      {:error, %HTTPoison.Error{} = err} ->
+        {:error, err}
     end
   end
 
@@ -94,7 +91,7 @@ defmodule K8s.Client.HTTPProvider do
   * Adds `{"Accept", "application/json"}` to all requests.
   * Adds `Content-Type` base on HTTP method.
 
-  ## Examples
+  ## Example
     Sets `Content-Type` to `application/merge-patch+json` for PATCH operations
       iex> opts = %K8s.Conn.RequestOptions{headers: [{"Authorization", "Basic AF"}]}
       ...> K8s.Client.HTTPProvider.headers(:patch, opts)
@@ -127,16 +124,6 @@ defmodule K8s.Client.HTTPProvider do
     case Jason.decode(body) do
       {:ok, data} -> data
       {:error, _} -> nil
-    end
-  end
-
-  @spec format_log_message(String.t(), [tuple]) :: any
-  def format_log_message(body, headers) do
-    content_type = List.keyfind(headers, "Content-Type", 0)
-
-    case decode(body, content_type) do
-      %{"message" => msg} -> msg
-      msg -> msg
     end
   end
 end
