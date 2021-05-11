@@ -20,7 +20,7 @@ defmodule K8s.Operation do
             name: nil,
             data: nil,
             path_params: [],
-            query_params: %{},
+            query_params: nil,
             label_selector: nil
 
   @typedoc "`K8s.Operation` name. May be an atom, string, or tuple of `{resource, subresource}`."
@@ -73,7 +73,7 @@ defmodule K8s.Operation do
           data: map() | nil,
           path_params: keyword(atom()),
           label_selector: K8s.Selector.t() | nil,
-          query_params: map()
+          query_params: map() | keyword() | nil
         }
 
   @doc """
@@ -177,17 +177,42 @@ defmodule K8s.Operation do
   def to_path(%Operation{} = operation), do: Operation.Path.build(operation)
 
   @doc """
-  Add a query param to an operation
+  Add a query param to an operation.
 
   ## Examples
       iex> operation = %K8s.Operation{}
       ...> K8s.Operation.put_query_param(operation, "foo", "bar")
       %K8s.Operation{query_params: %{"foo" => "bar"}}
+
+      Pod Connect query params
+      iex> operation = %K8s.Operation{}
+      ...> K8s.Operation.put_query_param(operation, [command: "date"])
+      %K8s.Operation{query_params: [command: "date"]}
+
+
   """
   @spec put_query_param(Operation.t(), atom(), String.t() | K8s.Selector.t()) :: Operation.t()
-  def put_query_param(%Operation{query_params: params} = op, key, value) do
+
+  # covers when query_params have not been set yet and they are intended to be a Map
+  def put_query_param(%Operation{query_params: nil} = op, key, value) do
+    new_params = Map.put(%{}, key, value)
+    %Operation{op | query_params: new_params}
+  end
+
+  def put_query_param(%Operation{query_params: params} = op, key, value) when is_map(params) do
     new_params = Map.put(params, key, value)
     %Operation{op | query_params: new_params}
+  end
+
+  # covers when query_params are a keyword list for operations like for Pod Connect
+  def put_query_param(%Operation{query_params: params} = op, opts)
+      when is_list(opts) and is_list(params) do
+    new_params = params ++ opts
+    %Operation{op | query_params: new_params}
+  end
+
+  def put_query_param(%Operation{query_params: _params} = op, opts) when is_list(opts) do
+    %Operation{op | query_params: opts}
   end
 
   @doc """
@@ -199,5 +224,15 @@ defmodule K8s.Operation do
       "bar"
   """
   @spec get_query_param(Operation.t(), atom()) :: any()
-  def get_query_param(%Operation{query_params: params}, key), do: Map.get(params, key)
+
+  # covers when query_params are not set so there is not value to retun
+  def get_query_param(%Operation{query_params: nil}, _key), do: nil
+
+  def get_query_param(%Operation{query_params: params}, key) when is_list(params) do
+    Keyword.get(params, key)
+  end
+
+  def get_query_param(%Operation{query_params: params}, key) do
+    Map.get(params, key)
+  end
 end
