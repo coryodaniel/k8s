@@ -75,6 +75,7 @@ defmodule K8s.Resource.NamedList do
   @spec access!(binary) :: Access.access_fun(data :: list(), get_value :: term)
   def access!(name), do: create_accessor(name, raise: true)
 
+  @spec create_accessor(binary, keyword) :: Access.access_fun(data :: list(), get_value :: term)
   defp create_accessor(name, opts) do
     fn op, data, next ->
       if Enum.count(data, match_name_callback(name)) > 1 do
@@ -85,6 +86,8 @@ defmodule K8s.Resource.NamedList do
     end
   end
 
+  @spec create_accessor(:get | :get_and_update, maybe_improper_list, term, function, keyword) ::
+          any
   defp create_accessor(:get, data, name, next, opts) when is_list(data) do
     raise_if_key_does_not_exist = Keyword.get(opts, :raise, false)
     item = Enum.find(data, match_name_callback(name))
@@ -121,5 +124,6 @@ defmodule K8s.Resource.NamedList do
           "Kubernetes.NamedList.access/1 expected a named list, got: #{inspect(data)}"
   end
 
+  @spec match_name_callback(term) :: (nil | maybe_improper_list() | map() -> boolean())
   defp match_name_callback(name), do: &(&1["name"] == name)
 end
