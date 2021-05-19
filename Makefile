@@ -23,7 +23,6 @@ all:
 
 CLUSTER_NAME=k8s-ex
 integration.yaml: ## Create a k3d cluster
-integration.yaml: 
 	- k3d cluster delete ${CLUSTER_NAME}
 	k3d cluster create ${CLUSTER_NAME} --servers 1 --wait
 	k3d kubeconfig get ${CLUSTER_NAME} > ${K3D_KUBECONFIG_PATH}

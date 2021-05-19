@@ -5,7 +5,7 @@ defmodule K8s.Test.IntegrationHelper do
   def conn do
     {:ok, conn} =
       "TEST_KUBECONFIG"
-      |> System.get_env()
+      |> System.get_env("./integration.yaml")
       |> K8s.Conn.from_file()
 
     # Override the defaults for testing

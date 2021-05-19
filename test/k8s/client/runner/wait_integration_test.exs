@@ -18,7 +18,7 @@ defmodule K8s.Client.Runner.WaitIntegrationTest do
           "spec" => %{
             "containers" => [
               %{
-                "command" => ["perl", "-Mbignum=bpi", "-wle", "print bpi(100)"],
+                "command" => ["perl", "-Mbignum=bpi", "-wle", "print bpi(3)"],
                 "image" => "perl",
                 "name" => "pi"
               }
