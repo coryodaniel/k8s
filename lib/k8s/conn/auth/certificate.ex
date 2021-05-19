@@ -23,18 +23,11 @@ defmodule K8s.Conn.Auth.Certificate do
     end
   end
 
-  def create(
-        %{
-          "client-certificate-data" => cert_data,
-          "client-key-data" => key_data
-        },
-        _
-      ) do
-    {:ok,
-     %K8s.Conn.Auth.Certificate{
-       certificate: PKI.cert_from_base64(cert_data),
-       key: PKI.private_key_from_base64(key_data)
-     }}
+  def create(%{"client-certificate-data" => cert_data, "client-key-data" => key_data}, _) do
+    with {:ok, cert} <- PKI.cert_from_base64(cert_data),
+         {:ok, key} <- PKI.private_key_from_base64(key_data) do
+      {:ok, %K8s.Conn.Auth.Certificate{certificate: cert, key: key}}
+    end
   end
 
   def create(_, _), do: :skip

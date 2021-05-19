@@ -72,12 +72,13 @@ defmodule K8s.Conn do
          user_name <- opts[:user] || context["user"],
          {:ok, user} <- find_configuration(config["users"], user_name, "user"),
          cluster_name <- opts[:cluster] || context["cluster"],
-         {:ok, cluster} <- find_configuration(config["clusters"], cluster_name, "cluster") do
+         {:ok, cluster} <- find_configuration(config["clusters"], cluster_name, "cluster"),
+         {:ok, cert} <- PKI.cert_from_map(cluster, base_path) do
       conn = %Conn{
         cluster_name: cluster_name,
         user_name: user_name,
         url: cluster["server"],
-        ca_cert: PKI.cert_from_map(cluster, base_path),
+        ca_cert: cert,
         auth: get_auth(user, base_path),
         insecure_skip_tls_verify: cluster["insecure-skip-tls-verify"]
       }
@@ -152,7 +153,7 @@ defmodule K8s.Conn do
     end
   end
 
-  @spec get_auth(map(), String.t()) :: auth_t
+  @spec get_auth(map, binary) :: auth_t
   defp get_auth(%{} = auth_map, base_path) do
     Enum.find_value(auth_providers(), fn provider ->
       case provider.create(auth_map, base_path) do

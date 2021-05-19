@@ -33,9 +33,10 @@ Optionally the path can be specified:
 For the use case of having an unbound number of connections (a multi-tenant K8s service) connections can be manually created.
 
 ```elixir
+{:ok, cert} = K8s.Conn.PKI.cert_from_map(cluster, base_path)
  %K8s.Conn{
     url: "https://ip-address-of-cluster",
-    ca_cert: K8s.Conn.PKI.cert_from_map(cluster, base_path),
+    ca_cert: cert,
     auth: %K8s.Conn.Auth{},
     insecure_skip_tls_verify: false,
     discovery_driver: K8s.Discovery.Driver.HTTP,
