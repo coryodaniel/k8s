@@ -3,10 +3,10 @@ defmodule K8s.Client.Runner.WaitIntegrationTest do
   import K8s.Test.IntegrationHelper
 
   setup do
-    timeout = 
+    timeout =
       "TEST_WAIT_TIMEOUT"
       |> System.get_env("5")
-      |> String.to_integer
+      |> String.to_integer()
 
     test_id = :rand.uniform(10_000)
     {:ok, %{conn: conn(), test_id: test_id, timeout: timeout}}
@@ -36,7 +36,11 @@ defmodule K8s.Client.Runner.WaitIntegrationTest do
   end
 
   @tag integration: true
-  test "waiting on a job to finish successfully", %{conn: conn, test_id: test_id, timeout: timeout} do
+  test "waiting on a job to finish successfully", %{
+    conn: conn,
+    test_id: test_id,
+    timeout: timeout
+  } do
     create_job = job("wait-job-#{test_id}")
     {:ok, _} = K8s.Client.run(conn, create_job)
 
@@ -48,7 +52,11 @@ defmodule K8s.Client.Runner.WaitIntegrationTest do
   end
 
   @tag integration: true
-  test "using an anonymous function to evaluate a job", %{conn: conn, test_id: test_id, timeout: timeout} do
+  test "using an anonymous function to evaluate a job", %{
+    conn: conn,
+    test_id: test_id,
+    timeout: timeout
+  } do
     create_job = job("wait-job-#{test_id}")
     {:ok, _} = K8s.Client.run(conn, create_job)
 

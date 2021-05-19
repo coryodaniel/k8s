@@ -39,8 +39,8 @@ jobs:
           mix deps.get
 
       # something in 1.10.2 isn't formatted, but is in 1.10.4
-      # - name: Check Formatting
-      #   run: mix format --check-formatted
+      - name: Check Formatting
+        run: mix format --check-formatted
 
       - name: Run Credo
         run: mix credo --strict
