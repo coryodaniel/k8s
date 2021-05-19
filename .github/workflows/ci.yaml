@@ -14,7 +14,7 @@ jobs:
     strategy:
       matrix:
         elixir: [1.11.x]
-        otp: [23.x]
+        otp: [22.x]
     steps:
       - uses: actions/checkout@v2
 
