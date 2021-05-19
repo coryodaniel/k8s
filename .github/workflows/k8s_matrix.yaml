@@ -14,8 +14,8 @@ jobs:
       - uses: actions/checkout@v1.0.0
       - uses: erlef/setup-beam@v1
         with:
-          otp-version: 22.x
-          elixir-version: 1.10.2
+          otp-version: 23.x
+          elixir-version: 1.11.x
       - run: mix local.rebar --force
       - run: mix local.hex --force
       - run: mix deps.get
