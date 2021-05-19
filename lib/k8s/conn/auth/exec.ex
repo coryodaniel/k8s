@@ -58,6 +58,7 @@ defmodule K8s.Conn.Auth.Exec do
 
   def create(_, _), do: :skip
 
+  @spec format_env(nil | map) :: {binary, any}
   defp format_env(nil), do: %{}
   defp format_env(env) when is_list(env), do: Enum.into(env, %{}, &format_env/1)
   defp format_env(%{"name" => key, "value" => value}), do: {key, value}
@@ -97,6 +98,7 @@ defmodule K8s.Conn.Auth.Exec do
     end
   end
 
+  @spec parse_cmd_response(map) :: {:ok, binary} | {:error, {:exec_fail, binary}}
   defp parse_cmd_response(%{"kind" => "ExecCredential", "status" => %{"token" => token}}),
     do: {:ok, token}
 

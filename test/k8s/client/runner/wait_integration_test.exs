@@ -12,6 +12,7 @@ defmodule K8s.Client.Runner.WaitIntegrationTest do
     {:ok, %{conn: conn(), test_id: test_id, timeout: timeout}}
   end
 
+  @spec job(binary) :: K8s.Operation.t()
   defp job(name) do
     K8s.Client.create(%{
       "apiVersion" => "batch/v1",

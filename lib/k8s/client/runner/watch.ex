@@ -102,6 +102,7 @@ defmodule K8s.Client.Runner.Watch do
 
   defp parse_resource_version(_), do: "0"
 
+  @spec get_to_list(Operation.t()) :: {Operation.t(), keyword}
   defp get_to_list(get_op) do
     list_op = %{get_op | verb: :list, path_params: []}
     name = get_op.path_params[:name]

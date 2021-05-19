@@ -7,6 +7,7 @@ defmodule K8s.Client.Runner.AsyncIntegrationTest do
     {:ok, %{conn: conn(), test_id: test_id}}
   end
 
+  @spec pod(binary) :: K8s.Operation.t()
   defp pod(name) do
     name
     |> build_pod

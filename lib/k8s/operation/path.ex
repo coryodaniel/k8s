@@ -180,6 +180,7 @@ defmodule K8s.Operation.Path do
     build_path(prefix, suffix, namespaced, operation.verb)
   end
 
+  @spec resource_path_suffix(list(binary), atom) :: binary
   defp resource_path_suffix([name], verb), do: name_param(name, verb)
 
   defp resource_path_suffix([name, subresource], verb),

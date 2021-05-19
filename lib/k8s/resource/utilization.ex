@@ -45,6 +45,7 @@ defmodule K8s.Resource.Utilization do
   def cpu("+" <> str), do: deserialize_cpu_quantity(str)
   def cpu(str), do: deserialize_cpu_quantity(str)
 
+  @spec deserialize_cpu_quantity(binary()) :: number
   defp deserialize_cpu_quantity(str) do
     contains_decimal = String.contains?(str, ".")
 
@@ -91,9 +92,9 @@ defmodule K8s.Resource.Utilization do
   def memory("+" <> str), do: deserialize_memory_quantity(str)
   def memory(str), do: deserialize_memory_quantity(str)
 
+  @spec deserialize_memory_quantity(binary) :: number
   defp deserialize_memory_quantity(str) do
     contains_decimal = String.contains?(str, ".")
-    # contains_exponent = String.match?(str, ~r/[eE]/)
 
     {value, maybe_multiplier} =
       case contains_decimal do

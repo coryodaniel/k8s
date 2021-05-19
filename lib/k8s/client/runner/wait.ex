@@ -49,6 +49,7 @@ defmodule K8s.Client.Runner.Wait do
 
   def run(op, _, _), do: {:error, "Only HTTP GET operations are supported. #{inspect(op)}"}
 
+  @spec process_opts(Wait.t() | map) :: {:error, binary} | {:ok, map}
   defp process_opts(%Wait{eval: nil}), do: {:error, ":eval is required"}
   defp process_opts(%Wait{find: nil}), do: {:error, ":find is required"}
 
@@ -69,6 +70,7 @@ defmodule K8s.Client.Runner.Wait do
     {:ok, processed}
   end
 
+  @spec run_operation(Conn.t(), Operation.t(), Wait.t()) :: {:error, :timeout} | {:ok, any}
   defp run_operation(
          %Conn{} = conn,
          %Operation{} = op,
@@ -80,6 +82,7 @@ defmodule K8s.Client.Runner.Wait do
     end
   end
 
+  @spec evaluate_operation(Conn.t(), Operation.t(), Wait.t()) :: {:error, :timeout} | {:ok, any}
   defp evaluate_operation(
          %Conn{} = conn,
          %Operation{} = op,
@@ -95,6 +98,7 @@ defmodule K8s.Client.Runner.Wait do
     end
   end
 
+  @spec satisfied?(map, function | list, any) :: boolean
   defp satisfied?(resp = %{}, find, eval) when is_list(find) do
     value = get_in(resp, find)
     compare(value, eval)
@@ -105,9 +109,11 @@ defmodule K8s.Client.Runner.Wait do
     compare(value, eval)
   end
 
+  @spec compare(any, any) :: boolean
   defp compare(value, eval) when not is_function(eval), do: value == eval
   defp compare(value, eval) when is_function(eval), do: eval.(value)
 
+  @spec timed_out?(NaiveDateTime.t()) :: boolean
   defp timed_out?(timeout_after) do
     case NaiveDateTime.compare(NaiveDateTime.utc_now(), timeout_after) do
       :gt -> true

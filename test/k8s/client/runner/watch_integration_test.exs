@@ -8,6 +8,7 @@ defmodule K8s.Client.Runner.WatchIntegrationTest do
     {:ok, %{conn: conn(), test_id: test_id, labels: labels}}
   end
 
+  @spec pod(binary, map) :: K8s.Operation.t()
   defp pod(name, labels) do
     name
     |> build_pod(labels)

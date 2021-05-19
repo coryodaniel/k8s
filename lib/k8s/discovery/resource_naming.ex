@@ -46,10 +46,10 @@ defmodule K8s.Discovery.ResourceNaming do
   def matches?(resource, arg) when is_atom(arg), do: matches?(resource, Atom.to_string(arg))
 
   def matches?(resource, arg) when is_binary(arg) do
-    is_exact_name_match?(resource, arg) ||
-      is_exact_kind_match?(resource, arg) ||
-      is_downcased_kind_match?(resource, arg) ||
-      is_capitalized_name_match?(resource, arg) ||
+    exact_name_match?(resource, arg) ||
+      exact_kind_match?(resource, arg) ||
+      downcased_kind_match?(resource, arg) ||
+      capitalized_name_match?(resource, arg) ||
       no_match(resource, arg)
   end
 
@@ -62,19 +62,24 @@ defmodule K8s.Discovery.ResourceNaming do
 
   def matches?(_map, {_kind, _subkind}), do: false
 
-  defp is_exact_name_match?(%{"name" => name}, input), do: name == input
+  @spec exact_name_match?(map, binary) :: boolean
+  defp exact_name_match?(%{"name" => name}, input), do: name == input
 
-  defp is_exact_kind_match?(%{"kind" => kind, "name" => name}, input) do
-    kind == input && !is_subresource_name?(name)
+  @spec exact_kind_match?(map, binary) :: boolean
+  defp exact_kind_match?(%{"kind" => kind, "name" => name}, input) do
+    kind == input && !subresource_name?(name)
   end
 
-  defp is_downcased_kind_match?(%{"kind" => kind, "name" => name}, input),
-    do: String.downcase(kind) == input && !is_subresource_name?(name)
+  @spec downcased_kind_match?(map, binary) :: boolean
+  defp downcased_kind_match?(%{"kind" => kind, "name" => name}, input),
+    do: String.downcase(kind) == input && !subresource_name?(name)
 
-  defp is_capitalized_name_match?(%{"name" => name}, input), do: String.downcase(input) == name
+  @spec capitalized_name_match?(map, binary) :: boolean
+  defp capitalized_name_match?(%{"name" => name}, input), do: String.downcase(input) == name
 
+  @spec no_match(any, any) :: false
   defp no_match(_, _), do: false
 
-  @spec is_subresource_name?(binary()) :: boolean()
-  def is_subresource_name?(name), do: String.contains?(name, "/")
+  @spec subresource_name?(binary()) :: boolean()
+  def subresource_name?(name), do: String.contains?(name, "/")
 end

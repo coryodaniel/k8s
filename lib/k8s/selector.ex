@@ -436,6 +436,7 @@ defmodule K8s.Selector do
     do_serialize_match_expressions(exps, [])
   end
 
+  @spec do_serialize_match_expressions(list, list) :: list
   defp do_serialize_match_expressions([], acc), do: acc |> Enum.reverse()
 
   defp do_serialize_match_expressions([exp | tail], acc) do
