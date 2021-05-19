@@ -1,4 +1,4 @@
-# Middleware (`K8s.Middleware`)
+# Middleware
 
 `K8s.Middleware` is registered by connection name. By default a few pieces of middleware are registered for all connections.
 
@@ -51,6 +51,6 @@ def call(%Request{method: :post, body: body} = req) do
 end
 ```
 
-## Response Middleware 
+## Response Middleware
 
 Response middleware has not been implemented at this time.

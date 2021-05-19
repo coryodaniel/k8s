@@ -6,13 +6,13 @@ defprotocol K8s.Conn.RequestOptions do
   @fallback_to_any true
 
   @typedoc """
-  HTTP Request options
+  HTTP Request options.
   """
   @type t :: %__MODULE__{headers: list(), ssl_options: keyword()}
   defstruct headers: [], ssl_options: []
 
   @typedoc """
-  `generate/1` response type
+  `generate/1` response type.
   """
   @type generate_t :: {:ok, t} | {:error, binary | atom}
 

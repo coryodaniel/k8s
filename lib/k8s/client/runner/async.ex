@@ -10,25 +10,24 @@ defmodule K8s.Client.Runner.Async do
   Runs multiple operations in parallel. Operations will be returned in same order given.
   Operations will not cease in event of failure.
 
-  ## Example
+  ## Examples
 
   Get a list of pods in parallel:
 
-    ```elixir
-    pods_to_get = [
-      %{"name" => "nginx", "namespace" => "default"},
-      %{"name" => "redis", "namespace" => "default"}
-    ]
+      pods_to_get = [
+        %{"name" => "nginx", "namespace" => "default"},
+        %{"name" => "redis", "namespace" => "default"}
+      ]
 
-    # Map each one to an individual `GET` operation.
-    operations = Enum.map(pods_to_get, fn(%{"name" => name, "namespace" => ns}}) ->
-       K8s.Client.get("v1", "Pod", namespace: ns, name: name)
-    end)
+      # Map each one to an individual `GET` operation.
+      operations = Enum.map(pods_to_get, fn(%{"name" => name, "namespace" => ns}}) ->
+         K8s.Client.get("v1", "Pod", namespace: ns, name: name)
+      end)
 
-    # Get the results asynchronously
-    {:ok, conn} = K8s.Conn.lookup(:my_cluster)    
-    results = K8s.Client.Async.run(operations, conn)
-    ```
+      # Get the results asynchronously
+      {:ok, conn} = K8s.Conn.lookup(:my_cluster)
+      results = K8s.Client.Async.run(operations, conn)
+
   """
   @spec run(list(Operation.t()), Conn.t(), keyword) :: list({:ok, struct} | {:error, struct})
   def run(operations, %Conn{} = conn, opts \\ []) do

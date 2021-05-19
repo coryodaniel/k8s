@@ -9,7 +9,8 @@ defmodule K8s.Discovery.Driver.File do
   See [./test/support/discovery/example.json](./test/support/discovery/example.json) for an example.
 
   ## Examples
-    "Discovering" hard coded resources.
+
+  "Discovering" hard coded resources:
 
       iex> K8s.Discovery.Driver.File.resources("apps/v1", %K8s.Conn{}, config: "./test/support/discovery/example.json")
       [
@@ -27,9 +28,11 @@ defmodule K8s.Discovery.Driver.File do
         }
       ]
 
-    "Discovering" hard coded versions.
+  "Discovering" hard coded versions:
+
       iex> K8s.Discovery.Driver.File.versions(%K8s.Conn{}, config: "./test/support/discovery/example.json")
       ["v1", "apps/v1"]
+
   """
   @behaviour K8s.Discovery.Driver
 

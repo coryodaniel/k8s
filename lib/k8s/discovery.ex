@@ -1,5 +1,8 @@
 defmodule K8s.Discovery do
-  @moduledoc "Kubernetes API Discovery"
+  @moduledoc """
+  Kubernetes API Discovery.
+  """
+
   alias K8s.{Conn, Operation}
 
   @behaviour K8s.Discovery.Driver
@@ -15,7 +18,7 @@ defmodule K8s.Discovery do
   end
 
   @doc """
-  Discovery the URL for a `K8s.Conn` and `K8s.Operation`
+  Discovery the URL for a `K8s.Conn` and `K8s.Operation`.
 
   ## Examples
 
@@ -43,29 +46,30 @@ defmodule K8s.Discovery do
   Defaults to `K8s.Discovery.Driver.HTTP`
 
   ## Example mix config
+
   In the example below `dev` and `test` clusters will use the File driver, while `prod` will use the HTTP driver.
-  ```elixir
-  use Mix.Config
 
-  config :k8s,
-    discovery_driver: K8s.Discovery.Driver.File,
-    discovery_opts: [config: "test/support/discovery/example.json"],
+      use Mix.Config
 
-    clusters: %{
-      test: %{
-        conn: "test/support/kube-config.yaml"
-      },
-      dev: %{
-        conn: "test/support/kube-config.yaml"
-      },
-      prod: %{
-        conn: "test/support/kube-config.yaml",
-        conn_opts: [
-          discovery_driver: K8s.Discovery.Driver.HTTP
-        ]
-      }
-    }
-  ```
+      config :k8s,
+        discovery_driver: K8s.Discovery.Driver.File,
+        discovery_opts: [config: "test/support/discovery/example.json"],
+
+        clusters: %{
+          test: %{
+            conn: "test/support/kube-config.yaml"
+          },
+          dev: %{
+            conn: "test/support/kube-config.yaml"
+          },
+          prod: %{
+            conn: "test/support/kube-config.yaml",
+            conn_opts: [
+              discovery_driver: K8s.Discovery.Driver.HTTP
+            ]
+          }
+        }
+
   """
   @spec default_driver() :: module()
   def default_driver do
@@ -73,7 +77,9 @@ defmodule K8s.Discovery do
   end
 
   @doc """
-  Override default opts for the discovery driver. This is also configurable per `K8s.Conn`
+  Override default opts for the discovery driver.
+
+  This is also configurable per `K8s.Conn`.
   """
   @spec default_opts() :: Keyword.t()
   def default_opts do

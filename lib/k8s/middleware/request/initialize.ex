@@ -1,6 +1,6 @@
 defmodule K8s.Middleware.Request.Initialize do
   @moduledoc """
-  Initializes a request with connection details (header and HTTPoison opts) from `K8s.Conn.RequestOptions`
+  Initializes a request with connection details (header and HTTPoison opts) from `K8s.Conn.RequestOptions`.
   """
   @behaviour K8s.Middleware.Request
   alias K8s.Middleware.Request

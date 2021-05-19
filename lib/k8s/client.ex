@@ -10,11 +10,11 @@ defmodule K8s.Client do
   or the downcased version seen in kubectl (eg `"serviceaccount"`). A string or atom may be used.
 
   ## Examples
-  ```elixir
-  "Deployment", "deployment", :Deployment, :deployment
-  "ServiceAccount", "serviceaccount", :ServiceAccount, :serviceaccount
-  "HorizontalPodAutoscaler", "horizontalpodautoscaler", :HorizontalPodAutoscaler, :horizontalpodautoscaler
-  ```
+
+      "Deployment", "deployment", :Deployment, :deployment
+      "ServiceAccount", "serviceaccount", :ServiceAccount, :serviceaccount
+      "HorizontalPodAutoscaler", "horizontalpodautoscaler", :HorizontalPodAutoscaler,
+        :horizontalpodautoscaler
 
   `opts` to `K8s.Client.Runner` modules are HTTPoison HTTP option overrides.
   """
@@ -71,7 +71,8 @@ defmodule K8s.Client do
   > Get will retrieve a specific resource object by name.
 
   ## Examples
-    Getting a pod
+
+  Getting a pod
 
       iex> pod = %{
       ...>   "apiVersion" => "v1",
@@ -87,6 +88,7 @@ defmodule K8s.Client do
         name: "Pod",
         path_params: [namespace: "test", name: "nginx-pod"],
       }
+
   """
   @spec get(map()) :: Operation.t()
   def get(%{} = resource), do: Operation.build(:get, resource)
@@ -99,7 +101,9 @@ defmodule K8s.Client do
   > Get will retrieve a specific resource object by name.
 
   ## Examples
-    Get the nginx deployment in the default namespace:
+
+  Get the nginx deployment in the default namespace:
+
       iex> K8s.Client.get("apps/v1", "Deployment", namespace: "test", name: "nginx")
       %K8s.Operation{
         method: :get,
@@ -109,7 +113,8 @@ defmodule K8s.Client do
         path_params: [namespace: "test", name: "nginx"]
       }
 
-    Get the nginx deployment in the default namespace:
+  Get the nginx deployment in the default namespace:
+
       iex> K8s.Client.get("apps/v1", :deployment, namespace: "test", name: "nginx")
       %K8s.Operation{
         method: :get,
@@ -118,7 +123,8 @@ defmodule K8s.Client do
         name: :deployment,
         path_params: [namespace: "test", name: "nginx"]}
 
-    Get the nginx deployment's status:
+  Get the nginx deployment's status:
+
       iex> K8s.Client.get("apps/v1", "deployments/status", namespace: "test", name: "nginx")
       %K8s.Operation{
         method: :get,
@@ -127,7 +133,8 @@ defmodule K8s.Client do
         name: "deployments/status",
         path_params: [namespace: "test", name: "nginx"]}
 
-    Get the nginx deployment's scale:
+  Get the nginx deployment's scale:
+
       iex> K8s.Client.get("v1", "deployments/scale", namespace: "test", name: "nginx")
       %K8s.Operation{
         method: :get,
@@ -257,6 +264,7 @@ defmodule K8s.Client do
           }
         }
       }
+
   """
   @spec create(map()) :: Operation.t()
   def create(
@@ -300,7 +308,8 @@ defmodule K8s.Client do
 
   ## Examples
 
-  Eviction a pod
+  Eviction a pod:
+
       iex> eviction = %{
       ...> "apiVersion" => "policy/v1beta1",
       ...>     "kind" => "Eviction",
@@ -311,6 +320,7 @@ defmodule K8s.Client do
       ...>  }
       ...>  K8s.Client.create("v1", "pods/eviction", [namespace: "default", name: "nginx"], eviction)
       %K8s.Operation{api_version: "v1", data: %{"apiVersion" => "policy/v1beta1", "kind" => "Eviction", "metadata" => %{"name" => "nginx", "namespace" => "default"}}, method: :post, name: "pods/eviction", path_params: [namespace: "default", name: "nginx"], verb: :create}
+
   """
   @spec create(binary, binary | atom, Keyword.t(), map()) :: Operation.t()
   def create(api_version, kind, path_params, subresource),
@@ -323,7 +333,8 @@ defmodule K8s.Client do
 
   ## Examples
 
-  Eviction a pod
+  Eviction a pod:
+
       iex> pod = %{
       ...>   "apiVersion" => "v1",
       ...>   "kind" => "Pod",
@@ -342,6 +353,7 @@ defmodule K8s.Client do
       ...>  }
       ...>  K8s.Client.create(pod, eviction)
       %K8s.Operation{api_version: "v1", data: %{"apiVersion" => "policy/v1beta1", "kind" => "Eviction", "metadata" => %{"name" => "nginx", "namespace" => "default"}}, method: :post, name: {"Pod", "Eviction"}, path_params: [namespace: "default", name: "nginx"], verb: :create}
+
   """
   @spec create(map(), map()) :: Operation.t()
   def create(
@@ -451,6 +463,7 @@ defmodule K8s.Client do
           }
         }
       }
+
   """
   @spec patch(map()) :: Operation.t()
   def patch(%{} = resource), do: Operation.build(:patch, resource)
@@ -565,6 +578,7 @@ defmodule K8s.Client do
           }
         }
       }
+
   """
   @spec update(map()) :: Operation.t()
   def update(%{} = resource), do: Operation.build(:update, resource)
@@ -576,7 +590,8 @@ defmodule K8s.Client do
 
   ## Examples
 
-    Scaling a deployment
+  Scaling a deployment:
+
       iex> scale = %{
       ...>   "kind" => "Scale",
       ...>   "apiVersion" => "apps/v1beta1",
@@ -590,6 +605,7 @@ defmodule K8s.Client do
       ...> }
       ...>  K8s.Client.update("apps/v1", "deployments/scale", [namespace: "default", name: "nginx"], scale)
       %K8s.Operation{api_version: "apps/v1", data: %{"apiVersion" => "apps/v1beta1", "kind" => "Scale", "metadata" => %{"name" => "nginx", "namespace" => "default"}, "spec" => %{"replicas" => 3}}, method: :put, name: "deployments/scale", path_params: [namespace: "default", name: "nginx"], verb: :update}
+
   """
   @spec update(binary, binary | atom, Keyword.t(), map()) :: Operation.t()
   def update(api_version, kind, path_params, subresource),
@@ -601,7 +617,9 @@ defmodule K8s.Client do
   Used for updating subresources like `Scale` or `Status`.
 
   ## Examples
-    Scaling a deployment:
+
+  Scaling a deployment:
+
       iex>  deployment = %{
       ...>    "apiVersion" => "apps/v1",
       ...>    "kind" => "Deployment",
@@ -647,6 +665,7 @@ defmodule K8s.Client do
       ...> }
       ...> K8s.Client.update(deployment, scale)
       %K8s.Operation{api_version: "apps/v1", method: :put, path_params: [namespace: "test", name: "nginx"], verb: :update, data: %{"apiVersion" => "apps/v1beta1", "kind" => "Scale", "metadata" => %{"name" => "nginx", "namespace" => "test"}, "spec" => %{"replicas" => 3}}, name: {"Deployment", "Scale"}}
+
   """
   @spec update(map(), map()) :: Operation.t()
   def update(
@@ -765,6 +784,7 @@ defmodule K8s.Client do
         name: "StorageClass",
         path_params: []
       }
+
   """
   @spec delete_all(binary(), binary() | atom()) :: Operation.t()
   def delete_all(api_version, kind) do
@@ -793,6 +813,7 @@ defmodule K8s.Client do
         name: "Deployment",
         path_params: [namespace: "staging"]
       }
+
   """
   @spec delete_all(binary(), binary() | atom(), namespace: binary()) :: Operation.t()
   def delete_all(api_version, kind, namespace: namespace) do

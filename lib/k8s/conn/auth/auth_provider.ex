@@ -1,6 +1,6 @@
 defmodule K8s.Conn.Auth.AuthProvider do
   @moduledoc """
-  `auth-provider` authentication support
+  `auth-provider` authentication support.
   """
   alias K8s.Conn.Auth.AuthProvider
   alias K8s.Conn.RequestOptions

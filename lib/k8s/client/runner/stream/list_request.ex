@@ -1,8 +1,11 @@
 defmodule K8s.Client.Runner.Stream.ListRequest do
-  @moduledoc "`:list` `K8s.Operation` encapsulated with pagination and `K8s.Conn`"
+  @moduledoc """
+  `:list` `K8s.Operation` encapsulated with pagination and `K8s.Conn`.
+  """
+
   @limit 10
 
-  @typedoc "opts for `Base.run/3`"
+  @typedoc "opts for `K8s.Client.Base.run/3`"
   @type opts_t :: keyword
 
   @typedoc "Pagination continue token"
@@ -19,7 +22,7 @@ defmodule K8s.Client.Runner.Stream.ListRequest do
   defstruct operation: nil, conn: nil, continue: nil, opts: [], limit: @limit
 
   @doc """
-  Creates a `ListRequest` struct for the next HTTP request from the previous HTTP response
+  Creates a `ListRequest` struct for the next HTTP request from the previous HTTP response.
   """
   @spec make_next_request(t(), map | :halt) :: t()
   def make_next_request(%__MODULE__{} = request, response) do

@@ -10,32 +10,34 @@ defmodule K8s.Resource.NamedList do
   name.
 
   ## Examples
-    iex> get_in([%{"name" => "key1", "value" => "value1"}, %{"name" => "key2", "value" => "value2"}], [K8s.Resource.NamedList.access("key2"), "value"])
-    "value2"
 
-    iex> get_in([%{"name" => "key1", "value" => "value1"}, %{"name" => "key2", "value" => "value2"}], [K8s.Resource.NamedList.access("key2")])
-    %{"name" => "key2", "value" => "value2"}
+      iex> get_in([%{"name" => "key1", "value" => "value1"}, %{"name" => "key2", "value" => "value2"}], [K8s.Resource.NamedList.access("key2"), "value"])
+      "value2"
 
-    iex> get_in([%{"name" => "key1", "value" => "value1"}], [K8s.Resource.NamedList.access("missing-key"), "value"])
-    nil
+      iex> get_in([%{"name" => "key1", "value" => "value1"}, %{"name" => "key2", "value" => "value2"}], [K8s.Resource.NamedList.access("key2")])
+      %{"name" => "key2", "value" => "value2"}
 
-    iex> get_in([%{"name" => "key1", "value" => "value1"}], [K8s.Resource.NamedList.access("missing-key")])
-    nil
+      iex> get_in([%{"name" => "key1", "value" => "value1"}], [K8s.Resource.NamedList.access("missing-key"), "value"])
+      nil
 
-    iex> put_in([%{"name" => "key1", "value" => "value1"}, %{"name" => "key2", "value" => "value2"}], [K8s.Resource.NamedList.access("key1"), "value"], "value_new")
-    [%{"name" => "key1", "value" => "value_new"}, %{"name" => "key2", "value" => "value2"}]
+      iex> get_in([%{"name" => "key1", "value" => "value1"}], [K8s.Resource.NamedList.access("missing-key")])
+      nil
 
-    iex> put_in([%{"name" => "key1", "value" => "value1"}], [K8s.Resource.NamedList.access("missing-key"), "value"], "value_new")
-    [%{"name" => "missing-key", "value" => "value_new"}, %{"name" => "key1", "value" => "value1"}]
+      iex> put_in([%{"name" => "key1", "value" => "value1"}, %{"name" => "key2", "value" => "value2"}], [K8s.Resource.NamedList.access("key1"), "value"], "value_new")
+      [%{"name" => "key1", "value" => "value_new"}, %{"name" => "key2", "value" => "value2"}]
 
-    iex> pop_in([%{"name" => "key1", "value" => "value1"}, %{"name" => "key2", "value" => "value2"}], [K8s.Resource.NamedList.access("key1"), "value"])
-    {"value1", [%{"name" => "key1"}, %{"name" => "key2", "value" => "value2"}]}
+      iex> put_in([%{"name" => "key1", "value" => "value1"}], [K8s.Resource.NamedList.access("missing-key"), "value"], "value_new")
+      [%{"name" => "missing-key", "value" => "value_new"}, %{"name" => "key1", "value" => "value1"}]
 
-    iex> pop_in([%{"name" => "key1", "value" => "value1"}], [K8s.Resource.NamedList.access("missing-key"), "value"])
-    {nil, [%{"name" => "missing-key"}, %{"name" => "key1", "value" => "value1"}]}
+      iex> pop_in([%{"name" => "key1", "value" => "value1"}, %{"name" => "key2", "value" => "value2"}], [K8s.Resource.NamedList.access("key1"), "value"])
+      {"value1", [%{"name" => "key1"}, %{"name" => "key2", "value" => "value2"}]}
 
-    iex> pop_in([%{"name" => "key1", "value" => "value1"}], [K8s.Resource.NamedList.access("missing-key")])
-    {%{"name" => "missing-key"}, [%{"name" => "key1", "value" => "value1"}]}
+      iex> pop_in([%{"name" => "key1", "value" => "value1"}], [K8s.Resource.NamedList.access("missing-key"), "value"])
+      {nil, [%{"name" => "missing-key"}, %{"name" => "key1", "value" => "value1"}]}
+
+      iex> pop_in([%{"name" => "key1", "value" => "value1"}], [K8s.Resource.NamedList.access("missing-key")])
+      {%{"name" => "missing-key"}, [%{"name" => "key1", "value" => "value1"}]}
+
   """
   @spec access(binary) :: Access.access_fun(data :: list(), get_value :: term)
   def access(name), do: create_accessor(name, raise: false)
@@ -45,32 +47,34 @@ defmodule K8s.Resource.NamedList do
   exists within the given list, an exception is raised.
 
   ## Examples
-    iex> get_in([%{"name" => "key1", "value" => "value1"}, %{"name" => "key2", "value" => "value2"}], [K8s.Resource.NamedList.access!("key2"), "value"])
-    "value2"
 
-    iex> get_in([%{"name" => "key1", "value" => "value1"}, %{"name" => "key2", "value" => "value2"}], [K8s.Resource.NamedList.access!("key2")])
-    %{"name" => "key2", "value" => "value2"}
+      iex> get_in([%{"name" => "key1", "value" => "value1"}, %{"name" => "key2", "value" => "value2"}], [K8s.Resource.NamedList.access!("key2"), "value"])
+      "value2"
 
-    iex> get_in([%{"name" => "key1", "value" => "value1"}], [K8s.Resource.NamedList.access!("missing-key"), "value"])
-    ** (ArgumentError) There is not item with name missing-key in the given named list.
+      iex> get_in([%{"name" => "key1", "value" => "value1"}, %{"name" => "key2", "value" => "value2"}], [K8s.Resource.NamedList.access!("key2")])
+      %{"name" => "key2", "value" => "value2"}
 
-    iex> get_in([%{"name" => "key1", "value" => "value1"}], [K8s.Resource.NamedList.access!("missing-key")])
-    ** (ArgumentError) There is not item with name missing-key in the given named list.
+      iex> get_in([%{"name" => "key1", "value" => "value1"}], [K8s.Resource.NamedList.access!("missing-key"), "value"])
+      ** (ArgumentError) There is not item with name missing-key in the given named list.
 
-    iex> put_in([%{"name" => "key1", "value" => "value1"}, %{"name" => "key2", "value" => "value2"}], [K8s.Resource.NamedList.access!("key1"), "value"], "value_new")
-    [%{"name" => "key1", "value" => "value_new"}, %{"name" => "key2", "value" => "value2"}]
+      iex> get_in([%{"name" => "key1", "value" => "value1"}], [K8s.Resource.NamedList.access!("missing-key")])
+      ** (ArgumentError) There is not item with name missing-key in the given named list.
 
-    iex> put_in([%{"name" => "key1", "value" => "value1"}], [K8s.Resource.NamedList.access!("missing-key"), "value"], "value_new")
-    ** (ArgumentError) There is not item with name missing-key in the given named list.
+      iex> put_in([%{"name" => "key1", "value" => "value1"}, %{"name" => "key2", "value" => "value2"}], [K8s.Resource.NamedList.access!("key1"), "value"], "value_new")
+      [%{"name" => "key1", "value" => "value_new"}, %{"name" => "key2", "value" => "value2"}]
 
-    iex> pop_in([%{"name" => "key1", "value" => "value1"}, %{"name" => "key2", "value" => "value2"}], [K8s.Resource.NamedList.access!("key1"), "value"])
-    {"value1", [%{"name" => "key1"}, %{"name" => "key2", "value" => "value2"}]}
+      iex> put_in([%{"name" => "key1", "value" => "value1"}], [K8s.Resource.NamedList.access!("missing-key"), "value"], "value_new")
+      ** (ArgumentError) There is not item with name missing-key in the given named list.
 
-    iex> pop_in([%{"name" => "key1", "value" => "value1"}], [K8s.Resource.NamedList.access!("missing-key"), "value"])
-    ** (ArgumentError) There is not item with name missing-key in the given named list.
+      iex> pop_in([%{"name" => "key1", "value" => "value1"}, %{"name" => "key2", "value" => "value2"}], [K8s.Resource.NamedList.access!("key1"), "value"])
+      {"value1", [%{"name" => "key1"}, %{"name" => "key2", "value" => "value2"}]}
 
-    iex> pop_in([%{"name" => "key1", "value" => "value1"}], [K8s.Resource.NamedList.access!("missing-key")])
-    ** (ArgumentError) There is not item with name missing-key in the given named list.
+      iex> pop_in([%{"name" => "key1", "value" => "value1"}], [K8s.Resource.NamedList.access!("missing-key"), "value"])
+      ** (ArgumentError) There is not item with name missing-key in the given named list.
+
+      iex> pop_in([%{"name" => "key1", "value" => "value1"}], [K8s.Resource.NamedList.access!("missing-key")])
+      ** (ArgumentError) There is not item with name missing-key in the given named list.
+
   """
   @spec access!(binary) :: Access.access_fun(data :: list(), get_value :: term)
   def access!(name), do: create_accessor(name, raise: true)

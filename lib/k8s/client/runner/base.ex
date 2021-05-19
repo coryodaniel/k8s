@@ -1,6 +1,6 @@
 defmodule K8s.Client.Runner.Base do
   @moduledoc """
-  Base HTTP processor for `K8s.Client`
+  Base HTTP processor for `K8s.Client`.
   """
 
   @type result_t ::
@@ -29,56 +29,53 @@ defmodule K8s.Client.Runner.Base do
 
   Running a list pods operation:
 
-  ```elixir
-  {:ok, conn} = K8s.Conn.lookup(:test)
-  operation = K8s.Client.list("v1", "Pod", namespace: :all)
-  {:ok, %{"items" => pods}} = K8s.Client.run(operation, conn)
-  ```
+      {:ok, conn} = K8s.Conn.lookup(:test)
+      operation = K8s.Client.list("v1", "Pod", namespace: :all)
+      {:ok, %{"items" => pods}} = K8s.Client.run(operation, conn)
 
   Running a dry-run of a create deployment operation:
 
-  ```elixir
-  deployment = %{
-    "apiVersion" => "apps/v1",
-    "kind" => "Deployment",
-    "metadata" => %{
-      "labels" => %{
-        "app" => "nginx"
-      },
-      "name" => "nginx",
-      "namespace" => "test"
-    },
-    "spec" => %{
-      "replicas" => 2,
-      "selector" => %{
-        "matchLabels" => %{
-          "app" => "nginx"
-        }
-      },
-      "template" => %{
+      deployment = %{
+        "apiVersion" => "apps/v1",
+        "kind" => "Deployment",
         "metadata" => %{
           "labels" => %{
             "app" => "nginx"
-          }
+          },
+          "name" => "nginx",
+          "namespace" => "test"
         },
         "spec" => %{
-          "containers" => %{
-            "image" => "nginx",
-            "name" => "nginx"
+          "replicas" => 2,
+          "selector" => %{
+            "matchLabels" => %{
+              "app" => "nginx"
+            }
+          },
+          "template" => %{
+            "metadata" => %{
+              "labels" => %{
+                "app" => "nginx"
+              }
+            },
+            "spec" => %{
+              "containers" => %{
+                "image" => "nginx",
+                "name" => "nginx"
+              }
+            }
           }
         }
       }
-    }
-  }
 
-  operation = 
-    deployment 
-    |> K8s.Client.create()
-    |> K8s.Operation.put_query_param(:dryRun, "all")
+      operation =
+        deployment
+        |> K8s.Client.create()
+        |> K8s.Operation.put_query_param(:dryRun, "all")
 
-  {:ok, conn} = K8s.Conn.lookup(:test)  
-  {:ok, result} = K8s.Client.Runner.Base.run(operation, conn)
-  ```
+      {:ok, conn} = K8s.Conn.lookup(:test)
+      {:ok, result} = K8s.Client.Runner.Base.run(operation, conn)
+
   """
   @spec run(Operation.t(), Conn.t() | nil) :: result_t
   def run(%Operation{} = operation, %Conn{} = conn),
@@ -86,9 +83,10 @@ defmodule K8s.Client.Runner.Base do
 
   @doc """
   Run an operation and pass `opts` to HTTPoison.
+
   Destructures `Operation` data and passes as the HTTP body.
 
-  See `run/2`
+  See `run/2`.
   """
   @spec run(Operation.t(), Conn.t(), keyword()) :: result_t
   def run(%Operation{} = operation, %Conn{} = conn, opts) when is_list(opts) do
@@ -97,7 +95,8 @@ defmodule K8s.Client.Runner.Base do
 
   @doc """
   Run an operation with an HTTP Body (map) and pass `opts` to HTTPoison.
-  See `run/2`
+
+  See `run/2`.
   """
   @spec run(Operation.t(), Conn.t(), map(), keyword()) :: result_t
   def run(%Operation{} = operation, %Conn{} = conn, body, opts \\ []) do

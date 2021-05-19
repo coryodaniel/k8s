@@ -1,6 +1,8 @@
 defmodule K8s.MixProject do
   use Mix.Project
 
+  @source_url "https://github.com/coryodaniel/k8s"
+
   def project do
     [
       app: :k8s,
@@ -42,7 +44,7 @@ defmodule K8s.MixProject do
       {:inch_ex, github: "rrrene/inch_ex", only: [:dev, :test]},
       {:credo, "~> 1.0", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.0.0", only: [:dev, :test], runtime: false},
-      {:ex_doc, "~> 0.20", only: :dev},
+      {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
       {:excoveralls, "~> 0.12", only: [:test]},
       {:mix_test_watch, "~> 0.8", only: :dev, runtime: false},
       {:stream_data, "~> 0.4", only: :test}
@@ -55,7 +57,8 @@ defmodule K8s.MixProject do
       maintainers: ["Cory O'Daniel"],
       licenses: ["MIT"],
       links: %{
-        "GitHub" => "https://github.com/coryodaniel/k8s"
+        "Changelog" => "https://hexdocs.pm/k8s/changelog.html",
+        "GitHub" => @source_url
       }
     ]
   end
@@ -63,7 +66,8 @@ defmodule K8s.MixProject do
   defp docs do
     [
       extras: [
-        "README.md",
+        "CHANGELOG.md",
+        {:"README.md", [title: "Overview"]},
         "guides/usage.md",
         "guides/operations.md",
         "guides/connections.md",
@@ -73,7 +77,9 @@ defmodule K8s.MixProject do
         "guides/advanced.md",
         "guides/testing.md"
       ],
-      main: "readme"
+      main: "readme",
+      source_url: @source_url,
+      formatters: ["html"]
     ]
   end
 

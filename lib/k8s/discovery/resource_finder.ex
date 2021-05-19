@@ -1,6 +1,6 @@
 defmodule K8s.Discovery.ResourceFinder do
   @moduledoc """
-  Kubernetes API Groups
+  Kubernetes API Groups.
   """
 
   alias K8s.Discovery.ResourceNaming

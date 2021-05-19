@@ -9,22 +9,27 @@ defmodule K8s.Middleware do
   Any cluster name that has _not_ been initialized, will automatically have the default stack applied.
 
   ## Examples
-    Using default middleware
+
+  Using default middleware:
+
       iex> conn = %K8s.Conn{}
       ...> req = %K8s.Middlware.Request{}
       ...> K8s.Middleware.run(req)
 
-    Adding middlware to a cluster
+  Adding middlware to a cluster:
+
       iex> conn = %K8s.Conn{cluster_name: :foo}
       ...> K8s.Middleware.add(:foo, :request, MyMiddlewareModule)
       ...> req = %K8s.Middlware.Request{}
       ...> K8s.Middleware.run(req)
 
-    Setting/Replacing middleware on a cluster
+  Setting/Replacing middleware on a cluster:
+
       iex> conn = %K8s.Conn{cluster_name: :foo}
       ...> K8s.Middleware.set(:foo, :request, [MyMiddlewareModule, OtherModule])
       ...> req = %K8s.Middlware.Request{}
       ...> K8s.Middleware.run(req)
+
   """
 
   alias K8s.Middleware.{Error, Request}
@@ -33,7 +38,7 @@ defmodule K8s.Middleware do
   @type type_t :: :request | :response
 
   @doc """
-  Applies middlewares registered to a `K8s.Cluster` to a `K8s.Middleware.Request`
+  Applies middlewares registered to a `K8s.Cluster` to a `K8s.Middleware.Request`.
   """
   @spec run(Request.t()) :: {:ok, Request.t()} | {:error, Error.t()}
   def run(%Request{conn: conn} = req) do

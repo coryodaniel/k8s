@@ -1,6 +1,6 @@
 defmodule K8s.Conn.Auth.Token do
   @moduledoc """
-  Token based cluster authentication
+  Token based cluster authentication.
   """
 
   @behaviour K8s.Conn.Auth

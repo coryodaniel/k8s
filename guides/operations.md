@@ -1,4 +1,4 @@
-# HTTP Operations (`K8s.Operation`)
+# Operations
 
 `K8s.Operation`s are Kubernetes REST operations. They encapsulate all the details of an HTTP request _except_ the server to perform them against.
 
@@ -132,7 +132,7 @@ operation = K8s.Client.list("apps/v1", :deployment, namespace: :all)
 
 The wait runner permits read operations to be made and block until a certain state is met in Kubernetes.
 
-This follow example will wait 60 seconds for the field `status.succeeded` to equal `1`. 
+This follow example will wait 60 seconds for the field `status.succeeded` to equal `1`.
 
 
 ```elixir
