@@ -19,4 +19,4 @@ jobs:
       - run: mix local.rebar --force
       - run: mix local.hex --force
       - run: mix deps.get
-      - run: TEST_KUBECONFIG=$KUBECONFIG mix test --only integration
+      - run: TEST_KUBECONFIG=$KUBECONFIG TEST_WAIT_TIMEOUT=30 mix test --only integration
