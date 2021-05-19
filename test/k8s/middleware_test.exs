@@ -14,7 +14,7 @@ defmodule K8s.MiddlewareTest do
 
   describe "run/2" do
     test "Applies middleware to a request" do
-      {:ok, conn} = K8s.Conn.lookup(:test)
+      {:ok, conn} = K8s.Conn.from_file("test/support/kube-config.yaml")
 
       req = %K8s.Middleware.Request{
         conn: conn,

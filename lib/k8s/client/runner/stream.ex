@@ -1,12 +1,14 @@
 defmodule K8s.Client.Runner.Stream do
   @moduledoc """
-  Takes a `K8s.Client.list/3` operation and returns an Elixir [`Stream`](https://hexdocs.pm/elixir/Stream.html)
+  Takes a `K8s.Client.list/3` operation and returns an Elixir [`Stream`](https://hexdocs.pm/elixir/Stream.html) of resources.
   """
 
   alias K8s.Client.Runner.Base
   alias K8s.Client.Runner.Stream.ListRequest
   alias K8s.Conn
   alias K8s.Operation
+
+  @supported_operations [:list, :list_all_namespaces]
 
   @typedoc "List of items and pagination request"
   @type state_t :: {list(), ListRequest.t()}
@@ -17,13 +19,12 @@ defmodule K8s.Client.Runner.Stream do
   @doc """
   Validates operation type before calling `stream/3`. Only supports verbs: `list_all_namespaces` and `list`.
   """
-  @spec run(Operation.t(), Conn.t(), keyword()) :: {:ok, Enumerable.t()} | {:error, atom}
-  def run(operation, conn, opts \\ [])
+  @spec run(Conn.t(), Operation.t(), keyword()) :: {:ok, Enumerable.t()} | {:error, atom}
+  def run(conn, op, http_opts \\ [])
 
-  def run(%Operation{verb: :list_all_namespaces} = op, conn, opts),
-    do: {:ok, stream(op, conn, opts)}
-
-  def run(%Operation{verb: :list} = op, conn, opts), do: {:ok, stream(op, conn, opts)}
+  def run(%Conn{} = conn, %Operation{verb: verb} = op, http_opts)
+      when verb in @supported_operations,
+      do: {:ok, stream(conn, op, http_opts)}
 
   def run(_, _, _), do: {:error, :unsupported_operation}
 
@@ -34,12 +35,12 @@ defmodule K8s.Client.Runner.Stream do
 
   Encountering an HTTP error mid-stream will halt the stream.
   """
-  @spec stream(Operation.t(), atom, keyword | nil) :: Enumerable.t()
-  def stream(%Operation{} = op, conn, opts \\ []) do
+  @spec stream(Conn.t(), Operation.t(), keyword | nil) :: Enumerable.t()
+  def stream(%Conn{} = conn, %Operation{} = op, http_opts \\ []) do
     request = %ListRequest{
       operation: op,
       conn: conn,
-      opts: opts
+      http_opts: http_opts
     }
 
     Stream.resource(
@@ -78,22 +79,34 @@ defmodule K8s.Client.Runner.Stream do
   @doc false
   # Make a list request and convert response to stream state
   @spec list(ListRequest.t()) :: state_t
-  def list(%ListRequest{} = request) do
-    default_params = request.opts[:params] || %{}
-    pagination_params = %{limit: request.limit, continue: request.continue}
-    request_params = Map.merge(default_params || %{}, pagination_params)
-    opts = Keyword.put(request.opts, :params, request_params)
-    response = Base.run(request.operation, request.conn, opts)
+  def list(%ListRequest{operation: operation} = request) do
+    query_params = operation.query_params || []
+    pagination_params = [limit: request.limit, continue: request.continue]
+    merged_params = Keyword.merge(query_params, pagination_params)
+    updated_operation = %Operation{operation | query_params: merged_params}
+    paginated_request = %ListRequest{request | operation: updated_operation}
+
+    response =
+      Base.run(
+        paginated_request.conn,
+        paginated_request.operation,
+        paginated_request.http_opts
+      )
 
     case response do
       {:ok, response} ->
         items = Map.get(response, "items", [])
-        next_request = ListRequest.make_next_request(request, response)
+        next_request = ListRequest.make_next_request(paginated_request, response)
         {items, next_request}
 
       {:error, error} ->
         items = [{:error, error}]
-        halt_requests = ListRequest.make_next_request(request, :halt)
+        halt_requests = ListRequest.make_next_request(paginated_request, :halt)
+        {items, halt_requests}
+
+      {:error, error, _info} ->
+        items = [{:error, error}]
+        halt_requests = ListRequest.make_next_request(paginated_request, :halt)
         {items, halt_requests}
     end
   end

@@ -4,7 +4,7 @@ defmodule K8s.Client do
 
   Functions return `K8s.Operation`s that represent kubernetes operations.
 
-  To run operations pass them to: `run/2`, `run/3`, or `run/4`.
+  To run operations pass them to: `run/2`, or `run/3`
 
   When specifying kinds the format should either be in the literal kubernetes kind name (eg `"ServiceAccount"`)
   or the downcased version seen in kubectl (eg `"serviceaccount"`). A string or atom may be used.
@@ -16,50 +16,47 @@ defmodule K8s.Client do
   "HorizontalPodAutoscaler", "horizontalpodautoscaler", :HorizontalPodAutoscaler, :horizontalpodautoscaler
   ```
 
-  `opts` to `K8s.Client.Runner` modules are HTTPoison HTTP option overrides.
+  `http_opts` to `K8s.Client.Runner` modules are `K8s.Client.HTTPProvider` HTTP options.
   """
 
-  @type option :: {:name, String.t()} | {:namespace, binary() | :all}
-  @type options :: [option]
+  @type path_param :: {:name, String.t()} | {:namespace, binary() | :all}
+  @type path_params :: [path_param]
 
   alias K8s.Operation
   alias K8s.Client.Runner.{Async, Base, Stream, Wait, Watch}
 
   @doc "alias of `K8s.Client.Runner.Base.run/2`"
-  defdelegate run(operation, conn), to: Base
+  defdelegate run(conn, operation), to: Base
 
   @doc "alias of `K8s.Client.Runner.Base.run/3`"
-  defdelegate run(operation, conn, opts), to: Base
-
-  @doc "alias of `K8s.Client.Runner.Base.run/4`"
-  defdelegate run(operation, conn, resource, opts), to: Base
+  defdelegate run(conn, operation, http_opts), to: Base
 
   @doc "alias of `K8s.Client.Runner.Async.run/3`"
   defdelegate async(operations, conn), to: Async, as: :run
 
   @doc "alias of `K8s.Client.Runner.Async.run/3`"
-  defdelegate parallel(operations, conn, opts), to: Async, as: :run
+  defdelegate async(operations, conn, http_opts), to: Async, as: :run
 
   @doc "alias of `K8s.Client.Runner.Async.run/3`"
-  defdelegate async(operations, conn, opts), to: Async, as: :run
+  defdelegate parallel(operations, conn, http_opts), to: Async, as: :run
 
   @doc "alias of `K8s.Client.Runner.Wait.run/3`"
-  defdelegate wait_until(operation, conn, opts), to: Wait, as: :run
+  defdelegate wait_until(conn, operation, wait_opts), to: Wait, as: :run
 
   @doc "alias of `K8s.Client.Runner.Watch.run/3`"
-  defdelegate watch(operation, conn, opts), to: Watch, as: :run
+  defdelegate watch(conn, operation, http_opts), to: Watch, as: :run
 
   @doc "alias of `K8s.Client.Runner.Watch.run/4`"
-  defdelegate watch(operation, conn, rv, opts), to: Watch, as: :run
+  defdelegate watch(conn, operation, rv, http_opts), to: Watch, as: :run
 
   @doc "alias of `K8s.Client.Runner.Stream.run/2`"
-  defdelegate stream(operation, conn), to: Stream, as: :run
+  defdelegate stream(conn, operation), to: Stream, as: :run
 
   @doc "alias of `K8s.Client.Runner.Stream.run/3`"
-  defdelegate stream(operation, conn, opts), to: Stream, as: :run
+  defdelegate stream(conn, operation, http_opts), to: Stream, as: :run
 
   @doc """
-  Returns a `GET` operation for a resource given a manifest. May be a partial manifest as long as it contains:
+  Returns a `GET` operation for a resource given a Kubernetes manifest. May be a partial manifest as long as it contains:
 
     * apiVersion
     * kind
@@ -137,8 +134,9 @@ defmodule K8s.Client do
         path_params: [namespace: "test", name: "nginx"]}
 
   """
-  @spec get(binary, binary | atom, options | nil) :: Operation.t()
-  def get(api_version, kind, opts \\ []), do: Operation.build(:get, api_version, kind, opts)
+  @spec get(binary, binary | atom, path_params | nil) :: Operation.t()
+  def get(api_version, kind, path_params \\ []),
+    do: Operation.build(:get, api_version, kind, path_params)
 
   @doc """
   Returns a `GET` operation to list all resources by version, kind, and namespace.
@@ -171,52 +169,21 @@ defmodule K8s.Client do
       }
 
   """
-  @spec list(binary, binary | atom, options | nil) :: Operation.t()
-  def list(api_version, kind, opts \\ [])
+  @spec list(binary, binary | atom, path_params | nil) :: Operation.t()
+  def list(api_version, kind, path_params \\ [])
 
   def list(api_version, kind, namespace: :all),
     do: Operation.build(:list_all_namespaces, api_version, kind, [])
 
-  def list(api_version, kind, opts),
-    do: Operation.build(:list, api_version, kind, opts)
+  def list(api_version, kind, path_params),
+    do: Operation.build(:list, api_version, kind, path_params)
 
   @doc """
   Returns a `POST` `K8s.Operation` to create the given resource.
 
   ## Examples
 
-      iex>  deployment = %{
-      ...>    "apiVersion" => "apps/v1",
-      ...>    "kind" => "Deployment",
-      ...>    "metadata" => %{
-      ...>      "labels" => %{
-      ...>        "app" => "nginx"
-      ...>      },
-      ...>      "name" => "nginx",
-      ...>      "namespace" => "test"
-      ...>    },
-      ...>    "spec" => %{
-      ...>      "replicas" => 2,
-      ...>      "selector" => %{
-      ...>        "matchLabels" => %{
-      ...>          "app" => "nginx"
-      ...>        }
-      ...>      },
-      ...>      "template" => %{
-      ...>        "metadata" => %{
-      ...>          "labels" => %{
-      ...>            "app" => "nginx"
-      ...>          }
-      ...>        },
-      ...>        "spec" => %{
-      ...>          "containers" => %{
-      ...>            "image" => "nginx",
-      ...>            "name" => "nginx"
-      ...>          }
-      ...>        }
-      ...>      }
-      ...>    }
-      ...>  }
+      iex>  deployment = K8s.Resource.from_file!("test/support/manifests/nginx-deployment.yaml")
       ...> K8s.Client.create(deployment)
       %K8s.Operation{
         method: :post,
@@ -224,38 +191,7 @@ defmodule K8s.Client do
         verb: :create,
         api_version: "apps/v1",
         name: "Deployment",
-        data: %{
-          "apiVersion" => "apps/v1",
-          "kind" => "Deployment",
-          "metadata" => %{
-            "labels" => %{
-              "app" => "nginx"
-            },
-            "name" => "nginx",
-            "namespace" => "test"
-          },
-          "spec" => %{
-            "replicas" => 2,
-            "selector" => %{
-                "matchLabels" => %{
-                  "app" => "nginx"
-                }
-            },
-            "template" => %{
-              "metadata" => %{
-                "labels" => %{
-                  "app" => "nginx"
-                }
-              },
-              "spec" => %{
-                "containers" => %{
-                  "image" => "nginx",
-                  "name" => "nginx"
-                }
-              }
-            }
-          }
-        }
+        data: K8s.Resource.from_file!("test/support/manifests/nginx-deployment.yaml")
       }
   """
   @spec create(map()) :: Operation.t()
@@ -300,17 +236,17 @@ defmodule K8s.Client do
 
   ## Examples
 
-  Eviction a pod
-      iex> eviction = %{
-      ...> "apiVersion" => "policy/v1beta1",
-      ...>     "kind" => "Eviction",
-      ...>    "metadata" => %{
-      ...>      "name" => "nginx",
-      ...>      "namespace" => "default"
-      ...>    }
-      ...>  }
+  Evicting a pod
+      iex> eviction = K8s.Resource.from_file!("test/support/manifests/eviction-policy.yaml")
       ...>  K8s.Client.create("v1", "pods/eviction", [namespace: "default", name: "nginx"], eviction)
-      %K8s.Operation{api_version: "v1", data: %{"apiVersion" => "policy/v1beta1", "kind" => "Eviction", "metadata" => %{"name" => "nginx", "namespace" => "default"}}, method: :post, name: "pods/eviction", path_params: [namespace: "default", name: "nginx"], verb: :create}
+      %K8s.Operation{
+        api_version: "v1", 
+        method: :post, 
+        name: "pods/eviction", 
+        path_params: [namespace: "default", name: "nginx"], 
+        verb: :create, 
+        data: K8s.Resource.from_file!("test/support/manifests/eviction-policy.yaml")
+      }
   """
   @spec create(binary, binary | atom, Keyword.t(), map()) :: Operation.t()
   def create(api_version, kind, path_params, subresource),
@@ -323,25 +259,17 @@ defmodule K8s.Client do
 
   ## Examples
 
-  Eviction a pod
-      iex> pod = %{
-      ...>   "apiVersion" => "v1",
-      ...>   "kind" => "Pod",
-      ...>   "metadata" => %{
-      ...>      "name" => "nginx",
-      ...>      "namespace" => "default"
-      ...>    }
-      ...> }
-      ...> eviction = %{
-      ...> "apiVersion" => "policy/v1beta1",
-      ...>     "kind" => "Eviction",
-      ...>    "metadata" => %{
-      ...>      "name" => "nginx",
-      ...>      "namespace" => "default"
-      ...>    }
-      ...>  }
-      ...>  K8s.Client.create(pod, eviction)
-      %K8s.Operation{api_version: "v1", data: %{"apiVersion" => "policy/v1beta1", "kind" => "Eviction", "metadata" => %{"name" => "nginx", "namespace" => "default"}}, method: :post, name: {"Pod", "Eviction"}, path_params: [namespace: "default", name: "nginx"], verb: :create}
+  Evicting a pod
+      iex> pod = K8s.Resource.from_file!("test/support/manifests/nginx-pod.yaml")
+      ...> eviction = K8s.Resource.from_file!("test/support/manifests/eviction-policy.yaml")
+      ...> K8s.Client.create(pod, eviction)
+      %K8s.Operation{
+        api_version: "v1", 
+        data: K8s.Resource.from_file!("test/support/manifests/eviction-policy.yaml"), 
+        method: :post, name: {"Pod", "Eviction"}, 
+        path_params: [namespace: "default", name: "nginx"], 
+        verb: :create
+      }
   """
   @spec create(map(), map()) :: Operation.t()
   def create(
@@ -379,38 +307,7 @@ defmodule K8s.Client do
 
   ## Examples
 
-      iex>  deployment = %{
-      ...>    "apiVersion" => "apps/v1",
-      ...>    "kind" => "Deployment",
-      ...>    "metadata" => %{
-      ...>      "labels" => %{
-      ...>        "app" => "nginx"
-      ...>      },
-      ...>      "name" => "nginx",
-      ...>      "namespace" => "test"
-      ...>    },
-      ...>    "spec" => %{
-      ...>      "replicas" => 2,
-      ...>      "selector" => %{
-      ...>        "matchLabels" => %{
-      ...>          "app" => "nginx"
-      ...>        }
-      ...>      },
-      ...>      "template" => %{
-      ...>        "metadata" => %{
-      ...>          "labels" => %{
-      ...>            "app" => "nginx"
-      ...>          }
-      ...>        },
-      ...>        "spec" => %{
-      ...>          "containers" => %{
-      ...>            "image" => "nginx",
-      ...>            "name" => "nginx"
-      ...>          }
-      ...>        }
-      ...>      }
-      ...>    }
-      ...>  }
+      iex>  deployment = K8s.Resource.from_file!("test/support/manifests/nginx-deployment.yaml")
       ...> K8s.Client.patch(deployment)
       %K8s.Operation{
         method: :patch,
@@ -418,38 +315,7 @@ defmodule K8s.Client do
         api_version: "apps/v1",
         name: "Deployment",
         path_params: [namespace: "test", name: "nginx"],
-        data: %{
-          "apiVersion" => "apps/v1",
-          "kind" => "Deployment",
-          "metadata" => %{
-            "labels" => %{
-              "app" => "nginx"
-            },
-            "name" => "nginx",
-            "namespace" => "test"
-          },
-          "spec" => %{
-            "replicas" => 2,
-            "selector" => %{
-                "matchLabels" => %{
-                  "app" => "nginx"
-                }
-            },
-            "template" => %{
-              "metadata" => %{
-                "labels" => %{
-                  "app" => "nginx"
-                }
-              },
-              "spec" => %{
-                "containers" => %{
-                  "image" => "nginx",
-                  "name" => "nginx"
-                }
-              }
-            }
-          }
-        }
+        data: K8s.Resource.from_file!("test/support/manifests/nginx-deployment.yaml")
       }
   """
   @spec patch(map()) :: Operation.t()
@@ -493,38 +359,7 @@ defmodule K8s.Client do
 
   ## Examples
 
-      iex>  deployment = %{
-      ...>    "apiVersion" => "apps/v1",
-      ...>    "kind" => "Deployment",
-      ...>    "metadata" => %{
-      ...>      "labels" => %{
-      ...>        "app" => "nginx"
-      ...>      },
-      ...>      "name" => "nginx",
-      ...>      "namespace" => "test"
-      ...>    },
-      ...>    "spec" => %{
-      ...>      "replicas" => 2,
-      ...>      "selector" => %{
-      ...>        "matchLabels" => %{
-      ...>          "app" => "nginx"
-      ...>        }
-      ...>      },
-      ...>      "template" => %{
-      ...>        "metadata" => %{
-      ...>          "labels" => %{
-      ...>            "app" => "nginx"
-      ...>          }
-      ...>        },
-      ...>        "spec" => %{
-      ...>          "containers" => %{
-      ...>            "image" => "nginx",
-      ...>            "name" => "nginx"
-      ...>          }
-      ...>        }
-      ...>      }
-      ...>    }
-      ...>  }
+      iex>  deployment = K8s.Resource.from_file!("test/support/manifests/nginx-deployment.yaml")
       ...> K8s.Client.update(deployment)
       %K8s.Operation{
         method: :put,
@@ -532,38 +367,7 @@ defmodule K8s.Client do
         api_version: "apps/v1",
         name: "Deployment",
         path_params: [namespace: "test", name: "nginx"],
-        data: %{
-          "apiVersion" => "apps/v1",
-          "kind" => "Deployment",
-          "metadata" => %{
-            "labels" => %{
-              "app" => "nginx"
-            },
-            "name" => "nginx",
-            "namespace" => "test"
-          },
-          "spec" => %{
-            "replicas" => 2,
-            "selector" => %{
-                "matchLabels" => %{
-                  "app" => "nginx"
-                }
-            },
-            "template" => %{
-              "metadata" => %{
-                "labels" => %{
-                  "app" => "nginx"
-                }
-              },
-              "spec" => %{
-                "containers" => %{
-                  "image" => "nginx",
-                  "name" => "nginx"
-                }
-              }
-            }
-          }
-        }
+        data: K8s.Resource.from_file!("test/support/manifests/nginx-deployment.yaml")
       }
   """
   @spec update(map()) :: Operation.t()
@@ -577,19 +381,16 @@ defmodule K8s.Client do
   ## Examples
 
     Scaling a deployment
-      iex> scale = %{
-      ...>   "kind" => "Scale",
-      ...>   "apiVersion" => "apps/v1beta1",
-      ...>   "metadata" => %{
-      ...>     "name" => "nginx",
-      ...>     "namespace" => "default"
-      ...>   },
-      ...>   "spec" => %{
-      ...>     "replicas" => 3
-      ...>   }
-      ...> }
+      iex> scale = K8s.Resource.from_file!("test/support/manifests/scale-replicas.yaml")
       ...>  K8s.Client.update("apps/v1", "deployments/scale", [namespace: "default", name: "nginx"], scale)
-      %K8s.Operation{api_version: "apps/v1", data: %{"apiVersion" => "apps/v1beta1", "kind" => "Scale", "metadata" => %{"name" => "nginx", "namespace" => "default"}, "spec" => %{"replicas" => 3}}, method: :put, name: "deployments/scale", path_params: [namespace: "default", name: "nginx"], verb: :update}
+      %K8s.Operation{
+        api_version: "apps/v1", 
+        data: K8s.Resource.from_file!("test/support/manifests/scale-replicas.yaml"), 
+        method: :put, 
+        name: "deployments/scale", 
+        path_params: [namespace: "default", name: "nginx"], 
+        verb: :update
+      }
   """
   @spec update(binary, binary | atom, Keyword.t(), map()) :: Operation.t()
   def update(api_version, kind, path_params, subresource),
@@ -602,51 +403,17 @@ defmodule K8s.Client do
 
   ## Examples
     Scaling a deployment:
-      iex>  deployment = %{
-      ...>    "apiVersion" => "apps/v1",
-      ...>    "kind" => "Deployment",
-      ...>    "metadata" => %{
-      ...>      "labels" => %{
-      ...>        "app" => "nginx"
-      ...>      },
-      ...>      "name" => "nginx",
-      ...>      "namespace" => "test"
-      ...>    },
-      ...>    "spec" => %{
-      ...>      "replicas" => 2,
-      ...>      "selector" => %{
-      ...>        "matchLabels" => %{
-      ...>          "app" => "nginx"
-      ...>        }
-      ...>      },
-      ...>      "template" => %{
-      ...>        "metadata" => %{
-      ...>          "labels" => %{
-      ...>            "app" => "nginx"
-      ...>          }
-      ...>        },
-      ...>        "spec" => %{
-      ...>          "containers" => %{
-      ...>            "image" => "nginx",
-      ...>            "name" => "nginx"
-      ...>          }
-      ...>        }
-      ...>      }
-      ...>    }
-      ...>  }
-      ...> scale = %{
-      ...>   "kind" => "Scale",
-      ...>   "apiVersion" => "apps/v1beta1",
-      ...>   "metadata" => %{
-      ...>      "name" => "nginx",
-      ...>      "namespace" => "test"
-      ...>   },
-      ...>   "spec" => %{
-      ...>     "replicas" => 3
-      ...>   }
-      ...> }
+      iex> deployment = K8s.Resource.from_file!("test/support/manifests/nginx-deployment.yaml")
+      ...> scale = K8s.Resource.from_file!("test/support/manifests/scale-replicas.yaml")
       ...> K8s.Client.update(deployment, scale)
-      %K8s.Operation{api_version: "apps/v1", method: :put, path_params: [namespace: "test", name: "nginx"], verb: :update, data: %{"apiVersion" => "apps/v1beta1", "kind" => "Scale", "metadata" => %{"name" => "nginx", "namespace" => "test"}, "spec" => %{"replicas" => 3}}, name: {"Deployment", "Scale"}}
+      %K8s.Operation{
+        api_version: "apps/v1", 
+        method: :put, 
+        path_params: [namespace: "test", name: "nginx"], 
+        verb: :update, 
+        data: K8s.Resource.from_file!("test/support/manifests/scale-replicas.yaml"), 
+        name: {"Deployment", "Scale"}
+      }
   """
   @spec update(map(), map()) :: Operation.t()
   def update(
@@ -680,38 +447,7 @@ defmodule K8s.Client do
 
   ## Examples
 
-      iex>  deployment = %{
-      ...>    "apiVersion" => "apps/v1",
-      ...>    "kind" => "Deployment",
-      ...>    "metadata" => %{
-      ...>      "labels" => %{
-      ...>        "app" => "nginx"
-      ...>      },
-      ...>      "name" => "nginx",
-      ...>      "namespace" => "test"
-      ...>    },
-      ...>    "spec" => %{
-      ...>      "replicas" => 2,
-      ...>      "selector" => %{
-      ...>        "matchLabels" => %{
-      ...>          "app" => "nginx"
-      ...>        }
-      ...>      },
-      ...>      "template" => %{
-      ...>        "metadata" => %{
-      ...>          "labels" => %{
-      ...>            "app" => "nginx"
-      ...>          }
-      ...>        },
-      ...>        "spec" => %{
-      ...>          "containers" => %{
-      ...>            "image" => "nginx",
-      ...>            "name" => "nginx"
-      ...>          }
-      ...>        }
-      ...>      }
-      ...>    }
-      ...>  }
+      iex> deployment = K8s.Resource.from_file!("test/support/manifests/nginx-deployment.yaml")
       ...> K8s.Client.delete(deployment)
       %K8s.Operation{
         method: :delete,
@@ -740,8 +476,9 @@ defmodule K8s.Client do
       }
 
   """
-  @spec delete(binary, binary | atom, options | nil) :: Operation.t()
-  def delete(api_version, kind, opts), do: Operation.build(:delete, api_version, kind, opts)
+  @spec delete(binary, binary | atom, path_params | nil) :: Operation.t()
+  def delete(api_version, kind, path_params),
+    do: Operation.build(:delete, api_version, kind, path_params)
 
   @doc """
   Returns a `DELETE` collection operation for all instances of a cluster scoped resource kind.

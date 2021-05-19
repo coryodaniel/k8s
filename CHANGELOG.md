@@ -6,15 +6,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## Unreleased
-
+## [1.0.0-rc1] - 2021-05-03
 ### Added
-
 - `K8s.Resource.NamedList.access!/1` raises if item is missing
+- K8s.Operation.put_label_selector/2
+- K8s.Operation.get_label_selector/1
+- Per connection http provider configuration
+- K8s.Operation now uses keyword lists for query_params instead of maps
 
 ### Changed
-
+- removed dialyzer exceptions
+- `K8s.Conn.from_file/2` now returns an ok or error tuple
+- `K8s.Conn.from_service_account/N` now returns an ok or error tuple
+- `K8s.Conn.t()` is now the first argument in all runners. `K8s.Operation.t()` is now the second.
+- deprecated K8s.http_provider/0
+- deprecated K8s.Discovery.default_opts/0
+- deprecated K8s.Discovery.default_driver/0
+- Refactored cluster names to strings
 - `K8s.Resource.NamedList.access/1` deals better with missing items now
+- Removed K8s.Client.run/4, use `K8s.Client.run/3` to pass options to HTTP provider
+- Middleware moved to %K8s.Conn.middleware
+
+### Removed
+- K8s.Conn.lookup/1
+- config.exs based cluster registration is no longer supported, build K8s.Conn using K8s.Conn module
+- environment variable based cluster registration has been removed and may be moved to an external library
 
 ## [0.5.2] - 2020-07-31
 

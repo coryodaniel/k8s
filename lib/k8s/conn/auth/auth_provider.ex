@@ -16,6 +16,7 @@ defmodule K8s.Conn.Auth.AuthProvider do
         }
 
   @impl true
+  @spec create(map, String.t()) :: {:ok, t} | :skip
   def create(%{"auth-provider" => %{"config" => config}}, _) do
     %{
       "cmd-path" => cmd_path,
@@ -24,15 +25,16 @@ defmodule K8s.Conn.Auth.AuthProvider do
       "expiry-key" => expiry_key
     } = config
 
-    %__MODULE__{
-      cmd_path: cmd_path,
-      cmd_args: format_args(cmd_args),
-      token_key: format_json_keys(token_key),
-      expiry_key: format_json_keys(expiry_key)
-    }
+    {:ok,
+     %__MODULE__{
+       cmd_path: cmd_path,
+       cmd_args: format_args(cmd_args),
+       token_key: format_json_keys(token_key),
+       expiry_key: format_json_keys(expiry_key)
+     }}
   end
 
-  def create(_, _), do: nil
+  def create(_, _), do: :skip
 
   @spec format_args(String.t()) :: list(String.t())
   defp format_args(args), do: String.split(args, " ")

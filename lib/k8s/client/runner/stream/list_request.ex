@@ -2,8 +2,8 @@ defmodule K8s.Client.Runner.Stream.ListRequest do
   @moduledoc "`:list` `K8s.Operation` encapsulated with pagination and `K8s.Conn`"
   @limit 10
 
-  @typedoc "opts for `Base.run/3`"
-  @type opts_t :: keyword
+  @typedoc "opts for `K8s.Client.Runner.Base.run/3`"
+  @type http_opts_t :: keyword
 
   @typedoc "Pagination continue token"
   @type continue_t :: nil | :halt | binary
@@ -14,9 +14,9 @@ defmodule K8s.Client.Runner.Stream.ListRequest do
           conn: K8s.Conn.t(),
           continue: continue_t,
           limit: pos_integer,
-          opts: opts_t
+          http_opts: http_opts_t
         }
-  defstruct operation: nil, conn: nil, continue: nil, opts: [], limit: @limit
+  defstruct operation: nil, conn: nil, continue: nil, http_opts: [], limit: @limit
 
   @doc """
   Creates a `ListRequest` struct for the next HTTP request from the previous HTTP response

@@ -15,31 +15,19 @@ defmodule K8s.Middleware do
       ...> K8s.Middleware.run(req)
 
     Adding middlware to a cluster
-      iex> conn = %K8s.Conn{cluster_name: :foo}
-      ...> K8s.Middleware.add(:foo, :request, MyMiddlewareModule)
+      iex> conn = %K8s.Conn{cluster_name: "foo"}
+      ...> K8s.Middleware.add("foo", :request, MyMiddlewareModule)
       ...> req = %K8s.Middlware.Request{}
       ...> K8s.Middleware.run(req)
 
     Setting/Replacing middleware on a cluster
-      iex> conn = %K8s.Conn{cluster_name: :foo}
-      ...> K8s.Middleware.set(:foo, :request, [MyMiddlewareModule, OtherModule])
+      iex> conn = %K8s.Conn{cluster_name: "foo"}
+      ...> K8s.Middleware.set("foo", :request, [MyMiddlewareModule, OtherModule])
       ...> req = %K8s.Middlware.Request{}
       ...> K8s.Middleware.run(req)
   """
 
   alias K8s.Middleware.{Error, Request}
-
-  @typedoc "Middleware type"
-  @type type_t :: :request | :response
-
-  @doc """
-  Applies middlewares registered to a `K8s.Cluster` to a `K8s.Middleware.Request`
-  """
-  @spec run(Request.t()) :: {:ok, Request.t()} | {:error, Error.t()}
-  def run(%Request{conn: conn} = req) do
-    middlewares = K8s.Middleware.Registry.list(conn.cluster_name, :request)
-    run(req, middlewares)
-  end
 
   @spec run(Request.t(), list(module())) :: {:ok, Request.t()} | {:error, Error.t()}
   def run(%Request{} = req, middlewares) do

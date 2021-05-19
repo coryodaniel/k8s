@@ -9,14 +9,12 @@ defmodule K8s.Conn.Auth.BasicAuth do
   @type t :: %__MODULE__{token: binary}
 
   @impl true
-  @spec create(map() | any, String.t() | any) :: K8s.Conn.Auth.BasicAuth.t() | nil
+  @spec create(map(), String.t()) :: {:ok, t()} | :skip
   def create(%{"username" => username, "password" => password}, _) do
-    %K8s.Conn.Auth.BasicAuth{token: Base.encode64("#{username}:#{password}")}
+    {:ok, %__MODULE__{token: Base.encode64("#{username}:#{password}")}}
   end
 
-  def create(_, _) do
-    nil
-  end
+  def create(_, _), do: :skip
 
   defimpl K8s.Conn.RequestOptions, for: __MODULE__ do
     @doc "Generates HTTP Authorization options for basic auth authentication"

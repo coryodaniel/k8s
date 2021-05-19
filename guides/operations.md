@@ -34,8 +34,8 @@ resource = %{
 }
 
 operation = K8s.Client.create(resource)
-{:ok, conn} = K8s.Conn.lookup(:my_registered_connection_name)
-{:ok, response} = K8s.Client.run(operation, conn)
+{:ok, conn} = K8s.Conn.from_file("path/to/kubeconfig.yaml")
+{:ok, response} = K8s.Client.run(conn, operation)
 ```
 
 ## Creating a Deployment from a YAML File
@@ -74,8 +74,8 @@ opts = [namespace: "default", name: "nginx", image: "nginx:nginx:1.7.9"]
 resource = K8s.Resource.from_file!("priv/deployment.yaml", opts)
 
 operation = K8s.Client.create(resource)
-{:ok, conn} = K8s.Conn.lookup(:my_connection)
-{:ok, deployment} = K8s.Client.run(operation, conn)
+{:ok, conn} = K8s.Conn.from_file("path/to/kubeconfig.yaml")
+{:ok, deployment} = K8s.Client.run(conn, operation)
 ```
 
 ## Listing Deployments
@@ -84,16 +84,16 @@ In a given namespace:
 
 ```elixir
 operation = K8s.Client.list("apps/v1", "Deployment", namespace: "prod")
-{:ok, conn} = K8s.Conn.lookup(:my_connection)
-{:ok, deployments} = K8s.Client.run(operation, conn)
+{:ok, conn} = K8s.Conn.from_file("path/to/kubeconfig.yaml")
+{:ok, deployments} = K8s.Client.run(conn, operation)
 ```
 
 Across all namespaces:
 
 ```elixir
 operation = K8s.Client.list("apps/v1", "Deployment", namespace: :all)
-{:ok, conn} = K8s.Conn.lookup(:my_connection)
-{:ok, deployments} = K8s.Client.run(operation, conn)
+{:ok, conn} = K8s.Conn.from_file("path/to/kubeconfig.yaml")
+{:ok, deployments} = K8s.Client.run(conn, operation)
 ```
 
 *Note:* `K8s.Client.list` will return a `map`. The list of resources will be under `"items"`.
@@ -103,19 +103,22 @@ operation = K8s.Client.list("apps/v1", "Deployment", namespace: :all)
 `K8s.Selector` supports programatically building Kubernetes `labelSelector`s.
 
 ```elixir
-{:ok, conn} = K8s.Conn.lookup(:my_connection)
-K8s.Client.list("apps/v1", :deployments)
-|> K8s.Selector.label({"app", "nginx"})
-|> K8s.Selector.label_in({"environment", ["qa", "prod"]})
-|> K8s.Client.run(conn)
+{:ok, conn} = K8s.Conn.from_file("path/to/kubeconfig.yaml")
+
+operation = 
+  K8s.Client.list("apps/v1", :deployments)
+  |> K8s.Selector.label({"app", "nginx"})
+  |> K8s.Selector.label_in({"environment", ["qa", "prod"]})
+
+K8s.Client.run(conn, operation)
 ```
 
 ## Getting a Deployment
 
 ```elixir
-{:ok, conn} = K8s.Conn.lookup(:my_connection)
+{:ok, conn} = K8s.Conn.from_file("path/to/kubeconfig.yaml")
 operation = K8s.Client.get("apps/v1", :deployment, [namespace: "default", name: "nginx-deployment"])
-{:ok, deployment} = K8s.Client.run(operation, conn)
+{:ok, deployment} = K8s.Client.run(conn, operation)
 ```
 
 ## Watch Operations (`K8s.Client.Runner.Watch`)
@@ -124,22 +127,22 @@ Watch operations use the Kubernetes Watch API to stream `added`, `modified`, and
 
 ```elixir
 operation = K8s.Client.list("apps/v1", :deployment, namespace: :all)
-{:ok, conn} = K8s.Conn.lookup(:my_connection)
-{:ok, reference} = K8s.Client.watch(operation, conn, stream_to: self())
+{:ok, conn} = K8s.Conn.from_file("path/to/kubeconfig.yaml")
+{:ok, reference} = K8s.Client.watch(conn, operation, stream_to: self())
 ```
 
 ## Wait on a Resource (`K8s.Client.Runner.Wait`)
 
 The wait runner permits read operations to be made and block until a certain state is met in Kubernetes.
 
-This follow example will wait 60 seconds for the field `status.succeeded` to equal `1`. 
+This follow example will wait 60 seconds for the field `status.succeeded` to equal `1`.
 
 
 ```elixir
 operation = K8s.Client.get("batch/v1", :job, namespace: "default", name: "database-migrator")
 wait_opts = [find: ["status", "succeeded"], eval: 1, timeout: 60]
-{:ok, conn} = K8s.Conn.lookup(:my_connection)
-{:ok, job} = K8s.Client.wait(op, conn, wait_opts)
+{:ok, conn} = K8s.Conn.from_file("path/to/kubeconfig.yaml")
+{:ok, job} = K8s.Client.wait(conn, operation, wait_opts)
 ```
 
 `:find` and `:eval` also accept functions to apply to check success.
@@ -152,8 +155,8 @@ An async runner is provided for running operations in parallel. All operations a
 operation1 = K8s.Client.get("v1", "Pod", namespace: "default", name: "pod-1")
 operation2 = K8s.Client.get("v1", "Pod", namespace: "default", name: "pod-2")
 
-{:ok, conn} = K8s.Conn.lookup(:my_connection)
-results = K8s.Client.async([operation1, operation2], conn)
+{:ok, conn} = K8s.Conn.from_file("path/to/kubeconfig.yaml")
+results = K8s.Client.async(conn, [operation1, operation2])
 ```
 
 `results` will be a list of `:ok` and `:error` tuples.
@@ -164,10 +167,10 @@ A stream runner is provided to automatically handle pagination in `K8s.Client.li
 
 ```elixir
 operation = K8s.Client.list("v1", "Pod", namespace: :all)
-{:ok, conn} = K8s.Conn.lookup(:my_connection)
+{:ok, conn} = K8s.Conn.from_file("path/to/kubeconfig.yaml")
 
-operation
-|> K8s.Client.stream(conn)
+conn
+|> K8s.Client.stream(operation)
 |> Stream.filter(&my_filter_function?/1)
 |> Stream.map(&my_map_function?/1)
 |> Enum.into([])
