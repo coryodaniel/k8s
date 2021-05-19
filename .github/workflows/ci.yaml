@@ -38,7 +38,6 @@ jobs:
           mix local.hex --force
           mix deps.get
 
-      # something in 1.10.2 isn't formatted, but is in 1.10.4
       - name: Check Formatting
         run: mix format --check-formatted
 
