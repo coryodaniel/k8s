@@ -27,7 +27,7 @@ defmodule K8s.Discovery do
       {:ok, "https://localhost:6443/apis/apps/v1/namespaces/default/deployments/nginx"}
 
   """
-  @spec url_for(Conn.t(), Operation.t()) :: {:ok, String.t()} | {:error, atom(), binary()}
+  @spec url_for(Conn.t(), Operation.t()) :: {:ok, String.t()} | {:error, K8s.Discovery.Error.t}
   def url_for(%Conn{} = conn, %Operation{api_version: api_version, name: name, verb: _} = op) do
     with {:ok, name} <-
            K8s.Discovery.ResourceFinder.resource_name_for_kind(conn, api_version, name),

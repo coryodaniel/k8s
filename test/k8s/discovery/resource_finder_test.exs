@@ -73,8 +73,10 @@ defmodule K8s.Discovery.ResourceFinderTest do
     end
 
     test "returns an error when the resource is not supported" do
-      {:error, :unsupported_resource, "Foo"} =
+      {:error, %K8s.Discovery.Error{message: message}} =
         ResourceFinder.find_resource_by_name(resources(), "Foo")
+
+      assert message =~ ~r/Unsupported.*Foo/
     end
   end
 end

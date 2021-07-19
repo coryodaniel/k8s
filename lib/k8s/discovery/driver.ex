@@ -13,7 +13,7 @@ defmodule K8s.Discovery.Driver do
   {:error, %K8s.Discovery.Driver.MyDriver.FileNotFoundError{config: "path-to-file"}}
   ```
   """
-  @type driver_error_t :: {:error, atom()} | {:error, struct()}
+  @type driver_error_t :: {:error, atom() | struct()}
 
   @doc """
   List of Kubernetes `apiVersion`s
