@@ -6,7 +6,6 @@ defmodule K8s.Client.Runner.Base do
   @type result_t ::
           {:ok, map() | reference()}
           | {:error, K8s.Middleware.Error.t()}
-          | {:error, :connection_not_registered}
           | {:error, :missing_required_param, list(atom)}
           | {:error, atom()}
           | {:error, binary()}

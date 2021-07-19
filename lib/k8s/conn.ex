@@ -61,7 +61,8 @@ defmodule K8s.Conn do
   * `discovery_driver` module name to use for discovery
   * `discovery_opts` options for discovery module
   """
-  @spec from_file(binary, keyword) :: {:ok, __MODULE__.t()} | {:error, atom()}
+  @spec from_file(binary, keyword) ::
+          {:ok, __MODULE__.t()} | {:error, :enoent | K8s.Conn.Error.t()}
   def from_file(config_file, opts \\ []) do
     abs_config_file = Path.expand(config_file)
     base_path = Path.dirname(abs_config_file)
@@ -96,12 +97,12 @@ defmodule K8s.Conn do
 
   [kubernetes.io :: Accessing the API from a Pod](https://kubernetes.io/docs/tasks/access-application-cluster/access-cluster/#accessing-the-api-from-a-pod)
   """
-  @spec from_service_account :: {:ok, t()} | {:error, atom()}
+  @spec from_service_account :: {:ok, t()} | {:error, :enoent | K8s.Conn.Error.t()}
   def from_service_account do
     from_service_account(@default_service_account_path)
   end
 
-  @spec from_service_account(String.t()) :: {:ok, t()} | {:error, atom()}
+  @spec from_service_account(String.t()) :: {:ok, t()} | {:error, :enoent | K8s.Conn.Error.t()}
   def from_service_account(service_account_path) do
     cert_path = Path.join(service_account_path, "ca.crt")
     token_path = Path.join(service_account_path, "token")
@@ -121,12 +122,15 @@ defmodule K8s.Conn do
   end
 
   @spec find_configuration([map()], String.t(), String.t()) ::
-          {:ok, map()} | {:error, :invalid_configuration, String.t()}
+          {:ok, map()} | {:error, K8s.Conn.Error.t()}
   defp find_configuration(items, name, type) do
     case get_in(items, [NamedList.access(name), type]) do
       nil ->
-        Logger.error("No `#{type}` type found with name: '#{name}'")
-        {:error, :invalid_configuration}
+        err = %K8s.Conn.Error{
+          message: "Error parsing kube config. No `#{type}` type found with name: '#{name}'"
+        }
+
+        {:error, err}
 
       item ->
         {:ok, item}
@@ -161,7 +165,7 @@ defmodule K8s.Conn do
           auth
 
         {:error, msg} ->
-          Logger.error("Error creating auth provider (#{provider}): #{msg}")
+          Logger.debug("Provider (#{provider}) failed to generate auth, skipping. #{msg}")
           nil
 
         :skip ->

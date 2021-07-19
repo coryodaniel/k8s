@@ -7,21 +7,21 @@ defmodule K8s.ConnTest do
 
   describe "from_file/2" do
     test "returns an error tuple when using an invalid cluster name" do
-      assert {:error, :invalid_configuration} =
+      assert {:error, %K8s.Conn.Error{}} =
                K8s.Conn.from_file("test/support/kube-config.yaml",
                  cluster: "this-cluster-does-not-exist"
                )
     end
 
     test "returns an error tuple when using an invalid user name" do
-      assert {:error, :invalid_configuration} =
+      assert {:error, %K8s.Conn.Error{}} =
                K8s.Conn.from_file("test/support/kube-config.yaml",
                  user: "this-user-does-not-exist"
                )
     end
 
     test "returns an error tuple when using an invalid context name" do
-      assert {:error, :invalid_configuration} =
+      assert {:error, %K8s.Conn.Error{}} =
                K8s.Conn.from_file("test/support/kube-config.yaml",
                  context: "this-context-does-not-exist"
                )
