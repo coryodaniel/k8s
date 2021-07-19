@@ -6,6 +6,7 @@ defmodule K8s.Client.Runner.Watch do
   alias K8s.Client.Runner.Base
   alias K8s.Conn
   alias K8s.Operation
+  alias K8s.Operation.Error
 
   @resource_version_json_path ~w(metadata resourceVersion)
 
@@ -32,12 +33,14 @@ defmodule K8s.Client.Runner.Watch do
   def run(%Conn{} = conn, %Operation{method: :get} = operation, http_opts) do
     case get_resource_version(conn, operation) do
       {:ok, rv} -> run(conn, operation, rv, http_opts)
-      error -> error
+      err -> err
     end
   end
 
-  def run(op, _, _),
-    do: {:error, "Only HTTP GET operations (list, get) are supported. #{inspect(op)}"}
+  def run(op, _, _) do
+    msg = "Only HTTP GET operations (list, get) are supported. #{inspect(op)}"
+    {:error, %Error{message: msg}}
+  end
 
   @doc """
   Watch a resource or list of resources from a specific resource version. Provide the `stream_to` option or results will be stream to `self()`.
@@ -73,18 +76,11 @@ defmodule K8s.Client.Runner.Watch do
     run(conn, list_op, rv, http_opts)
   end
 
-  def run(op, _, _, _),
-    do: {:error, "Only HTTP GET operations (list, get) are supported. #{inspect(op)}"}
-
-  @spec get_resource_version(Conn.t(), Operation.t()) :: {:ok, binary} | {:error, binary}
+  @spec get_resource_version(Conn.t(), Operation.t()) :: {:ok, binary} | Base.error_t()
   def get_resource_version(%Conn{} = conn, %Operation{} = operation) do
-    case Base.run(conn, operation) do
-      {:ok, payload} ->
-        rv = parse_resource_version(payload)
-        {:ok, rv}
-
-      error ->
-        error
+    with {:ok, payload} <- Base.run(conn, operation) do
+      rv = parse_resource_version(payload)
+      {:ok, rv}
     end
   end
 
