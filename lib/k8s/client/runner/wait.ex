@@ -7,6 +7,7 @@ defmodule K8s.Client.Runner.Wait do
 
   alias K8s.{Conn, Operation}
   alias K8s.Client.Runner.{Base, Wait}
+  alias K8s.Operation.Error
 
   @typedoc "A wait configuration"
   @type t :: %__MODULE__{
@@ -15,7 +16,7 @@ defmodule K8s.Client.Runner.Wait do
           eval: any | (any -> any),
           find: list(binary) | (any -> any),
           timeout_after: NaiveDateTime.t(),
-          processor: (map(), map() -> {:ok, map} | {:error, binary})
+          processor: (map(), map() -> {:ok, map} | {:error, Error.t()})
         }
   defstruct [:timeout, :sleep, :eval, :find, :timeout_after, :processor]
 
@@ -34,7 +35,7 @@ defmodule K8s.Client.Runner.Wait do
   ```
   """
   @spec run(Conn.t(), Operation.t(), keyword(atom())) ::
-          {:ok, map()} | {:error, binary()}
+          {:ok, map()} | {:error, :timeout | Error.t()}
   def run(%Conn{} = conn, %Operation{method: :get} = op, opts) do
     conditions =
       Wait
@@ -47,11 +48,12 @@ defmodule K8s.Client.Runner.Wait do
     end
   end
 
-  def run(op, _, _), do: {:error, "Only HTTP GET operations are supported. #{inspect(op)}"}
+  def run(op, _, _),
+    do: {:error, %Error{message: "Only HTTP GET operations are supported. #{inspect(op)}"}}
 
-  @spec process_opts(Wait.t() | map) :: {:error, binary} | {:ok, map}
-  defp process_opts(%Wait{eval: nil}), do: {:error, ":eval is required"}
-  defp process_opts(%Wait{find: nil}), do: {:error, ":find is required"}
+  @spec process_opts(Wait.t() | map) :: {:error, Error.t()} | {:ok, map}
+  defp process_opts(%Wait{eval: nil}), do: {:error, %Error{message: ":eval is required"}}
+  defp process_opts(%Wait{find: nil}), do: {:error, %Error{message: ":find is required"}}
 
   defp process_opts(opts) when is_map(opts) do
     timeout = Map.get(opts, :timeout) || 30

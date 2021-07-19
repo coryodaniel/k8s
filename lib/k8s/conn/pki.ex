@@ -91,6 +91,7 @@ defmodule K8s.Conn.PKI do
     |> Enum.find_value(fn
       {:Certificate, data, _} ->
         {:ok, data}
+
       _ ->
         {:error, %K8s.Conn.Error{message: "No cert data."}}
     end)

@@ -32,6 +32,7 @@ defmodule K8s.Conn.Auth.Exec do
 
   @behaviour K8s.Conn.Auth
   alias __MODULE__
+  alias K8s.Conn.Error
 
   defstruct [:command, :env, :args]
 
@@ -42,7 +43,7 @@ defmodule K8s.Conn.Auth.Exec do
         }
 
   @impl true
-  @spec create(map() | any, String.t() | any) :: {:ok, t} | {:error, any} | :skip
+  @spec create(map() | any, String.t() | any) :: {:ok, t} | {:error, Error.t()} | :skip
   def create(%{"exec" => %{"command" => command} = config}, _) do
     # Optional:
     args = Map.get(config, "args", [])
@@ -83,7 +84,7 @@ defmodule K8s.Conn.Auth.Exec do
   "Generate" a token using the `exec` config in kube config.
   """
   @spec generate_token(t) ::
-          {:ok, binary} | {:error, binary | atom, {:exec_fail, binary}}
+          {:ok, binary} | {:error, Jason.DecodeError.t() | Error.t()}
   def generate_token(config) do
     with {cmd_response, 0} <- System.cmd(config.command, config.args, env: config.env),
          {:ok, data} <- Jason.decode(cmd_response),
@@ -91,16 +92,20 @@ defmodule K8s.Conn.Auth.Exec do
       {:ok, token}
     else
       {cmd_response, err_code} when is_binary(cmd_response) and is_integer(err_code) ->
-        {:error, {:exec_fail, cmd_response}}
+        msg = "#{__MODULE__} failed: #{cmd_response}"
+        {:error, %Error{message: msg}}
 
       error ->
         error
     end
   end
 
-  @spec parse_cmd_response(map) :: {:ok, binary} | {:error, {:exec_fail, binary}}
+  @spec parse_cmd_response(map) :: {:ok, binary} | {:error, Error.t()}
   defp parse_cmd_response(%{"kind" => "ExecCredential", "status" => %{"token" => token}}),
     do: {:ok, token}
 
-  defp parse_cmd_response(_), do: {:error, {:exec_fail, "Unsupported ExecCredential"}}
+  defp parse_cmd_response(_) do
+    msg = "#{__MODULE__} failed: Unsupported ExecCredential"
+    {:error, %Error{message: msg}}
+  end
 end

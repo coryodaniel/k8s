@@ -13,8 +13,6 @@ defmodule K8s.Conn.Auth.DigitalOcean do
          {:ok, response_map} <- Jason.decode(json),
          token when not is_nil(token) <- get_in(response_map, ["status", "token"]) do
       {:ok, %K8s.Conn.Auth.Token{token: token}}
-    else
-      _ -> nil
     end
   end
 

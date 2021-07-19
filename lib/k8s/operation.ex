@@ -2,6 +2,7 @@ defmodule K8s.Operation do
   @moduledoc "Encapsulates Kubernetes REST API operations."
 
   alias K8s.{Operation, Selector}
+  alias K8s.Operation.Error
   @derive {Jason.Encoder, except: [:path_params]}
 
   @allow_http_body [:put, :patch, :post]
@@ -172,7 +173,7 @@ defmodule K8s.Operation do
 
   @doc "Converts a `K8s.Operation` into a URL path."
   @spec to_path(Operation.t()) ::
-          {:ok, String.t()} | {:error, :missing_required_param, list(atom)}
+          {:ok, String.t()} | {:error, Error.t()}
   def to_path(%Operation{} = operation), do: Operation.Path.build(operation)
 
   @doc """

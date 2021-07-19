@@ -7,6 +7,7 @@ defmodule K8s.Client.Runner.Stream do
   alias K8s.Client.Runner.Stream.ListRequest
   alias K8s.Conn
   alias K8s.Operation
+  alias K8s.Operation.Error
 
   @supported_operations [:list, :list_all_namespaces]
 
@@ -19,14 +20,18 @@ defmodule K8s.Client.Runner.Stream do
   @doc """
   Validates operation type before calling `stream/3`. Only supports verbs: `list_all_namespaces` and `list`.
   """
-  @spec run(Conn.t(), Operation.t(), keyword()) :: {:ok, Enumerable.t()} | {:error, atom}
+  @spec run(Conn.t(), Operation.t(), keyword()) :: {:ok, Enumerable.t()} | {:error, Error.t()}
   def run(conn, op, http_opts \\ [])
 
   def run(%Conn{} = conn, %Operation{verb: verb} = op, http_opts)
       when verb in @supported_operations,
       do: {:ok, stream(conn, op, http_opts)}
 
-  def run(_, _, _), do: {:error, :unsupported_operation}
+  def run(op, _, _) do
+    msg = "Only #{inspect(@supported_operations)} operations are supported. #{inspect(op)}"
+
+    {:error, %Error{message: msg}}
+  end
 
   @doc """
   Returns an elixir stream of paginated list results.
@@ -100,11 +105,6 @@ defmodule K8s.Client.Runner.Stream do
         {items, next_request}
 
       {:error, error} ->
-        items = [{:error, error}]
-        halt_requests = ListRequest.make_next_request(paginated_request, :halt)
-        {items, halt_requests}
-
-      {:error, error, _info} ->
         items = [{:error, error}]
         halt_requests = ListRequest.make_next_request(paginated_request, :halt)
         {items, halt_requests}

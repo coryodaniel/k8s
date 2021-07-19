@@ -6,13 +6,13 @@ defmodule K8s.Conn.Auth.Certificate do
   @behaviour K8s.Conn.Auth
 
   alias K8s.Conn
-  alias K8s.Conn.PKI
+  alias K8s.Conn.{Error, PKI}
 
   defstruct [:certificate, :key]
   @type t :: %__MODULE__{certificate: binary, key: binary}
 
   @impl true
-  @spec create(map(), String.t()) :: {:ok, t()} | {:error, any} | :skip
+  @spec create(map(), String.t()) :: {:ok, t()} | {:error, Error.t()} | :skip
   def create(%{"client-certificate" => cert_file, "client-key" => key_file}, base_path) do
     cert_path = Conn.resolve_file_path(cert_file, base_path)
     key_path = Conn.resolve_file_path(key_file, base_path)

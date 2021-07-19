@@ -13,7 +13,8 @@ defmodule K8s.Operation.PathTest do
         name: "pods"
       }
 
-      assert {:error, :missing_required_param, [:name]} = K8s.Operation.Path.build(operation)
+      assert {:error, %K8s.Operation.Error{message: "Missing required params: [:name]"}} =
+               K8s.Operation.Path.build(operation)
     end
 
     test "given a subresource, when a resource param is missing, returns an error" do
@@ -26,7 +27,8 @@ defmodule K8s.Operation.PathTest do
         name: "pods/status"
       }
 
-      assert {:error, :missing_required_param, [:name]} = K8s.Operation.Path.build(operation)
+      assert {:error, %K8s.Operation.Error{message: "Missing required params: [:name]"}} =
+               K8s.Operation.Path.build(operation)
     end
   end
 end
