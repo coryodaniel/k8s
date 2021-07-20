@@ -205,11 +205,28 @@ defmodule K8s.Client do
     Operation.build(:create, api_version, kind, [namespace: ns, name: name], resource)
   end
 
+  def create(
+        %{
+          "apiVersion" => api_version,
+          "kind" => kind,
+          "metadata" => %{"namespace" => ns, "generateName" => _}
+        } = resource
+      ) do
+    Operation.build(:create, api_version, kind, [namespace: ns], resource)
+  end
+
   # Support for creating resources that are cluster-scoped, like Namespaces.
   def create(
         %{"apiVersion" => api_version, "kind" => kind, "metadata" => %{"name" => name}} = resource
       ) do
     Operation.build(:create, api_version, kind, [name: name], resource)
+  end
+
+  def create(
+        %{"apiVersion" => api_version, "kind" => kind, "metadata" => %{"generateName" => _}} =
+          resource
+      ) do
+    Operation.build(:create, api_version, kind, [], resource)
   end
 
   @doc """
