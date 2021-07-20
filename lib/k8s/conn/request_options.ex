@@ -14,7 +14,7 @@ defprotocol K8s.Conn.RequestOptions do
   @typedoc """
   `generate/1` response type
   """
-  @type generate_t :: {:ok, t} | {:error, binary | atom}
+  @type generate_t :: {:ok, t} | {:error, K8s.Conn.Error.t() | atom}
 
   @spec generate(any()) :: generate_t()
   def generate(auth)

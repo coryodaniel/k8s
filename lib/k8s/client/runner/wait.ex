@@ -7,6 +7,7 @@ defmodule K8s.Client.Runner.Wait do
 
   alias K8s.{Conn, Operation}
   alias K8s.Client.Runner.{Base, Wait}
+  alias K8s.Operation.Error
 
   @typedoc "A wait configuration"
   @type t :: %__MODULE__{
@@ -15,7 +16,7 @@ defmodule K8s.Client.Runner.Wait do
           eval: any | (any -> any),
           find: list(binary) | (any -> any),
           timeout_after: NaiveDateTime.t(),
-          processor: (map(), map() -> {:ok, map} | {:error, binary})
+          processor: (map(), map() -> {:ok, map} | {:error, Error.t()})
         }
   defstruct [:timeout, :sleep, :eval, :find, :timeout_after, :processor]
 
@@ -24,33 +25,35 @@ defmodule K8s.Client.Runner.Wait do
 
   ## Example
 
-  Checking the number of job completions:
+  This follow example will wait 60 seconds for the field `status.succeeded` to equal `1`.
 
   ```elixir
   op = K8s.Client.get("batch/v1", :job, namespace: "default", name: "sleep")
   opts = [find: ["status", "succeeded"], eval: 1, timeout: 60]
-  conn = K8s.Conn.lookup(:my_cluster)
-  resp = K8s.Client.Runner.Wait.run(op, conn, opts)
+  {:ok, conn} = K8s.Conn.from_file("test/support/kube-config.yaml")
+  resp = K8s.Client.Runner.Wait.run(conn, op, opts)
   ```
   """
-  @spec run(Operation.t(), binary, keyword(atom())) ::
-          {:ok, map()} | {:error, binary()}
-  def run(%Operation{method: :get} = op, %Conn{} = conn, opts) do
+  @spec run(Conn.t(), Operation.t(), keyword(atom())) ::
+          {:ok, map()} | {:error, :timeout | Error.t()}
+  def run(%Conn{} = conn, %Operation{method: :get} = op, opts) do
     conditions =
       Wait
       |> struct(opts)
       |> process_opts()
 
     case conditions do
-      {:ok, opts} -> run_operation(op, conn, opts)
+      {:ok, opts} -> run_operation(conn, op, opts)
       error -> error
     end
   end
 
-  def run(op, _, _), do: {:error, "Only HTTP GET operations are supported. #{inspect(op)}"}
+  def run(op, _, _),
+    do: {:error, %Error{message: "Only HTTP GET operations are supported. #{inspect(op)}"}}
 
-  defp process_opts(%Wait{eval: nil}), do: {:error, ":eval is required"}
-  defp process_opts(%Wait{find: nil}), do: {:error, ":find is required"}
+  @spec process_opts(Wait.t() | map) :: {:error, Error.t()} | {:ok, map}
+  defp process_opts(%Wait{eval: nil}), do: {:error, %Error{message: ":eval is required"}}
+  defp process_opts(%Wait{find: nil}), do: {:error, %Error{message: ":find is required"}}
 
   defp process_opts(opts) when is_map(opts) do
     timeout = Map.get(opts, :timeout) || 30
@@ -69,28 +72,35 @@ defmodule K8s.Client.Runner.Wait do
     {:ok, processed}
   end
 
-  defp run_operation(op, conn, %Wait{timeout_after: timeout_after} = opts) do
+  @spec run_operation(Conn.t(), Operation.t(), Wait.t()) :: {:error, :timeout} | {:ok, any}
+  defp run_operation(
+         %Conn{} = conn,
+         %Operation{} = op,
+         %Wait{timeout_after: timeout_after} = opts
+       ) do
     case timed_out?(timeout_after) do
       true -> {:error, :timeout}
-      false -> evaluate_operation(op, conn, opts)
+      false -> evaluate_operation(conn, op, opts)
     end
   end
 
+  @spec evaluate_operation(Conn.t(), Operation.t(), Wait.t()) :: {:error, :timeout} | {:ok, any}
   defp evaluate_operation(
-         op,
-         conn,
+         %Conn{} = conn,
+         %Operation{} = op,
          %Wait{processor: processor, sleep: sleep, eval: eval, find: find} = opts
        ) do
-    with {:ok, resp} <- processor.(op, conn),
+    with {:ok, resp} <- processor.(conn, op),
          true <- satisfied?(resp, find, eval) do
       {:ok, resp}
     else
       _not_satisfied ->
         Process.sleep(sleep)
-        run_operation(op, conn, opts)
+        run_operation(conn, op, opts)
     end
   end
 
+  @spec satisfied?(map, function | list, any) :: boolean
   defp satisfied?(resp = %{}, find, eval) when is_list(find) do
     value = get_in(resp, find)
     compare(value, eval)
@@ -101,9 +111,11 @@ defmodule K8s.Client.Runner.Wait do
     compare(value, eval)
   end
 
+  @spec compare(any, any) :: boolean
   defp compare(value, eval) when not is_function(eval), do: value == eval
   defp compare(value, eval) when is_function(eval), do: eval.(value)
 
+  @spec timed_out?(NaiveDateTime.t()) :: boolean
   defp timed_out?(timeout_after) do
     case NaiveDateTime.compare(NaiveDateTime.utc_now(), timeout_after) do
       :gt -> true

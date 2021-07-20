@@ -1,0 +1,22 @@
+name: Kubernetes Compatibility Matrix
+on: push
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        k8s_version: [v1.19.12-k3s1, v1.20.8-k3s1, v1.21.2-k3s1, latest]
+    steps:
+      - uses: debianmaster/actions-k3s@master
+        id: k3s
+        with:
+          version: ${{ matrix.k8s_version }}
+      - uses: actions/checkout@v1.0.0
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: 23.x
+          elixir-version: 1.11.x
+      - run: mix local.rebar --force
+      - run: mix local.hex --force
+      - run: mix deps.get
+      - run: TEST_KUBECONFIG=$KUBECONFIG TEST_WAIT_TIMEOUT=120 mix test --only integration --max-failures 1

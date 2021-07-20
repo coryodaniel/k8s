@@ -54,7 +54,7 @@
         {Credo.Check.Consistency.ExceptionNames, []},
         {Credo.Check.Consistency.LineEndings, []},
         {Credo.Check.Consistency.ParameterPatternMatching, []},
-        {Credo.Check.Consistency.SpaceAroundOperators, []},
+        {Credo.Check.Consistency.SpaceAroundOperators, false},
         {Credo.Check.Consistency.SpaceInParentheses, []},
         {Credo.Check.Consistency.TabsOrSpaces, []},
 
@@ -134,7 +134,7 @@
         #
         {Credo.Check.Consistency.MultiAliasImportRequireUse, false},
         {Credo.Check.Design.DuplicatedCode, false},
-        {Credo.Check.Readability.Specs},
+        {Credo.Check.Readability.Specs, [include_defp: true]},
         {Credo.Check.Refactor.ABCSize, false},
         {Credo.Check.Refactor.AppendSingleItem, false},
         {Credo.Check.Refactor.DoubleBooleanNegation, false},

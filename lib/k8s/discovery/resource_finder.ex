@@ -5,7 +5,7 @@ defmodule K8s.Discovery.ResourceFinder do
 
   alias K8s.Discovery.ResourceNaming
 
-  @type error_t :: {:error, :unsupported_resource, binary}
+  @type error_t :: {:error, K8s.Discovery.Error.t()}
 
   @doc """
   Get the REST resource name for a kubernetes `Kind`.
@@ -47,8 +47,12 @@ defmodule K8s.Discovery.ResourceFinder do
     resource = Enum.find(resources, &ResourceNaming.matches?(&1, name_or_kind))
 
     case resource do
-      nil -> {:error, :unsupported_resource, name_or_kind}
-      resource -> {:ok, resource}
+      nil ->
+        {:error,
+         %K8s.Discovery.Error{message: "Unsupported Kubernetes resource: #{name_or_kind}"}}
+
+      resource ->
+        {:ok, resource}
     end
   end
 end

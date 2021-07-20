@@ -1,0 +1,7 @@
+apiVersion: apps/v1beta1
+kind: Scale
+metadata:
+  name: nginx
+  namespace: test
+spec:
+  replicas: 3

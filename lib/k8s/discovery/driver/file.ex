@@ -39,40 +39,39 @@ defmodule K8s.Discovery.Driver.File do
   @impl true
   def versions(%K8s.Conn{}, opts \\ []), do: get_versions(opts)
 
+  @spec get_versions(keyword) :: {:ok, list(binary)} | {:error, :enoent | Jason.DecodeError.t()}
   defp get_versions(opts) do
-    with {:ok, config} = get_config(opts) do
+    with {:ok, config} <- get_config(opts) do
       versions = Map.keys(config)
       {:ok, versions}
     end
   end
 
+  @spec get_resources(binary, keyword) ::
+          {:ok, list(binary)} | {:error, :enoent | Jason.DecodeError.t()}
   defp get_resources(api_version, opts) do
-    with {:ok, config} = get_config(opts) do
+    with {:ok, config} <- get_config(opts) do
       resources = Map.get(config, api_version, [])
       {:ok, resources}
     end
   end
 
+  @spec get_config(keyword) :: {:ok, map} | {:error, :enoent | Jason.DecodeError.t()}
   defp get_config(opts) do
-    merged_opts = Keyword.merge(default_opts(), opts)
-    file = Keyword.get(merged_opts, :config)
-
-    case file do
-      nil -> {:error, :no_config_file}
-      file -> parse_config_file(file)
-    end
-  end
-
-  defp parse_config_file(file) do
-    with {:ok, data} <- File.read(file) do
-      Jason.decode(data)
+    default_opts()
+    |> Keyword.merge(opts)
+    |> Keyword.get(:config, "")
+    |> File.read()
+    |> case do
+      {:ok, data} -> Jason.decode(data)
+      error -> error
     end
   end
 
   @spec default_opts() :: Keyword.t()
   defp default_opts do
-    case K8s.Discovery.default_driver() do
-      __MODULE__ -> K8s.Discovery.default_opts()
+    case K8s.default_discovery_driver() do
+      __MODULE__ -> K8s.default_discovery_opts()
       _ -> []
     end
   end

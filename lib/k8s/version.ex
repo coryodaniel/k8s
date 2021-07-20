@@ -185,8 +185,9 @@ defmodule K8s.Version do
   defp format(major, minor, patch), do: %__MODULE__{major: major, minor: minor, patch: patch}
 
   # Parse a list of string versions
-  @spec parse_list(list(binary), list(K8s.Version.t()) | nil) :: list(K8s.Version.t())
+  @spec parse_list(list(binary)) :: list(K8s.Version.t())
   defp parse_list(versions), do: parse_list(versions, [])
+  @spec parse_list(list(binary), list(K8s.Version.t()) | nil) :: list(K8s.Version.t())
   defp parse_list([], acc), do: acc
   defp parse_list([version | tail], acc), do: parse_list(tail, [parse(version) | acc])
 end
