@@ -43,19 +43,19 @@ defmodule K8s.Client.HTTPProvider do
   Handles unauthorized responses:
 
       iex> K8s.Client.HTTPProvider.handle_response({:ok, %HTTPoison.Response{status_code: 401}})
-      {:error, :unauthorized}
+      {:error,  %HTTPoison.Response{body: nil, headers: [], request: nil, request_url: nil, status_code: 401}}
 
   Handles not found responses:
 
       iex> body = ~s({"kind":"Status","apiVersion":"v1","metadata":{},"status":"Failure","message":"namespaces not found","reason":"NotFound","details":{"name":"i-dont-exist","kind":"namespaces"},"code":404})
       ...> headers = [{"Content-Type", "application/json"}]
       ...> K8s.Client.HTTPProvider.handle_response({:ok, %HTTPoison.Response{status_code: 404, body: body, headers: headers}})
-      {:error, :not_found}
+      {:error, %K8s.Client.APIError{message: "namespaces not found", reason: "NotFound"}}
 
   Passes through HTTPoison 4xx responses:
 
       iex> K8s.Client.HTTPProvider.handle_response({:ok, %HTTPoison.Response{status_code: 410, body: "Gone"}})
-      {:error, %HTTPoison.Response{status_code: 410, body: "Gone"}}
+      {:error,  %HTTPoison.Response{body: "Gone", headers: [], request: nil, request_url: nil, status_code: 410}}
 
   Passes through HTTPoison error responses:
 
@@ -71,21 +71,34 @@ defmodule K8s.Client.HTTPProvider do
     case resp do
       %HTTPoison.Response{status_code: code, body: body, headers: headers}
       when code in 200..299 ->
-        content_type = List.keyfind(headers, "Content-Type", 0)
+        content_type = get_content_type(headers)
         {:ok, decode(body, content_type)}
 
-      %HTTPoison.Response{status_code: 404, body: body, headers: headers} ->
-        msg = format_log_message(body, headers)
-        Logger.error(msg)
+      %HTTPoison.Response{status_code: code} = err
+      when code in 400..599 ->
+        handle_error(err)
+    end
+  end
 
-        {:error, :not_found}
+  @spec handle_error(HTTPoison.Response.t()) ::
+          {:error, K8s.Client.APIError.t() | HTTPoison.Response.t()}
+  defp handle_error(%HTTPoison.Response{status_code: _, body: body, headers: headers} = resp) do
+    case get_content_type(headers) do
+      "application/json" = content_type ->
+        body |> decode(content_type) |> handle_kubernetes_error()
 
-      %HTTPoison.Response{status_code: 401} ->
-        {:error, :unauthorized}
-
-      %HTTPoison.Response{status_code: code} when code in 400..599 ->
+      _http_error ->
         {:error, resp}
     end
+  end
+
+  # Kubernetes specific errors are typically wrapped in a JSON body
+  # see: https://github.com/kubernetes/apimachinery/blob/master/pkg/api/errors/errors.go
+  # so one must differentiate between e.g ordinary 404s and kubernetes 404
+  @spec handle_kubernetes_error(map) :: {:error, K8s.Client.APIError.t()}
+  defp handle_kubernetes_error(%{"reason" => reason, "message" => message}) do
+    err = %K8s.Client.APIError{message: message, reason: reason}
+    {:error, err}
   end
 
   @doc """
@@ -120,8 +133,8 @@ defmodule K8s.Client.HTTPProvider do
     {"Content-Type", "application/json"}
   end
 
-  @spec decode(binary(), {binary(), binary()} | nil) :: list | map | nil
-  defp decode(body, {_, "text/plain"}), do: body
+  @spec decode(binary, binary) :: map | list | nil
+  defp decode(body, "text/plain"), do: body
 
   defp decode(body, _default_json_decoder) do
     case Jason.decode(body) do
@@ -130,13 +143,11 @@ defmodule K8s.Client.HTTPProvider do
     end
   end
 
-  @spec format_log_message(String.t(), [tuple]) :: any
-  def format_log_message(body, headers) do
-    content_type = List.keyfind(headers, "Content-Type", 0)
-
-    case decode(body, content_type) do
-      %{"message" => msg} -> msg
-      msg -> msg
+  @spec get_content_type(keyword()) :: binary | nil
+  defp get_content_type(headers) do
+    case List.keyfind(headers, "Content-Type", 0) do
+      {_key, content_type} -> content_type
+      _ -> nil
     end
   end
 end

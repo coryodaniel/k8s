@@ -63,11 +63,37 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
     end
 
     @tag integration: true
+    test "when the request is unauthorized", %{conn: conn} do
+      operation = K8s.Client.get("v1", "ServiceAccount", name: "default", namespace: "default")
+      unauthorized = %K8s.Conn.Auth.Token{token: "nope"}
+      unauthorized_conn = %K8s.Conn{conn | auth: unauthorized}
+
+      {:error, error} = K8s.Client.run(unauthorized_conn, operation)
+
+      assert %K8s.Client.APIError{
+               __exception__: true,
+               message: "Unauthorized",
+               reason: "Unauthorized"
+             } == error
+    end
+
+    @tag integration: true
     test "getting a resource", %{conn: conn} do
       operation = K8s.Client.get("v1", "ServiceAccount", name: "default", namespace: "default")
       result = K8s.Client.run(conn, operation)
 
       assert {:ok, %{"apiVersion" => "v1", "kind" => "ServiceAccount"}} = result
+    end
+
+    @tag integration: true
+    test "getting a resource that doesn't exist returns an error", %{conn: conn} do
+      operation = K8s.Client.get("v1", "ServiceAccount", name: "NOPE", namespace: "default")
+      {:error, error} = K8s.Client.run(conn, operation)
+
+      assert %K8s.Client.APIError{
+               message: "serviceaccounts \"NOPE\" not found",
+               reason: "NotFound"
+             } == error
     end
 
     @tag integration: true

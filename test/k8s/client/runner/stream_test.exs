@@ -28,7 +28,7 @@ defmodule K8s.Client.Runner.StreamTest do
           render(data, 200, [{"Content-Type", "application/json"}])
 
         [limit: 10, continue: "stream-failure-test", labelSelector: ""] ->
-          render(%{"message" => "next page not found"}, 404, [
+          render(%{"reason" => "NotFound", "message" => "next page not found"}, 404, [
             {"Content-Type", "application/json"}
           ])
       end
@@ -78,7 +78,7 @@ defmodule K8s.Client.Runner.StreamTest do
                  "kind" => "Service",
                  "metadata" => %{"name" => "foo", "namespace" => "stream-failure-test"}
                },
-               {:error, :not_found}
+               {:error, %K8s.Client.APIError{message: "next page not found", reason: "NotFound"}}
              ]
     end
 

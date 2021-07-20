@@ -40,7 +40,7 @@ The package can be installed by adding `:k8s` to your list of dependencies in `m
 ```elixir
 def deps do
   [
-    {:k8s, "~> 1.0.0-rc1"}
+    {:k8s, "~> 1.0"}
   ]
 end
 ```
