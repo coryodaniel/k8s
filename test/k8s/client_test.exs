@@ -29,11 +29,10 @@ defmodule K8s.ClientTest do
     assert %K8s.Operation{
              api_version: "batch/v1",
              data: ^job,
-             label_selector: nil,
              method: :post,
              name: "Job",
              path_params: [namespace: "default"],
-             query_params: %{},
+             query_params: [],
              verb: :create
            } = K8s.Client.create(job)
   end
@@ -50,11 +49,10 @@ defmodule K8s.ClientTest do
     assert %K8s.Operation{
              api_version: "v1",
              data: ^ns,
-             label_selector: nil,
              method: :post,
              name: "Namespace",
              path_params: [],
-             query_params: %{},
+             query_params: [],
              verb: :create
            } = K8s.Client.create(ns)
   end
