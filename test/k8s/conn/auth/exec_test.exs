@@ -14,11 +14,12 @@ defmodule K8s.Conn.Auth.ExecTest do
         }
       }
 
-      assert %Exec{
-               command: "aws-iam-authenticator",
-               env: %{},
-               args: []
-             } = Exec.create(auth, nil)
+      assert {:ok,
+              %Exec{
+                command: "aws-iam-authenticator",
+                env: %{},
+                args: []
+              }} = Exec.create(auth, nil)
     end
 
     test "creates an exec struct with function arguments" do
@@ -30,11 +31,12 @@ defmodule K8s.Conn.Auth.ExecTest do
         }
       }
 
-      assert %Exec{
-               command: "aws-iam-authenticator",
-               env: %{},
-               args: ["token", "-i", "staging"]
-             } = Exec.create(auth, nil)
+      assert {:ok,
+              %Exec{
+                command: "aws-iam-authenticator",
+                env: %{},
+                args: ["token", "-i", "staging"]
+              }} = Exec.create(auth, nil)
     end
 
     test "creates an exec struct with environment variables" do
@@ -46,11 +48,12 @@ defmodule K8s.Conn.Auth.ExecTest do
         }
       }
 
-      assert %Exec{
-               command: "aws-iam-authenticator",
-               env: %{"FOO" => "bar"},
-               args: []
-             } = Exec.create(auth, nil)
+      assert {:ok,
+              %Exec{
+                command: "aws-iam-authenticator",
+                env: %{"FOO" => "bar"},
+                args: []
+              }} = Exec.create(auth, nil)
     end
 
     test "creates an exec struct with null env" do
@@ -62,11 +65,12 @@ defmodule K8s.Conn.Auth.ExecTest do
         }
       }
 
-      assert %Exec{
-               command: "aws-iam-authenticator",
-               env: %{},
-               args: []
-             } = Exec.create(auth, nil)
+      assert {:ok,
+              %Exec{
+                command: "aws-iam-authenticator",
+                env: %{},
+                args: []
+              }} = Exec.create(auth, nil)
     end
   end
 

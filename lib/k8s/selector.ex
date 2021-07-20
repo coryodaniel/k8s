@@ -56,7 +56,7 @@ defmodule K8s.Selector do
       iex> K8s.Client.get("v1", :pods)
       ...> |> K8s.Selector.label({"app", "nginx"})
       ...> |> K8s.Selector.label_in({"environment", ["qa", "prod"]})
-      %K8s.Operation{data: nil, api_version: "v1", query_params: %{labelSelector: %K8s.Selector{match_expressions: [%{"key" => "environment", "operator" => "In", "values" => ["qa", "prod"]}], match_labels: %{"app" => "nginx"}}}, method: :get, name: :pods, path_params: [], verb: :get}
+      %K8s.Operation{data: nil, api_version: "v1", query_params: [labelSelector: %K8s.Selector{match_expressions: [%{"key" => "environment", "operator" => "In", "values" => ["qa", "prod"]}], match_labels: %{"app" => "nginx"}}], method: :get, name: :pods, path_params: [], verb: :get}
   """
 
   alias K8s.{Operation, Resource}
@@ -221,9 +221,13 @@ defmodule K8s.Selector do
   ## Examples
       iex> K8s.Selector.label({"component", "redis"})
       %K8s.Selector{match_labels: %{"component" => "redis"}}
+
+      iex> K8s.Selector.label(%{"component" => "redis", "env" => "prod"})
+      %K8s.Selector{match_labels: %{"component" => "redis", "env" => "prod"}}      
   """
-  @spec label({binary | atom, binary}) :: t()
+  @spec label({binary | atom, binary} | map) :: t()
   def label({key, value}), do: %K8s.Selector{match_labels: %{key => value}}
+  def label(labels) when is_map(labels), do: %K8s.Selector{match_labels: labels}
 
   @doc """
   `matchLabels` helper that creates a composable `K8s.Selector`.
@@ -309,8 +313,9 @@ defmodule K8s.Selector do
 
   @spec merge(selector_or_operation_t, t) :: selector_or_operation_t
   defp merge(%Operation{} = op, %__MODULE__{} = next) do
-    prev = Operation.get_query_param(op, :labelSelector) || %__MODULE__{}
-    Operation.put_query_param(op, :labelSelector, merge(prev, next))
+    prev = Operation.get_label_selector(op)
+    merged_selector = merge(prev, next)
+    Operation.put_label_selector(op, merged_selector)
   end
 
   defp merge(%__MODULE__{} = prev, %__MODULE__{} = next) do
@@ -434,6 +439,7 @@ defmodule K8s.Selector do
     do_serialize_match_expressions(exps, [])
   end
 
+  @spec do_serialize_match_expressions(list, list) :: list
   defp do_serialize_match_expressions([], acc), do: acc |> Enum.reverse()
 
   defp do_serialize_match_expressions([exp | tail], acc) do

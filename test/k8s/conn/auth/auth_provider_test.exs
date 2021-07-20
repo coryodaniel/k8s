@@ -21,12 +21,13 @@ defmodule K8s.Conn.Auth.AuthProviderTest do
         }
       }
 
-      assert %AuthProvider{
-               cmd_args: ["config", "config-helper", "--format=json"],
-               cmd_path: "/Users/user/google-cloud-sdk/bin/gcloud",
-               expiry_key: ["credential", "token_expiry"],
-               token_key: ["credential", "access_token"]
-             } = AuthProvider.create(auth, nil)
+      assert {:ok,
+              %AuthProvider{
+                cmd_args: ["config", "config-helper", "--format=json"],
+                cmd_path: "/Users/user/google-cloud-sdk/bin/gcloud",
+                expiry_key: ["credential", "token_expiry"],
+                token_key: ["credential", "access_token"]
+              }} = AuthProvider.create(auth, nil)
     end
   end
 

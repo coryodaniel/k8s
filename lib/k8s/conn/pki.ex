@@ -13,87 +13,104 @@ defmodule K8s.Conn.PKI do
     :PrivateKeyInfo
   ]
 
+  @type private_key_data_t :: {atom, binary}
+
   @doc """
   Reads the certificate from PEM file or base64 encoding
   """
-  @spec cert_from_map(map(), String.t()) :: binary
+  @spec cert_from_map(map, binary) ::
+          {:error, :enoent | K8s.Conn.Error.t()} | {:ok, binary() | nil}
   def cert_from_map(%{"certificate-authority-data" => data}, _) when not is_nil(data),
     do: PKI.cert_from_base64(data)
 
-  def cert_from_map(%{"certificate-authority" => file_name}, base_path) do
+  def cert_from_map(%{"certificate-authority" => file_name}, base_path)
+      when not is_nil(file_name) do
     file_name
     |> Conn.resolve_file_path(base_path)
     |> PKI.cert_from_pem()
   end
 
-  # Handles the case for docker-for-desktop kubernetes cluster as there is no ca
-  def cert_from_map(_, _), do: nil
+  def cert_from_map(%{"insecure-skip-tls-verify" => true}, _), do: {:ok, nil}
 
   @doc """
   Reads the certificate from a PEM file
   """
-  @spec cert_from_pem(String.t()) :: nil | binary
-  def cert_from_pem(nil), do: nil
-
+  @spec cert_from_pem(String.t()) :: {:ok, binary} | {:error, :enoent | K8s.Conn.Error.t()}
   def cert_from_pem(file) do
-    file
-    |> File.read!()
-    |> decode_cert_data()
+    with {:ok, data} <- File.read(file), do: decode_cert_data(data)
   end
 
   @doc """
   Decodes the certificate from a base64 encoded string
   """
-  @spec cert_from_base64(String.t()) :: nil | binary
-  def cert_from_base64(nil), do: nil
-
+  @spec cert_from_base64(binary) :: {:ok, binary} | {:enoent | K8s.Conn.Error.t()}
   def cert_from_base64(data) do
-    case Base.decode64(data) do
-      {:ok, cert_data} -> decode_cert_data(cert_data)
-      _ -> nil
+    with {:ok, data} <- decode64(data) do
+      decode_cert_data(data)
     end
   end
-
-  defp decode_cert_data(cert_data) do
-    cert_data
-    |> :public_key.pem_decode()
-    |> Enum.find_value(fn
-      {:Certificate, data, _} -> data
-      _ -> nil
-    end)
-  end
-
-  @spec private_key_from_pem(String.t()) :: nil | {atom, binary}
-  def private_key_from_pem(nil), do: nil
 
   @doc """
   Reads private key from a PEM file
   """
+  @spec private_key_from_pem(String.t()) ::
+          {:ok, private_key_data_t} | {:error, :enoent | K8s.Conn.Error.t()}
   def private_key_from_pem(file) do
-    file
-    |> File.read!()
-    |> decode_private_key_data
+    with {:ok, data} <- File.read(file),
+         {:ok, private_key_data} <- decode_private_key_data(data) do
+      {:ok, private_key_data}
+    end
   end
 
   @doc """
   Decodes private key from a base64 encoded string
   """
-  @spec private_key_from_base64(String.t()) :: nil | {atom, binary}
-  def private_key_from_base64(nil), do: nil
-
+  @spec private_key_from_base64(String.t()) ::
+          {:ok, private_key_data_t} | {:error, K8s.Conn.Error.t()}
   def private_key_from_base64(encoded_key) do
-    case Base.decode64(encoded_key) do
-      {:ok, data} -> decode_private_key_data(data)
-      _ -> nil
+    with {:ok, data} <- decode64(encoded_key) do
+      case decode_private_key_data(data) do
+        {:ok, private_key_data} -> {:ok, private_key_data}
+        error -> error
+      end
     end
   end
 
+  @spec decode64(binary) :: {:ok, binary} | {:error, K8s.Conn.Error.t()}
+  defp decode64(data) do
+    case Base.decode64(data) do
+      {:ok, data} -> {:ok, data}
+      :error -> {:error, %K8s.Conn.Error{message: "Invalid Base64"}}
+    end
+  end
+
+  @spec decode_cert_data(binary) :: {:ok, binary} | {:error, K8s.Conn.Error.t()}
+  defp decode_cert_data(cert_data) do
+    cert_data
+    |> :public_key.pem_decode()
+    |> Enum.find_value(fn
+      {:Certificate, data, _} ->
+        {:ok, data}
+
+      _ ->
+        {:error, %K8s.Conn.Error{message: "No cert data."}}
+    end)
+  end
+
+  @spec decode_private_key_data(binary) ::
+          {:ok, private_key_data_t} | {:error, K8s.Conn.Error.t()}
   defp decode_private_key_data(private_key_data) do
     private_key_data
     |> :public_key.pem_decode()
     |> Enum.find_value(fn
-      {type, data, _} when type in @private_key_atoms -> {type, data}
-      _ -> false
+      {type, data, _} when type in @private_key_atoms ->
+        {:ok, {type, data}}
+
+      _ ->
+        {:error,
+         %K8s.Conn.Error{
+           message: "Unsupported PEM data. Supported types #{inspect(@private_key_atoms)}"
+         }}
     end)
   end
 end

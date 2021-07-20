@@ -1,7 +1,5 @@
 name: CI
 on:
-  push:
-    branches: [develop]
   pull_request:
     branches: [develop]
 
@@ -13,13 +11,13 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        elixir: [1.10.2]
-        otp: [22.x]
+        elixir: [1.11.x]
+        otp: [23.x]
     steps:
       - uses: actions/checkout@v2
 
       - name: Setup elixir
-        uses: actions/setup-elixir@v1
+        uses: erlef/setup-beam@v1
         with:
           elixir-version: ${{matrix.elixir}}
           otp-version: ${{matrix.otp}}
@@ -38,9 +36,8 @@ jobs:
           mix local.hex --force
           mix deps.get
 
-      # something in 1.10.2 isn't formatted, but is in 1.10.4
-      # - name: Check Formatting
-      #   run: mix format --check-formatted
+      - name: Check Formatting
+        run: mix format --check-formatted
 
       - name: Run Credo
         run: mix credo --strict

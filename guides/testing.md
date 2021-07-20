@@ -13,16 +13,12 @@ The driver can be set for all clusters or per-cluster:
 ```elixir
 config :k8s,
   discovery_driver: K8s.Discovery.Driver.File,
-  discovery_opts: [config: "test/support/discovery/example.json"],
-  clusters: %{
-    test: %{
-      conn: "test/support/kube-config.yaml",
-      conn_opts: [
-        discovery_driver: K8s.Discovery.Driver.File,
-        discovery_opts: [config: "test/support/discovery/example.json"]
-      ]
-    }
-  }
+  discovery_opts: [config: "test/support/discovery/example.json"]
+```
+
+```elixir
+{:ok, conn} = K8s.Conn.from_file("....")
+conn = %K8s.Conn{conn | discovery_driver: AlternateDriver}
 ```
 
 ## Mocking HTTP Responses of `K8s.Operations` in your application
@@ -35,12 +31,6 @@ To enable the dynamic HTTP provider it must be turned on in your `config.exs`:
 
 ```elixir
 config :k8s, http_provider: K8s.Client.DynamicHTTPProvider
-```
-
-You must also start it before tests are run, usually in `test/test_helper.exs`:
-
-```elixir
-K8s.Client.DynamicHTTPProvider.start_link(nil)
 ```
 
 ```elixir
@@ -65,7 +55,7 @@ defmodule MyApp.ResourceTest do
   test "gets namespaces" do
     conn = %K8s.Conn{} # set up your conn
     operation = K8s.Client.get("v1", :namespaces)
-    assert {:ok, namespaces} = K8s.Client.run(operation, conn)
+    assert {:ok, namespaces} = K8s.Client.run(conn, operation)
     assert namespaces == [%{"metadata" => %{"name" => "default"}}]
   end
 end
@@ -77,4 +67,20 @@ To see advanced examples of usage, check out these examples in the test suite:
 * [client/runner/stream](./test/k8s/client/runner/stream_test.exs)
 * [client/runner/watch](./test/k8s/client/runner/watch_test.exs)
 * [discovery](./test/k8s/discovery_test.exs)
-  
+
+## Integration Testing
+
+A `Makefile` is included for help with integration testing against k3s.
+
+Run `make help` for a list of commands:
+
+```
+test.integration               Run integration tests using k3d `make cluster`
+test.watch                     Run all tests with mix.watch
+test                           Run all tests
+```
+
+### Integration environment variables
+
+* `TEST_KUBECONFIG` path to kubeconfig file for integration tests, default: "./integration.yaml"
+* `TEST_WAIT_TIMEOUT` number of seconds to timeout running Wait integration tests, default: 5

@@ -3,6 +3,7 @@ defmodule K8s.Conn.Auth.AuthProvider do
   `auth-provider` authentication support
   """
   alias K8s.Conn.Auth.AuthProvider
+  alias K8s.Conn.Error
   alias K8s.Conn.RequestOptions
   @behaviour K8s.Conn.Auth
 
@@ -16,6 +17,7 @@ defmodule K8s.Conn.Auth.AuthProvider do
         }
 
   @impl true
+  @spec create(map, String.t()) :: {:ok, t} | :skip
   def create(%{"auth-provider" => %{"config" => config}}, _) do
     %{
       "cmd-path" => cmd_path,
@@ -24,15 +26,16 @@ defmodule K8s.Conn.Auth.AuthProvider do
       "expiry-key" => expiry_key
     } = config
 
-    %__MODULE__{
-      cmd_path: cmd_path,
-      cmd_args: format_args(cmd_args),
-      token_key: format_json_keys(token_key),
-      expiry_key: format_json_keys(expiry_key)
-    }
+    {:ok,
+     %__MODULE__{
+       cmd_path: cmd_path,
+       cmd_args: format_args(cmd_args),
+       token_key: format_json_keys(token_key),
+       expiry_key: format_json_keys(expiry_key)
+     }}
   end
 
-  def create(_, _), do: nil
+  def create(_, _), do: :skip
 
   @spec format_args(String.t()) :: list(String.t())
   defp format_args(args), do: String.split(args, " ")
@@ -67,16 +70,16 @@ defmodule K8s.Conn.Auth.AuthProvider do
   "Generate" a token using the `auth-provider` config in kube config.
   """
   @spec generate_token(t) ::
-          {:ok, binary} | {:error, binary | atom, {:auth_provider_fail, binary}}
+          {:ok, binary} | {:error, :enoent | K8s.Conn.Error.t()}
   def generate_token(config) do
     with {cmd_response, 0} <- System.cmd(config.cmd_path, config.cmd_args),
          {:ok, data} <- Jason.decode(cmd_response),
          token when not is_nil(token) <- get_in(data, config.token_key) do
       {:ok, token}
     else
-      {cmd_response, err_code}
-      when is_binary(cmd_response) and is_integer(err_code) ->
-        {:error, {:auth_provider_fail, cmd_response}}
+      {cmd_response, err_code} when is_binary(cmd_response) and is_integer(err_code) ->
+        msg = "#{__MODULE__} failed: #{cmd_response}"
+        {:error, %Error{message: msg}}
 
       error ->
         error

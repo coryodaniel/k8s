@@ -1,63 +1,52 @@
+K3D_KUBECONFIG_PATH?=./integration.yaml
+
 .PHONY: help
 help: ## Show this help
 help:
 	@grep -E '^[\/a-zA-Z0-9._%-]+:.*?## .*$$' Makefile | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
-.PHONY: quality
-quality: ## Run code quality and test targets
-quality: cov lint analyze
-
 .PHONY: clean
 clean: ## Remove build/doc dirs
-	rm -rf _build
-	rm -rf cover
-	rm -rf deps
-	rm -rf doc
-
-.PHONY: deps
-deps: ## Fetch deps
-	mix deps.get
+	rm -rf {_build,cover,deps,doc}
+	rm -f integration.yaml
 
 .PHONY: all
 all: ## Run format, credo, dialyzer, and test all supported k8s versions
-all: deps doc lint test analyze inch
-
-.PHONY: doc
-doc:
+all: 
+	mix deps.get
+	mix coveralls.html
+	mix format
+	mix credo --strict
+	mix dialyzer
 	mix docs
-
-.PHONY: inch
-inch:
 	mix inch
 
+CLUSTER_NAME=k8s-ex
+integration.yaml: ## Create a k3d cluster
+	- k3d cluster delete ${CLUSTER_NAME}
+	k3d cluster create ${CLUSTER_NAME} --servers 1 --wait
+	k3d kubeconfig get ${CLUSTER_NAME} > ${K3D_KUBECONFIG_PATH}
+	sleep 5
+
+.PHONY: test.integration
+test.integration: integration.yaml
+test.integration: ## Run integration tests using k3d `make cluster`
+	TEST_KUBECONFIG=${K3D_KUBECONFIG_PATH} mix test --only integration
+
 .PHONY: test
-test: ## Run fast tests on k8s latest stable
-	mix test
+test: integration.yaml
+test: ## Run all tests
+	TEST_KUBECONFIG=${K3D_KUBECONFIG_PATH} mix test --include integration
 
-.PHONY: tdd
-tdd: ## Run fast test on k8s last stable in a loop
-	mix test.watch
+.PHONY: test.watch
+test.watch: integration.yaml
+test.watch: ## Run all tests with mix.watch
+	TEST_KUBECONFIG=${K3D_KUBECONFIG_PATH} mix test.watch --include integration
 
-.PHONY: cov
-cov: ## Generate coverage HTML
-	mix coveralls.html
+.PHONY: k3d.delete
+k3d.delete: ## Delete k3d cluster
+	- k3d cluster delete ${CLUSTER_NAME}
 
-.PHONY: lint
-lint: ## Format and run credo
-	mix format
-	mix credo
-
-.PHONY: analyze
-analyze: ## Run dialyzer
-	mix dialyzer
-
-get/%: ## Add a new swagger spec to the test suite
-	curl -sfSL https://raw.githubusercontent.com/kubernetes/kubernetes/release-$*/api/openapi-spec/swagger.json -o test/support/swagger/$*.json
-
-.PHONY: mock.dupes
-mock.dupes: ## List duplicates in resource_definitions mock (this should be empty)
-	jq '.[].groupVersion' test/support/discovery/resource_definitions.json | uniq -d
-
-.PHONY: mock.groups
-mock.groups: ## List of all groups in resource_definitions mock
-	jq '.[].groupVersion' test/support/discovery/resource_definitions.json
+.PHONY: k3d.create
+k3d.create: ## Created k3d cluster
+	k3d cluster create ${CLUSTER_NAME} --servers 1 --wait

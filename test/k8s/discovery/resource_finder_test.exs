@@ -3,6 +3,7 @@ defmodule K8s.Discovery.ResourceFinderTest do
   doctest K8s.Discovery.ResourceFinder
   alias K8s.Discovery.ResourceFinder
 
+  @spec daemonset :: map
   defp daemonset do
     %{
       "kind" => "DaemonSet",
@@ -11,6 +12,7 @@ defmodule K8s.Discovery.ResourceFinderTest do
     }
   end
 
+  @spec deployment :: map
   defp deployment do
     %{
       "kind" => "Deployment",
@@ -19,6 +21,7 @@ defmodule K8s.Discovery.ResourceFinderTest do
     }
   end
 
+  @spec deployment_status :: map
   defp deployment_status do
     %{
       "kind" => "Deployment",
@@ -27,19 +30,20 @@ defmodule K8s.Discovery.ResourceFinderTest do
     }
   end
 
+  @spec resources :: list(map)
   defp resources do
     [daemonset(), deployment(), deployment_status()]
   end
 
   describe "resource_name_for_kind/3" do
     test "returns the REST resource name given a kubernetes kind" do
-      {:ok, conn} = K8s.Conn.lookup(:test)
+      {:ok, conn} = K8s.Conn.from_file("test/support/kube-config.yaml")
       {:ok, name} = ResourceFinder.resource_name_for_kind(conn, "v1", "Pod")
       assert name == "pods"
     end
 
     test "returns the REST resoruce name given a subresource name" do
-      {:ok, conn} = K8s.Conn.lookup(:test)
+      {:ok, conn} = K8s.Conn.from_file("test/support/kube-config.yaml")
       {:ok, name} = ResourceFinder.resource_name_for_kind(conn, "v1", "pods/eviction")
       assert name == "pods/eviction"
     end
@@ -69,8 +73,10 @@ defmodule K8s.Discovery.ResourceFinderTest do
     end
 
     test "returns an error when the resource is not supported" do
-      {:error, :unsupported_resource, "Foo"} =
+      {:error, %K8s.Discovery.Error{message: message}} =
         ResourceFinder.find_resource_by_name(resources(), "Foo")
+
+      assert message =~ ~r/Unsupported.*Foo/
     end
   end
 end

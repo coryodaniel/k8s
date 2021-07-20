@@ -1,6 +1,6 @@
 defmodule K8s.Operation.Path do
   @moduledoc "Generates Kubernetes REST API Paths"
-
+  alias K8s.Operation.Error
   @path_params [:namespace, :name, :path, :logpath]
 
   @doc false
@@ -106,9 +106,7 @@ defmodule K8s.Operation.Path do
       ...> K8s.Operation.Path.build(operation)
       {:ok, "/api/v1/namespaces/default/pods"}
   """
-  @spec build(K8s.Operation.t()) ::
-          {:ok, binary}
-          | {:error, :missing_required_param, list(atom)}
+  @spec build(K8s.Operation.t()) :: {:ok, binary} | {:error, Error.t()}
   def build(%K8s.Operation{} = operation) do
     path_template = to_path(operation)
     required_params = K8s.Operation.Path.find_params(path_template)
@@ -119,7 +117,8 @@ defmodule K8s.Operation.Path do
         {:ok, replace_path_vars(path_template, operation.path_params)}
 
       missing_params ->
-        {:error, :missing_required_param, missing_params}
+        msg = "Missing required params: #{inspect(missing_params)}"
+        {:error, %Error{message: msg}}
     end
   end
 
@@ -180,6 +179,7 @@ defmodule K8s.Operation.Path do
     build_path(prefix, suffix, namespaced, operation.verb)
   end
 
+  @spec resource_path_suffix(list(binary), atom) :: binary
   defp resource_path_suffix([name], verb), do: name_param(name, verb)
 
   defp resource_path_suffix([name, subresource], verb),

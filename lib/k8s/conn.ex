@@ -1,19 +1,16 @@
 defmodule K8s.Conn do
   @moduledoc """
   Handles authentication and connection configuration details for a Kubernetes cluster.
-
-  Connections can be registered via Mix.Config or environment variables.
-
-  Connections can also be dynamically built during application runtime.
   """
 
   alias __MODULE__
-  alias K8s.Conn.{Config, PKI, RequestOptions}
+  alias K8s.Conn.{PKI, RequestOptions}
+  alias K8s.Resource.NamedList
+  require Logger
 
-  @service_account_cluster_name :"cluster.local"
-  @service_account_path "/var/run/secrets/kubernetes.io/serviceaccount"
+  @default_service_account_path "/var/run/secrets/kubernetes.io/serviceaccount"
 
-  @providers [
+  @auth_providers [
     K8s.Conn.Auth.Certificate,
     K8s.Conn.Auth.Token,
     K8s.Conn.Auth.AuthProvider,
@@ -28,73 +25,28 @@ defmodule K8s.Conn do
             insecure_skip_tls_verify: false,
             ca_cert: nil,
             auth: nil,
-            discovery_driver: nil,
-            discovery_opts: nil
+            middleware: K8s.Middleware.Stack.default(),
+            discovery_driver: K8s.default_discovery_driver(),
+            discovery_opts: K8s.default_discovery_opts(),
+            http_provider: K8s.default_http_provider()
 
+  @typedoc """
+  * `cluster_name` - The cluster name if read from a kubeconfig file
+  * `user_name` - The user name if read from a kubeconfig file
+  * `url` - The Kubernetes API URL
+  """
   @type t :: %__MODULE__{
-          cluster_name: atom(),
+          cluster_name: String.t() | nil,
           user_name: String.t() | nil,
           url: String.t(),
           insecure_skip_tls_verify: boolean(),
           ca_cert: String.t() | nil,
           auth: auth_t,
+          middleware: K8s.Middleware.Stack.t(),
           discovery_driver: module(),
-          discovery_opts: Keyword.t()
+          discovery_opts: Keyword.t(),
+          http_provider: module()
         }
-
-  @doc """
-  List of all registered connections.
-  Connections are registered via Mix.Config or env variables.
-
-  ## Examples
-
-  ```elixir
-  K8s.Conn.list()
-  [%K8s.Conn{ca_cert: nil, auth: %K8s.Conn.Auth{}, cluster_name: :"docker-for-desktop-cluster", discovery_driver: K8s.Discovery.Driver.File, discovery_opts: [config: "test/support/discovery/example.json"], insecure_skip_tls_verify: true, url: "https://localhost:6443", user_name: "docker-for-desktop"}]
-  ```
-  """
-  @spec list :: list(K8s.Conn.t())
-  def list do
-    Enum.reduce(Config.all(), [], fn {cluster_name, conf}, agg ->
-      conn = config_to_conn(conf, cluster_name)
-      [conn | agg]
-    end)
-  end
-
-  @doc """
-  Lookup a registered connection by name. See `K8s.Conn.Config`.
-
-  ## Examples
-
-  ```elixir
-  K8s.Conn.lookup(:test)
-  {:ok, %K8s.Conn{ca_cert: nil, auth: %K8s.Conn.Auth{}, cluster_name: :"docker-for-desktop-cluster", discovery_driver: K8s.Discovery.Driver.File, discovery_opts: [config: "test/support/discovery/example.json"], insecure_skip_tls_verify: true, url: "https://localhost:6443", user_name: "docker-for-desktop"}}
-  ```
-  """
-  @spec lookup(atom()) :: {:ok, K8s.Conn.t()} | {:error, :connection_not_registered}
-  def lookup(cluster_name) do
-    config = Map.get(Config.all(), cluster_name)
-
-    case config do
-      nil -> {:error, :connection_not_registered}
-      config -> {:ok, config_to_conn(config, cluster_name)}
-    end
-  end
-
-  @spec config_to_conn(map, atom) :: K8s.Conn.t()
-  defp config_to_conn(config, cluster_name) do
-    case Map.get(config, :conn) do
-      nil ->
-        K8s.Conn.from_service_account(cluster_name)
-
-      %{use_sa: true} ->
-        K8s.Conn.from_service_account(cluster_name)
-
-      conn_path ->
-        opts = config[:conn_opts] || []
-        K8s.Conn.from_file(conn_path, opts)
-    end
-  end
 
   @doc """
   Reads configuration details from a kubernetes config file.
@@ -109,77 +61,91 @@ defmodule K8s.Conn do
   * `discovery_driver` module name to use for discovery
   * `discovery_opts` options for discovery module
   """
-  @spec from_file(binary, keyword) :: K8s.Conn.t()
+  @spec from_file(binary, keyword) ::
+          {:ok, __MODULE__.t()} | {:error, :enoent | K8s.Conn.Error.t()}
   def from_file(config_file, opts \\ []) do
     abs_config_file = Path.expand(config_file)
     base_path = Path.dirname(abs_config_file)
 
-    config = YamlElixir.read_from_file!(abs_config_file)
-    context_name = opts[:context] || config["current-context"]
-    context = find_by_name(config["contexts"], context_name, "context")
+    with {:ok, config} <- YamlElixir.read_from_file(abs_config_file),
+         context_name <- opts[:context] || config["current-context"],
+         {:ok, context} <- find_configuration(config["contexts"], context_name, "context"),
+         user_name <- opts[:user] || context["user"],
+         {:ok, user} <- find_configuration(config["users"], user_name, "user"),
+         cluster_name <- opts[:cluster] || context["cluster"],
+         {:ok, cluster} <- find_configuration(config["clusters"], cluster_name, "cluster"),
+         {:ok, cert} <- PKI.cert_from_map(cluster, base_path) do
+      conn = %Conn{
+        cluster_name: cluster_name,
+        user_name: user_name,
+        url: cluster["server"],
+        ca_cert: cert,
+        auth: get_auth(user, base_path),
+        insecure_skip_tls_verify: cluster["insecure-skip-tls-verify"]
+      }
 
-    user_name = opts[:user] || context["user"]
-    user = find_by_name(config["users"], user_name, "user")
-
-    cluster_name = opts[:cluster] || context["cluster"]
-    cluster = find_by_name(config["clusters"], cluster_name, "cluster")
-
-    discovery_driver = opts[:discovery_driver] || K8s.Discovery.default_driver()
-    discovery_opts = opts[:discovery_opts] || K8s.Discovery.default_opts()
-
-    %Conn{
-      cluster_name: String.to_atom(cluster_name),
-      user_name: user_name,
-      url: cluster["server"],
-      ca_cert: PKI.cert_from_map(cluster, base_path),
-      auth: get_auth(user, base_path),
-      insecure_skip_tls_verify: cluster["insecure-skip-tls-verify"],
-      discovery_driver: discovery_driver,
-      discovery_opts: discovery_opts
-    }
+      {:ok, maybe_update_defaults(conn, config)}
+    else
+      error -> error
+    end
   end
 
   @doc """
   Generates configuration from kubernetes service account.
 
-
-
   ## Links
 
   [kubernetes.io :: Accessing the API from a Pod](https://kubernetes.io/docs/tasks/access-application-cluster/access-cluster/#accessing-the-api-from-a-pod)
   """
-  @spec from_service_account :: K8s.Conn.t()
+  @spec from_service_account :: {:ok, t()} | {:error, :enoent | K8s.Conn.Error.t()}
   def from_service_account do
-    from_service_account(@service_account_cluster_name)
+    from_service_account(@default_service_account_path)
   end
 
-  @spec from_service_account(atom()) :: K8s.Conn.t()
-  def from_service_account(cluster_name) do
-    from_service_account(cluster_name, @service_account_path)
+  @spec from_service_account(String.t()) :: {:ok, t()} | {:error, :enoent | K8s.Conn.Error.t()}
+  def from_service_account(service_account_path) do
+    cert_path = Path.join(service_account_path, "ca.crt")
+    token_path = Path.join(service_account_path, "token")
+
+    with {:ok, token} <- File.read(token_path),
+         {:ok, ca_cert} <- PKI.cert_from_pem(cert_path) do
+      conn = %Conn{
+        url: kubernetes_service_url(),
+        ca_cert: ca_cert,
+        auth: %K8s.Conn.Auth.Token{token: token}
+      }
+
+      {:ok, conn}
+    else
+      error -> error
+    end
   end
 
-  @spec from_service_account(atom, String.t()) :: K8s.Conn.t()
-  def from_service_account(cluster_name, root_sa_path) do
-    host = System.get_env("KUBERNETES_SERVICE_HOST")
-    port = System.get_env("KUBERNETES_SERVICE_PORT")
-    cert_path = Path.join(root_sa_path, "ca.crt")
-    token_path = Path.join(root_sa_path, "token")
+  @spec find_configuration([map()], String.t(), String.t()) ::
+          {:ok, map()} | {:error, K8s.Conn.Error.t()}
+  defp find_configuration(items, name, type) do
+    case get_in(items, [NamedList.access(name), type]) do
+      nil ->
+        err = %K8s.Conn.Error{
+          message: "Error parsing kube config. No `#{type}` type found with name: '#{name}'"
+        }
 
-    %Conn{
-      cluster_name: cluster_name,
-      url: "https://#{host}:#{port}",
-      ca_cert: PKI.cert_from_pem(cert_path),
-      auth: %K8s.Conn.Auth.Token{token: File.read!(token_path)},
-      discovery_driver: K8s.Discovery.default_driver(),
-      discovery_opts: K8s.Discovery.default_opts()
-    }
+        {:error, err}
+
+      item ->
+        {:ok, item}
+    end
   end
 
-  @spec find_by_name([map()], String.t(), String.t()) :: map()
-  defp find_by_name(items, name, type) do
-    items
-    |> Enum.find(fn item -> item["name"] == name end)
-    |> Map.get(type)
+  @spec maybe_update_defaults(Conn.t(), map()) :: Conn.t()
+  defp maybe_update_defaults(%Conn{} = conn, config) do
+    defaults = [:discovery_driver, :discovery_opts, :http_provider]
+
+    Enum.reduce(defaults, conn, fn k, conn ->
+      conn_value = Map.get(conn, k)
+      config_value = Map.get(config, k)
+      %{conn | k => config_value || conn_value}
+    end)
   end
 
   @doc false
@@ -191,14 +157,33 @@ defmodule K8s.Conn do
     end
   end
 
-  @spec get_auth(map(), String.t()) :: auth_t
+  @spec get_auth(map, binary) :: auth_t
   defp get_auth(%{} = auth_map, base_path) do
-    Enum.find_value(providers(), fn provider -> provider.create(auth_map, base_path) end)
+    Enum.find_value(auth_providers(), fn provider ->
+      case provider.create(auth_map, base_path) do
+        {:ok, auth} ->
+          auth
+
+        {:error, error} ->
+          Logger.debug("Provider (#{provider}) failed to generate auth, skipping. #{error}")
+          nil
+
+        :skip ->
+          nil
+      end
+    end)
   end
 
-  @spec providers() :: list(atom)
-  defp providers do
-    Application.get_env(:k8s, :auth_providers, []) ++ @providers
+  @spec auth_providers() :: list(atom)
+  defp auth_providers do
+    Application.get_env(:k8s, :auth_providers, []) ++ @auth_providers
+  end
+
+  @spec kubernetes_service_url :: String.t()
+  defp kubernetes_service_url do
+    host = System.get_env("KUBERNETES_SERVICE_HOST")
+    port = System.get_env("KUBERNETES_SERVICE_PORT")
+    "https://#{host}:#{port}"
   end
 
   defimpl K8s.Conn.RequestOptions, for: __MODULE__ do
