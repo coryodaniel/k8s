@@ -7,6 +7,7 @@ defmodule K8s.Operation do
 
   @allow_http_body [:put, :patch, :post]
   @label_selector :labelSelector
+  @field_selector :fieldSelector
   @verb_map %{
     list_all_namespaces: :get,
     list: :get,
@@ -215,6 +216,10 @@ defmodule K8s.Operation do
   def put_label_selector(%Operation{} = op, %Selector{} = selector),
     do: put_query_param(op, @label_selector, selector)
 
+  @spec put_field_selector(Operation.t(), Selector.t()) :: Operation.t()
+  def put_field_selector(%Operation{} = op, %Selector{} = selector),
+    do: put_query_param(op, @field_selector, selector)
+
   @doc """
   Gets a `K8s.Selector` on the operation.
 
@@ -229,6 +234,10 @@ defmodule K8s.Operation do
   @spec get_label_selector(K8s.Operation.t()) :: K8s.Selector.t()
   def get_label_selector(%Operation{query_params: params}),
     do: Keyword.get(params, @label_selector, %K8s.Selector{})
+
+  @spec get_field_selector(K8s.Operation.t()) :: K8s.Selector.t()
+  def get_field_selector(%Operation{query_params: params}),
+    do: Keyword.get(params, @field_selector, %K8s.Selector{})
 
   @doc """
   Add a query param to an operation

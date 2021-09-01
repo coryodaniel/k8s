@@ -23,11 +23,11 @@ defmodule K8s.Client.Runner.StreamTest do
       continue_token = "stream-failure-test"
 
       case params do
-        [limit: 10, continue: nil, labelSelector: ""] ->
+        [limit: 10, continue: nil, labelSelector: "", fieldSelector: ""] ->
           data = build_list(page1_items, continue_token)
           render(data, 200, [{"Content-Type", "application/json"}])
 
-        [limit: 10, continue: "stream-failure-test", labelSelector: ""] ->
+        [limit: 10, continue: "stream-failure-test", labelSelector: "", fieldSelector: ""] ->
           render(%{"reason" => "NotFound", "message" => "next page not found"}, 404, [
             {"Content-Type", "application/json"}
           ])
@@ -42,9 +42,14 @@ defmodule K8s.Client.Runner.StreamTest do
 
       body =
         case params do
-          [limit: 10, continue: nil, labelSelector: ""] -> build_list(page1_items, "start")
-          [limit: 10, continue: "start", labelSelector: ""] -> build_list(page2_items, "end")
-          [limit: 10, continue: "end", labelSelector: ""] -> build_list(page3_items)
+          [limit: 10, continue: nil, labelSelector: "", fieldSelector: ""] ->
+            build_list(page1_items, "start")
+
+          [limit: 10, continue: "start", labelSelector: "", fieldSelector: ""] ->
+            build_list(page2_items, "end")
+
+          [limit: 10, continue: "end", labelSelector: "", fieldSelector: ""] ->
+            build_list(page3_items)
         end
 
       render(body, 200)

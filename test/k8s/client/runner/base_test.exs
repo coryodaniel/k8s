@@ -44,7 +44,18 @@ defmodule K8s.Client.Runner.BaseTest do
           _body,
           _headers,
           ssl: _ssl,
-          params: [labelSelector: "app=nginx"]
+          params: [labelSelector: "app=nginx", fieldSelector: ""]
+        ) do
+      render(nil)
+    end
+
+    def request(
+          :get,
+          @base_url <> "/api/v1/pods",
+          _body,
+          _headers,
+          ssl: _ssl,
+          params: [labelSelector: "", fieldSelector: "status.phase=Running"]
         ) do
       render(nil)
     end
@@ -68,10 +79,18 @@ defmodule K8s.Client.Runner.BaseTest do
   end
 
   describe "run/2" do
-    test "running an operation with a K8s.Selector set", %{conn: conn} do
+    test "running an operation with a label K8s.Selector set", %{conn: conn} do
       operation =
         Client.list("v1", :pods)
         |> K8s.Selector.label({"app", "nginx"})
+
+      assert {:ok, _} = Base.run(conn, operation)
+    end
+
+    test "running an operation with a field K8s.Selector set", %{conn: conn} do
+      operation =
+        Client.list("v1", :pods)
+        |> K8s.Selector.field({"status.phase", "Running"})
 
       assert {:ok, _} = Base.run(conn, operation)
     end
