@@ -52,6 +52,12 @@ defmodule K8s.Client.HTTPProvider do
       ...> K8s.Client.HTTPProvider.handle_response({:ok, %HTTPoison.Response{status_code: 404, body: body, headers: headers}})
       {:error, %K8s.Client.APIError{message: "namespaces not found", reason: "NotFound"}}
 
+  Handles admission hook responses:
+      iex> body = ~s({"apiVersion":"v1","code":400,"kind":"Status","message":"admission webhook","metadata" :{}, "status":"Failure"})
+      ...> headers = [{"Content-Type", "application/json"}]
+      ...> K8s.Client.HTTPProvider.handle_response({:ok, %HTTPoison.Response{status_code: 404, body: body, headers: headers}})
+      {:error, %K8s.Client.APIError{message: "admission webhook", reason: "Failure"}}
+
   Passes through HTTPoison 4xx responses:
 
       iex> K8s.Client.HTTPProvider.handle_response({:ok, %HTTPoison.Response{status_code: 410, body: "Gone"}})
@@ -98,6 +104,11 @@ defmodule K8s.Client.HTTPProvider do
   @spec handle_kubernetes_error(map) :: {:error, K8s.Client.APIError.t()}
   defp handle_kubernetes_error(%{"reason" => reason, "message" => message}) do
     err = %K8s.Client.APIError{message: message, reason: reason}
+    {:error, err}
+  end
+
+  defp handle_kubernetes_error(%{"status" => "Failure", "message" => message}) do
+    err = %K8s.Client.APIError{message: message, reason: "Failure"}
     {:error, err}
   end
 
