@@ -203,7 +203,6 @@ defmodule K8s.Client.Runner.Watch.Stream do
          {:recv, %__MODULE__{state | resource_version: new_resource_version}}}
 
       {:ok, %{"object" => %{"message" => message}}}, _ ->
-        #  TODO: error handling
         Logger.error("Erronous event received from watcher: #{message}")
         {:restart, state}
     end)
