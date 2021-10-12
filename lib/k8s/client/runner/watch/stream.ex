@@ -190,9 +190,9 @@ defmodule K8s.Client.Runner.Watch.Stream do
         Logger.error("Could not decode JSON. Chunk seems to be malformed: #{inspect(error)}")
         {events, acc}
 
-      {:ok, %{"object" => %{"metadata" => %{"resourceVersion" => resource_version}}}},
-      {events, {:recv, state}}
-      when resource_version == state.resource_version ->
+      {:ok, %{"object" => %{"metadata" => %{"resourceVersion" => new_resource_version}}}},
+      {events, {:recv, %__MODULE__{resource_version: resource_version} = state}}
+      when new_resource_version == resource_version ->
         {events, {:recv, state}}
 
       {:ok,
