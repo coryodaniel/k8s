@@ -4,6 +4,7 @@ defmodule K8s.Client.Runner.Watch do
   """
 
   alias K8s.Client.Runner.Base
+  alias K8s.Client.Runner.Watch.Stream
   alias K8s.Conn
   alias K8s.Operation
   alias K8s.Operation.Error
@@ -75,6 +76,9 @@ defmodule K8s.Client.Runner.Watch do
     http_opts = Keyword.put(http_opts, :params, updated_params)
     run(conn, list_op, rv, http_opts)
   end
+
+  @spec stream(Conn.t(), Operation.t(), keyword(atom)) :: Base.result_t()
+  defdelegate stream(conn, operation, http_opts), to: Stream, as: :resource
 
   @spec get_resource_version(Conn.t(), Operation.t()) :: {:ok, binary} | Base.error_t()
   def get_resource_version(%Conn{} = conn, %Operation{} = operation) do
