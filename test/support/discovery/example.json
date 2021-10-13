@@ -4,15 +4,7 @@
       "kind": "Namespace",
       "name": "namespaces",
       "namespaced": false,
-      "verbs": [
-        "create",
-        "delete",
-        "get",
-        "list",
-        "patch",
-        "update",
-        "watch"
-      ]
+      "verbs": ["create", "delete", "get", "list", "patch", "update", "watch"]
     },
     {
       "kind": "Service",
@@ -49,9 +41,7 @@
       "kind": "Eviction",
       "name": "pods/eviction",
       "namespaced": true,
-      "verbs": [
-        "create"
-      ],
+      "verbs": ["create"],
       "version": "v1beta1"
     }
   ],
@@ -90,10 +80,36 @@
       "kind": "Deployment",
       "name": "deployments/status",
       "namespaced": true,
+      "verbs": ["get", "patch", "update"]
+    },
+    {
+      "kind": "StatefulSet",
+      "name": "statefulsets",
+      "namespaced": true,
       "verbs": [
+        "create",
+        "delete",
+        "deletecollection",
         "get",
+        "list",
         "patch",
-        "update"
+        "update",
+        "watch"
+      ]
+    },
+    {
+      "kind": "ReplicaSet",
+      "name": "replicasets",
+      "namespaced": true,
+      "verbs": [
+        "create",
+        "delete",
+        "deletecollection",
+        "get",
+        "list",
+        "patch",
+        "update",
+        "watch"
       ]
     }
   ]

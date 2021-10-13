@@ -22,7 +22,7 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
           assert "10" == get_in(opts, [:params, :resourceVersion])
           pid = Keyword.fetch!(opts, :stream_to)
 
-          send_chunk(pid, %{
+          send_object(pid, %{
             "type" => "ADDED",
             "object" => %{
               "apiVersion" => "v1",
@@ -31,33 +31,18 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
             }
           })
 
-          send_chunk(pid, %{
-            "type" => "MODIFIED",
-            "object" => %{
-              "apiVersion" => "v1",
-              "kind" => "Namespace",
-              "metadata" => %{"resourceVersion" => "12"}
-            }
-          })
+          # Split object chunks
+          send_chunk(pid, "{\"object\":{\"apiVersion\":\"")
+          send_chunk(pid, "v1\",\"kind\":\"Name")
+          send_chunk(pid, "space\",\"metadata\":{\"resourceVer")
+          send_chunk(pid, "sion\":\"12\"}},\"type\":\"MODIFIED\"}")
+          send_chunk(pid, "\n")
 
-          #  ignored
-          send_chunk(pid, %{
-            "type" => "MODIFIED",
-            "object" => %{
-              "apiVersion" => "v1",
-              "kind" => "Namespace",
-              "metadata" => %{"resourceVersion" => "12"}
-            }
-          })
-
-          send_chunk(pid, %{
-            "type" => "DELETED",
-            "object" => %{
-              "apiVersion" => "v1",
-              "kind" => "Namespace",
-              "metadata" => %{"resourceVersion" => "13"}
-            }
-          })
+          # 2 objects in one junk - but first one is ignored because same resourceVersion as above:
+          send_chunk(pid, """
+          {\"object\":{\"apiVersion\":\"v1\",\"kind\":\"Namespace\",\"metadata\":{\"resourceVersion\":\"12\"}},\"type\":\"MODIFIED\"}
+          {\"object\":{\"apiVersion\":\"v1\",\"kind\":\"Namespace\",\"metadata\":{\"resourceVersion\":\"13\"}},\"type\":\"DELETED\"}
+          """)
 
           {:ok, %HTTPoison.AsyncResponse{id: make_ref()}}
 
@@ -73,7 +58,7 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
           pid = Keyword.fetch!(opts, :stream_to)
           send(pid, %HTTPoison.AsyncEnd{})
 
-          send_chunk(pid, %{
+          send_object(pid, %{
             "type" => "ADDED",
             "object" => %{
               "apiVersion" => "v1",
@@ -96,7 +81,7 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
           pid = Keyword.fetch!(opts, :stream_to)
           send(pid, %HTTPoison.AsyncStatus{code: 410})
 
-          send_chunk(pid, %{
+          send_object(pid, %{
             "type" => "ADDED",
             "object" => %{
               "apiVersion" => "v1",
@@ -119,7 +104,7 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
           pid = Keyword.fetch!(opts, :stream_to)
           send(pid, %HTTPoison.AsyncStatus{code: 500})
 
-          send_chunk(pid, %{
+          send_object(pid, %{
             "type" => "ADDED",
             "object" => %{
               "apiVersion" => "apps/v1",
@@ -144,7 +129,7 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
 
           case rv do
             "10" ->
-              send_chunk(pid, %{
+              send_object(pid, %{
                 "type" => "ADDED",
                 "object" => %{
                   "apiVersion" => "apps/v1",
@@ -156,7 +141,7 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
               send(pid, %HTTPoison.Error{reason: {:closed, :timeout}})
 
             "11" ->
-              send_chunk(pid, %{
+              send_object(pid, %{
                 "type" => "DELETED",
                 "object" => %{
                   "apiVersion" => "apps/v1",
@@ -165,6 +150,77 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
                 }
               })
           end
+
+          {:ok, %HTTPoison.AsyncResponse{id: make_ref()}}
+
+        nil ->
+          render(%{"metadata" => %{"resourceVersion" => "10"}})
+      end
+    end
+
+    def request(:get, "https://localhost:6443/apis/apps/v1/statefulsets", _body, _headers, opts) do
+      case get_in(opts, [:params, :watch]) do
+        true ->
+          assert "10" == get_in(opts, [:params, :resourceVersion])
+          pid = Keyword.fetch!(opts, :stream_to)
+
+          send_object(pid, %{
+            "type" => "ADDED",
+            "object" => %{
+              "apiVersion" => "apps/v1",
+              "kind" => "StatefulSet",
+              "metadata" => %{"resourceVersion" => "11"}
+            }
+          })
+
+          send_chunk(pid, "this-is-not-json\n")
+
+          send_object(pid, %{
+            "type" => "DELETED",
+            "object" => %{
+              "apiVersion" => "apps/v1",
+              "kind" => "StatefulSet",
+              "metadata" => %{"resourceVersion" => "12"}
+            }
+          })
+
+          {:ok, %HTTPoison.AsyncResponse{id: make_ref()}}
+
+        nil ->
+          render(%{"metadata" => %{"resourceVersion" => "10"}})
+      end
+    end
+
+    def request(:get, "https://localhost:6443/apis/apps/v1/replicasets", _body, _headers, opts) do
+      case get_in(opts, [:params, :watch]) do
+        true ->
+          assert "10" == get_in(opts, [:params, :resourceVersion])
+          pid = Keyword.fetch!(opts, :stream_to)
+
+          send_object(pid, %{
+            "type" => "ADDED",
+            "object" => %{
+              "apiVersion" => "apps/v1",
+              "kind" => "ReplicaSet",
+              "metadata" => %{"resourceVersion" => "11"}
+            }
+          })
+
+          send_object(pid, %{
+            "type" => "ERROR",
+            "object" => %{
+              "message" => "Some error"
+            }
+          })
+
+          send_object(pid, %{
+            "type" => "DELETED",
+            "object" => %{
+              "apiVersion" => "apps/v1",
+              "kind" => "ReplicaSet",
+              "metadata" => %{"resourceVersion" => "12"}
+            }
+          })
 
           {:ok, %HTTPoison.AsyncResponse{id: make_ref()}}
 
@@ -203,13 +259,13 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
       test = fn ->
         operation = K8s.Client.list("v1", "Service")
 
-        [event1 | [event2 | _]] =
+        events =
           MUT.resource(conn, operation, [])
-          |> Stream.take(2)
+          |> Stream.take(4)
           |> Enum.to_list()
 
-        assert "ADDED" == event1["type"]
-        assert "ADDED" == event2["type"]
+        #  goes on forever, but we only took 4
+        assert ["ADDED", "ADDED", "ADDED", "ADDED"] == Enum.map(events, & &1["type"])
       end
 
       assert capture_log(test) =~ "AsyncEnd received"
@@ -220,13 +276,13 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
       test = fn ->
         operation = K8s.Client.list("v1", "Pod")
 
-        [event1 | [event2 | _]] =
+        events =
           MUT.resource(conn, operation, [])
-          |> Stream.take(2)
+          |> Stream.take(4)
           |> Enum.to_list()
 
-        assert "ADDED" == event1["type"]
-        assert "ADDED" == event2["type"]
+        #  goes on forever, but we only took 4
+        assert ["ADDED", "ADDED", "ADDED", "ADDED"] == Enum.map(events, & &1["type"])
       end
 
       assert capture_log(test) =~ "410 Gone received"
@@ -262,6 +318,39 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
       end
 
       assert capture_log(test) =~ "resuming the watch"
+    end
+
+    @tag timeout: 1_000
+    test "Skips malformed JSON events", %{conn: conn} do
+      test = fn ->
+        operation = K8s.Client.list("apps/v1", "StatefulSet")
+
+        [event1 | [event2 | _]] =
+          MUT.resource(conn, operation, [])
+          |> Stream.take(2)
+          |> Enum.to_list()
+
+        assert "ADDED" == event1["type"]
+        assert "DELETED" == event2["type"]
+      end
+
+      assert capture_log(test) =~ "Could not decode JSON"
+    end
+
+    @tag timeout: 1_000
+    test "Resumes the stream when error message is sent", %{conn: conn} do
+      test = fn ->
+        operation = K8s.Client.list("apps/v1", "ReplicaSet")
+
+        events =
+          MUT.resource(conn, operation, [])
+          |> Stream.take(4)
+          |> Enum.to_list()
+
+        assert ["ADDED", "DELETED", "ADDED", "DELETED"] == Enum.map(events, & &1["type"])
+      end
+
+      assert capture_log(test) =~ "Erronous event received"
     end
   end
 end

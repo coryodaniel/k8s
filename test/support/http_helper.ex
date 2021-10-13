@@ -16,6 +16,8 @@ defmodule K8s.Test.HTTPHelper do
     {:ok, %HTTPoison.Response{status_code: code, body: body, headers: headers}}
   end
 
+  def send_object(pid, object), do: send_chunk(pid, Jason.encode!(object) <> "\n")
+
   def send_chunk(pid, chunk),
-    do: send(pid, %HTTPoison.AsyncChunk{chunk: Jason.encode!(chunk) <> "\n"})
+    do: send(pid, %HTTPoison.AsyncChunk{chunk: chunk})
 end
