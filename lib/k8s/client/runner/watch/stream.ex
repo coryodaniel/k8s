@@ -154,18 +154,20 @@ defmodule K8s.Client.Runner.Watch.Stream do
   @docp """
   Transforms chunks to lines iteratively.
 
+  Code is taken from https://elixirforum.com/t/streaming-lines-from-an-enum-of-chunks/21244/3
+
   * Append new chunk to the remainder inside state
   * Split resulting string by newlines (there can be multiple newlines in the new chunk)
-  * Revert the resulting list - the head is the new remainder, the tail contains whole lines, but still in reverse order
+  * pop the last element from the resulting list returns the remainder and the list of whole lines
   """
   @spec transform_to_lines({binary(), t()}) :: {[binary()], t()}
   defp transform_to_lines({chunk, state}) do
-    [remainder | whole_lines] =
+    {remainder, whole_lines} =
       (state.remainder <> chunk)
       |> String.split("\n")
-      |> Enum.reverse()
+      |> List.pop_at(-1)
 
-    {Enum.reverse(whole_lines), %{state | remainder: remainder}}
+    {whole_lines, %{state | remainder: remainder}}
   end
 
   @docp """
