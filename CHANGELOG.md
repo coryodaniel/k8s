@@ -5,8 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+### Added
+
+- `K8s.Client.apply/3` - Create a [server-side apply](https://kubernetes.io/docs/reference/using-api/server-side-apply/) operation
+
 ## [1.0.0] - 2021-07-19
+
 ### Added
+
 - `K8s.Resource.NamedList.access!/1` raises if item is missing
 - K8s.Operation.put_label_selector/2
 - K8s.Operation.get_label_selector/1
@@ -14,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - K8s.Operation now uses keyword lists for query_params instead of maps
 
 ### Changed
+
 - error tuples refactored away from binary and atom to exception modules
 - removed dialyzer exceptions
 - `K8s.Conn.from_file/2` now returns an ok or error tuple
@@ -28,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Middleware moved to K8s.Conn.Middleware
 
 ### Removed
+
 - K8s.Conn.lookup/1
 - config.exs based cluster registration is no longer supported, build K8s.Conn using K8s.Conn module
 - environment variable based cluster registration has been removed and may be moved to an external library
@@ -35,47 +43,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.5.2] - 2020-07-31
 
 ### Added
+
 - Added auth `exec` support
 
 ## [0.5.1] - 2020-07-17
 
 ### Added
+
 - K8s.Operation struct `query_params` field
 - BasicAuth auth provider
 - Deprecated HTTPoison options being passed to K8s.Client.Runner.base
-- K8s.Operation.put_query_param/3 to add query parameters by key 
+- K8s.Operation.put_query_param/3 to add query parameters by key
 - K8s.Operation.get_query_param/3 to get a query parameter by key
 - DigitalOcean authentication
 
 ### Changed
+
 - Refactored old references to `cluster_name` to `conn`
 
 ## [0.5.0] - 2020-02-12
 
 ### Added
+
 - #42 Request middleware support
 - #43 Just in time discovery: K8s.Discovery
 - #44 Support for ad-hoc connections. K8s.Conn based functions. Build your own Conn at runtime or config mix/env vars. No more Cluster registry.
 - K8s.Resource.from_file/2 and K8s.Resource.all_from_file/2 - non-exception versions
 
 ### Removed
+
 - Boot time discovery K8s.Cluster.Discovery
 - K8s.Cluster.base_url/1
-- Remove K8s.Cluster*
+- Remove K8s.Cluster\*
 
 ## [0.4.0] - 2019-08-29
 
 ### Changed
+
 - Renamed `K8s.Conf` to `K8s.Conn`
 - Refactored `:conf` configuration key to `:conn`
 
 ## [0.3.2] - 2019-08-15
 
 ### Added
+
 - `K8s.Selector.match_expressions?/2` to check if a resource matches expressions
 - `K8s.Selector.match_labels?/2` to check if a resource matches labels
 
 ### Changed
+
 - `K8s.Resource` functions moved to submodule
 
 ## [0.3.1] - 2019-08-15
