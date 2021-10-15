@@ -114,13 +114,20 @@ defmodule K8s.Client.Runner.Base do
   defp new_request(%Conn{} = conn, url, %Operation{} = operation, body, http_opts) do
     req = %Request{conn: conn, method: operation.method, body: body, url: url}
 
+    headers =
+      case operation.verb do
+        :apply -> [{"Content-Type", "application/apply-patch+yaml"}]
+        :patch -> [{"Content-Type", "application/merge-patch+json"}]
+        _ -> [{"Content-Type", "application/json"}]
+      end
+
     operation_query_params = build_query_params(operation)
     http_opts_params = Keyword.get(http_opts, :params, [])
     merged_params = Keyword.merge(operation_query_params, http_opts_params)
     http_opts_w_merged_params = Keyword.put(http_opts, :params, merged_params)
     updated_http_opts = Keyword.merge(req.opts, http_opts_w_merged_params)
 
-    %Request{req | opts: updated_http_opts}
+    %Request{req | opts: updated_http_opts, headers: headers}
   end
 
   @spec build_query_params(Operation.t()) :: keyword()
