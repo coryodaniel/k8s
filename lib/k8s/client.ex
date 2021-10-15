@@ -52,8 +52,73 @@ defmodule K8s.Client do
   @doc "alias of `K8s.Client.Runner.Stream.run/2`"
   defdelegate stream(conn, operation), to: Stream, as: :run
 
+  @spec stream(K8s.Conn.t(), K8s.Operation.t(), keyword) ::
+          {:error, K8s.Operation.Error.t()}
+          | {:ok,
+             ({:cont, any} | {:halt, any} | {:suspend, any}, any ->
+                :badarg | {:halted, any} | {:suspended, any, (any -> any)})}
   @doc "alias of `K8s.Client.Runner.Stream.run/3`"
   defdelegate stream(conn, operation, http_opts), to: Stream, as: :run
+
+  @doc """
+  Returns a `PATCH` operation to server-side-apply the given resource.
+
+  [K8s Docs](https://kubernetes.io/docs/reference/using-api/server-side-apply/):
+
+  ## Examples
+
+      iex>  deployment = K8s.Resource.from_file!("test/support/manifests/nginx-deployment.yaml")
+      ...> K8s.Client.apply(deployment, "my-operator", true)
+      %K8s.Operation{
+        method: :patch,
+        verb: :apply,
+        api_version: "apps/v1",
+        name: "Deployment",
+        path_params: [namespace: "test", name: "nginx"],
+        data: K8s.Resource.from_file!("test/support/manifests/nginx-deployment.yaml"),
+        query_params: [fieldManager: "my-operator", force: true]
+      }
+  """
+  @spec apply(map(), binary(), boolean()) :: Operation.t()
+  def apply(resource, field_manager, force) when is_binary(field_manager) do
+    Operation.build(:apply, resource, field_manager: field_manager, force: force)
+  end
+
+  @doc """
+  Returns a `PATCH` operation to server-side-apply the given subresource given a resource's details and a subresource map.
+  """
+  @spec apply(binary, binary | atom, Keyword.t(), map(), binary(), boolean()) :: Operation.t()
+  def apply(api_version, kind, path_params, subresource, field_manager, force),
+    do:
+      Operation.build(:apply, api_version, kind, path_params, subresource,
+        field_manager: field_manager,
+        force: force
+      )
+
+  @doc """
+  Returns a `PATCH` operation to server-side-apply the given subresource given a resource map and a subresource map.
+  """
+  @spec apply(map(), map(), binary(), boolean()) :: Operation.t()
+  def apply(
+        %{
+          "apiVersion" => api_version,
+          "kind" => kind,
+          "metadata" => %{"namespace" => ns, "name" => name}
+        },
+        %{"kind" => subkind} = subresource,
+        field_manager,
+        force
+      ) do
+    Operation.build(
+      :apply,
+      api_version,
+      {kind, subkind},
+      [namespace: ns, name: name],
+      subresource,
+      field_manager: field_manager,
+      force: force
+    )
+  end
 
   @doc """
   Returns a `GET` operation for a resource given a Kubernetes manifest. May be a partial manifest as long as it contains:
@@ -240,11 +305,11 @@ defmodule K8s.Client do
       iex> eviction = K8s.Resource.from_file!("test/support/manifests/eviction-policy.yaml")
       ...>  K8s.Client.create("v1", "pods/eviction", [namespace: "default", name: "nginx"], eviction)
       %K8s.Operation{
-        api_version: "v1", 
-        method: :post, 
-        name: "pods/eviction", 
-        path_params: [namespace: "default", name: "nginx"], 
-        verb: :create, 
+        api_version: "v1",
+        method: :post,
+        name: "pods/eviction",
+        path_params: [namespace: "default", name: "nginx"],
+        verb: :create,
         data: K8s.Resource.from_file!("test/support/manifests/eviction-policy.yaml")
       }
   """
@@ -264,10 +329,10 @@ defmodule K8s.Client do
       ...> eviction = K8s.Resource.from_file!("test/support/manifests/eviction-policy.yaml")
       ...> K8s.Client.create(pod, eviction)
       %K8s.Operation{
-        api_version: "v1", 
-        data: K8s.Resource.from_file!("test/support/manifests/eviction-policy.yaml"), 
-        method: :post, name: {"Pod", "Eviction"}, 
-        path_params: [namespace: "default", name: "nginx"], 
+        api_version: "v1",
+        data: K8s.Resource.from_file!("test/support/manifests/eviction-policy.yaml"),
+        method: :post, name: {"Pod", "Eviction"},
+        path_params: [namespace: "default", name: "nginx"],
         verb: :create
       }
   """
@@ -384,11 +449,11 @@ defmodule K8s.Client do
       iex> scale = K8s.Resource.from_file!("test/support/manifests/scale-replicas.yaml")
       ...>  K8s.Client.update("apps/v1", "deployments/scale", [namespace: "default", name: "nginx"], scale)
       %K8s.Operation{
-        api_version: "apps/v1", 
-        data: K8s.Resource.from_file!("test/support/manifests/scale-replicas.yaml"), 
-        method: :put, 
-        name: "deployments/scale", 
-        path_params: [namespace: "default", name: "nginx"], 
+        api_version: "apps/v1",
+        data: K8s.Resource.from_file!("test/support/manifests/scale-replicas.yaml"),
+        method: :put,
+        name: "deployments/scale",
+        path_params: [namespace: "default", name: "nginx"],
         verb: :update
       }
   """
@@ -407,11 +472,11 @@ defmodule K8s.Client do
       ...> scale = K8s.Resource.from_file!("test/support/manifests/scale-replicas.yaml")
       ...> K8s.Client.update(deployment, scale)
       %K8s.Operation{
-        api_version: "apps/v1", 
-        method: :put, 
-        path_params: [namespace: "test", name: "nginx"], 
-        verb: :update, 
-        data: K8s.Resource.from_file!("test/support/manifests/scale-replicas.yaml"), 
+        api_version: "apps/v1",
+        method: :put,
+        path_params: [namespace: "test", name: "nginx"],
+        verb: :update,
+        data: K8s.Resource.from_file!("test/support/manifests/scale-replicas.yaml"),
         name: {"Deployment", "Scale"}
       }
   """
