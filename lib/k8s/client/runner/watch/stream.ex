@@ -125,8 +125,9 @@ defmodule K8s.Client.Runner.Watch.Stream do
         {[], {:recv, %{state | resp: %HTTPoison.AsyncResponse{id: ref}}}}
 
       other ->
-        Logger.error("watcher sent unexpected chunk", chunk: other)
-        {:halt, nil}
+        Logger.debug("Received unexpected message.", message: other)
+        # ignore other messages and continue
+        {[], {:recv, state}}
     end
   end
 
