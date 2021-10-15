@@ -30,13 +30,11 @@ defmodule K8s.Client.Runner.Watch.Stream do
   """
   @spec resource(K8s.Conn.t(), K8s.Operation.t(), keyword()) :: Enumerable.t() | {:error, any()}
   def resource(conn, operation, http_opts) do
-    with {:ok, init} <- get_latest_rv_and_watch(conn, operation, http_opts) do
-      Stream.resource(
-        fn -> {:recv, init} end,
-        &next_fun/1,
-        fn _state -> :ok end
-      )
-    end
+    Stream.resource(
+      fn -> {:start, %{conn: conn, operation: operation, http_opts: http_opts}} end,
+      &next_fun/1,
+      fn _state -> :ok end
+    )
   end
 
   @spec get_latest_rv_and_watch(K8s.Conn.t(), K8s.Operation.t(), keyword()) ::
@@ -73,14 +71,14 @@ defmodule K8s.Client.Runner.Watch.Stream do
   @docp """
   Producing the next elements in the stream.
   * If the accumulator is {:recv, state}, receives and processes events from the HTTPoison process
-  * If the accumulator is {:restart, state}, tries to make new HTTPoison watcher request (see below)
+  * If the accumulator is {:start, state}, tries to make new HTTPoison watcher request (see below)
   """
-  @spec next_fun({:recv, t()}) :: {[map()], {:recv | :restart, t()}} | {:halt, nil}
+  @spec next_fun({:recv, t()}) :: {[map()], {:recv | :start, t()}} | {:halt, nil}
   defp next_fun({:recv, %__MODULE__{} = state}) do
     receive do
       %HTTPoison.AsyncEnd{} ->
         Logger.warn("AsyncEnd received - tryin to restart watcher")
-        {[], {:restart, state}}
+        {[], {:start, state}}
 
       %HTTPoison.AsyncHeaders{} ->
         HTTPoison.stream_next(state.resp)
@@ -92,7 +90,7 @@ defmodule K8s.Client.Runner.Watch.Stream do
 
       %HTTPoison.AsyncStatus{code: 410} ->
         Logger.warn("410 Gone received from watcher - trying to restart")
-        {[], {:restart, state}}
+        {[], {:start, state}}
 
       %HTTPoison.AsyncStatus{code: _} = error ->
         Logger.warn(
@@ -134,21 +132,15 @@ defmodule K8s.Client.Runner.Watch.Stream do
   @docp """
   Tries to make new HTTPoison watcher request (self-healing)
   """
-  @spec next_fun({:restart, t()}) :: {[map()], {:recv, t()}} | {:halt, nil}
-  defp next_fun({:restart, state}) do
-    %{
-      conn: conn,
-      operation: operation,
-      http_opts: http_opts
-    } = state
-
+  @spec next_fun({:start, map()}) :: {[map()], {:recv, t()}} | {:halt, nil}
+  defp next_fun({:start, %{conn: conn, operation: operation, http_opts: http_opts}}) do
     case get_latest_rv_and_watch(conn, operation, http_opts) do
       {:ok, state} ->
         {[], {:recv, state}}
 
       error ->
         Logger.error("Can't restart watcher - stopping watcher stream: #{inspect(error)}")
-        {:halt, state}
+        {:halt, nil}
     end
   end
 
@@ -178,16 +170,16 @@ defmodule K8s.Client.Runner.Watch.Stream do
   * Reduce lines into events and next state
     * If the resource_version changes, append the event to the stream and update the state
     * Otherwise, dont change anything
-    * send :restart upon errors
+    * send :start upon errors
   """
-  @spec transform_to_events({[binary()], t()}) :: {[map()], {:recv | :restart, t()}}
+  @spec transform_to_events({[binary()], t()}) :: {[map()], {:recv | :start, t()}}
   defp transform_to_events({lines, state}) do
     lines
     #  decode errors handled below
     |> Enum.map(&Jason.decode/1)
     |> Enum.reduce({[], {:recv, state}}, fn
-      _, {events, {:restart, state}} ->
-        {events, {:restart, state}}
+      _, {events, {:start, state}} ->
+        {events, {:start, state}}
 
       {:error, error}, {events, acc} ->
         Logger.error("Could not decode JSON - chunk seems to be malformed", error: error)
@@ -207,7 +199,7 @@ defmodule K8s.Client.Runner.Watch.Stream do
 
       {:ok, %{"object" => %{"message" => message}}}, {events, {_, state}} ->
         Logger.error("Erronous event received from watcher: #{message}")
-        {events, {:restart, state}}
+        {events, {:start, state}}
     end)
   end
 end
