@@ -77,7 +77,7 @@ defmodule K8s.Client.Runner.Watch do
     run(conn, list_op, rv, http_opts)
   end
 
-  @spec stream(Conn.t(), Operation.t(), keyword(atom)) :: Base.result_t()
+  @spec stream(Conn.t(), Operation.t(), keyword(atom)) :: Enumerable.t()
   defdelegate stream(conn, operation, http_opts), to: Stream, as: :resource
 
   @spec get_resource_version(Conn.t(), Operation.t()) :: {:ok, binary} | Base.error_t()
