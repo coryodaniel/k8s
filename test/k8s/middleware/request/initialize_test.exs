@@ -7,7 +7,7 @@ defmodule K8s.Middleware.Request.InitializeTest do
 
     {:ok, %{headers: headers}} = K8s.Middleware.Request.Initialize.call(request)
 
-    assert headers == [{"Accept", "application/json"}, {"Content-Type", "application/json"}]
+    assert headers == [{"Accept", "application/json"}]
   end
 
   test "initializes a HTTPoison options from K8s.Conn.RequestOptions" do
