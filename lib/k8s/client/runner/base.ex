@@ -116,9 +116,9 @@ defmodule K8s.Client.Runner.Base do
 
     headers =
       case operation.verb do
-        :apply -> [{"Content-Type", "application/apply-patch+yaml"}]
-        :patch -> [{"Content-Type", "application/merge-patch+json"}]
-        _ -> [{"Content-Type", "application/json"}]
+        :patch -> ["Content-Type": "application/merge-patch+json"]
+        :apply -> ["Content-Type": "application/apply-patch+yaml"]
+        _ -> ["Content-Type": "application/json"]
       end
 
     operation_query_params = build_query_params(operation)
