@@ -7,6 +7,9 @@ defmodule K8s.Client.Provider do
   @type response_t :: success_t() | error_t()
 
   @doc "Generate headers for HTTP Requests"
+  @callback headers(K8s.Conn.RequestOptions.t()) :: keyword()
+
+  @doc "Deprecated! Use headers/1 instead"
   @callback headers(atom(), K8s.Conn.RequestOptions.t()) :: list({binary, binary})
 
   @doc "Perform HTTP Requests"
