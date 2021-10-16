@@ -7,7 +7,7 @@ defmodule K8s.Middleware.Request do
           method: atom(),
           url: String.t(),
           body: String.t() | map() | list(map()) | nil,
-          headers: keyword() | nil,
+          headers: Keyword.t() | nil,
           opts: Keyword.t() | nil
         }
 

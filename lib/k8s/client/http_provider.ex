@@ -115,24 +115,44 @@ defmodule K8s.Client.HTTPProvider do
   @doc """
   Generates HTTP headers from `K8s.Conn.RequestOptions`
 
-  * Adds `{"Accept", "application/json"}` to all requests.
-  * HTTP method is ignored.
+  * Adds `{:Accept, "application/json"}` to all requests if the header is not set.
 
+  ## Examples
+    Sets `Content-Type` to `application/json`
+      iex> opts = %K8s.Conn.RequestOptions{headers: [Authorization: "Basic AF"]}
+      ...> K8s.Client.HTTPProvider.headers(opts)
+      [Accept: "application/json", Authorization: "Basic AF"]
+  """
+  @impl true
+  def headers(%RequestOptions{} = opts),
+    do: Keyword.put_new(opts.headers, :Accept, "application/json")
+
+  @doc """
   ## Examples
     Sets `Content-Type` to `application/merge-patch+json` for PATCH operations
       iex> opts = %K8s.Conn.RequestOptions{headers: [{"Authorization", "Basic AF"}]}
       ...> K8s.Client.HTTPProvider.headers(:patch, opts)
-      [{"Accept", "application/json"}, {"Authorization", "Basic AF"}]
+      [{"Accept", "application/json"}, {"Content-Type", "application/merge-patch+json"}, {"Authorization", "Basic AF"}]
 
     Sets `Content-Type` to `application/json` for all other operations
       iex> opts = %K8s.Conn.RequestOptions{headers: [{"Authorization", "Basic AF"}]}
       ...> K8s.Client.HTTPProvider.headers(:get, opts)
-      [{"Accept", "application/json"}, {"Authorization", "Basic AF"}]
+      [{"Accept", "application/json"}, {"Content-Type", "application/json"}, {"Authorization", "Basic AF"}]
   """
   @impl true
-  def headers(_method, %RequestOptions{} = opts) do
-    defaults = [{"Accept", "application/json"}]
+  @deprecated "Use headers/1 instead"
+  def headers(method, %RequestOptions{} = opts) do
+    defaults = [{"Accept", "application/json"}, content_type_header(method)]
     defaults ++ opts.headers
+  end
+
+  @spec content_type_header(atom()) :: {binary(), binary()}
+  defp content_type_header(:patch) do
+    {"Content-Type", "application/merge-patch+json"}
+  end
+
+  defp content_type_header(_http_method) do
+    {"Content-Type", "application/json"}
   end
 
   @spec decode(binary, binary) :: map | list | nil

@@ -6,10 +6,10 @@ defmodule K8s.Middleware.Request.Initialize do
   alias K8s.Middleware.Request
 
   @impl true
-  def call(%Request{conn: conn, method: method, headers: headers, opts: opts} = req) do
+  def call(%Request{conn: conn, headers: headers, opts: opts} = req) do
     with {:ok, request_options} <- K8s.Conn.RequestOptions.generate(conn) do
-      request_option_headers = conn.http_provider.headers(method, request_options)
-      updated_headers = headers ++ request_option_headers
+      request_option_headers = conn.http_provider.headers(request_options)
+      updated_headers = Keyword.merge(headers, request_option_headers)
       updated_opts = Keyword.merge([ssl: request_options.ssl_options], opts)
       updated_request = %Request{req | headers: updated_headers, opts: updated_opts}
       {:ok, updated_request}
