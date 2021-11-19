@@ -142,7 +142,7 @@ This follow example will wait 60 seconds for the field `status.succeeded` to equ
 operation = K8s.Client.get("batch/v1", :job, namespace: "default", name: "database-migrator")
 wait_opts = [find: ["status", "succeeded"], eval: 1, timeout: 60]
 {:ok, conn} = K8s.Conn.from_file("path/to/kubeconfig.yaml")
-{:ok, job} = K8s.Client.wait(conn, operation, wait_opts)
+{:ok, job} = K8s.Client.wait_until(conn, operation, wait_opts)
 ```
 
 `:find` and `:eval` also accept functions to apply to check success.
