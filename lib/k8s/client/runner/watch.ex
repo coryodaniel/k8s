@@ -69,9 +69,9 @@ defmodule K8s.Client.Runner.Watch do
   end
 
   def run(%Conn{} = conn, %Operation{method: :get, verb: :get} = operation, rv, http_opts) do
-    {list_op, field_selector_param} = get_to_list(operation)
+    {list_op, field_selector_params} = get_to_list(operation)
     params = Keyword.get(http_opts, :params, [])
-    updated_params = Keyword.merge(params, field_selector_param)
+    updated_params = Keyword.merge(params, field_selector_params)
     http_opts = Keyword.put(http_opts, :params, updated_params)
     run(conn, list_op, rv, http_opts)
   end
@@ -100,9 +100,9 @@ defmodule K8s.Client.Runner.Watch do
 
   @spec get_to_list(Operation.t()) :: {Operation.t(), keyword}
   defp get_to_list(get_op) do
-    list_op = %{get_op | verb: :list, path_params: []}
-    name = get_op.path_params[:name]
-    params = [fieldSelector: "metadata.name=#{name}"]
-    {list_op, params}
+    {name, other_path_params} = Keyword.pop(get_op.path_params, :name)
+    list_op = %{get_op | verb: :list, path_params: other_path_params}
+    field_selector_params = [fieldSelector: "metadata.name=#{name}"]
+    {list_op, field_selector_params}
   end
 end
