@@ -97,6 +97,43 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
     end
 
     @tag integration: true
+    test "applying a resource that does not exist", %{conn: conn, test_id: test_id} do
+      pod = build_pod("k8s-ex-#{test_id}")
+      operation = K8s.Client.apply(pod)
+      result = K8s.Client.run(conn, operation)
+      assert {:ok, _pod} = result
+
+      operation = K8s.Client.delete(pod)
+      result = K8s.Client.run(conn, operation)
+      assert {:ok, _pod} = result
+    end
+
+    @tag integration: true
+    test "applying a resource that does already exist", %{conn: conn, test_id: test_id} do
+      pod = build_pod("k8s-ex-#{test_id}")
+      operation = K8s.Client.apply(pod)
+      result = K8s.Client.run(conn, operation)
+      assert {:ok, _pod} = result
+
+      assert is_nil(pod["metadata"]["labels"]["some"])
+
+      pod = put_in(pod, ["metadata", "labels"], %{"some" => "change"})
+      operation = K8s.Client.apply(pod)
+      result = K8s.Client.run(conn, operation)
+      assert {:ok, _pod} = result
+
+      operation = K8s.Client.get(pod)
+      result = K8s.Client.run(conn, operation)
+      assert {:ok, pod} = result
+
+      assert "change" == pod["metadata"]["labels"]["some"]
+
+      operation = K8s.Client.delete(pod)
+      result = K8s.Client.run(conn, operation)
+      assert {:ok, _pod} = result
+    end
+
+    @tag integration: true
     test "listing resources", %{conn: conn} do
       operation = K8s.Client.list("v1", "ServiceAccount", namespace: "default")
 
