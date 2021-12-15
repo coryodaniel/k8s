@@ -80,7 +80,8 @@ defmodule K8s.Client do
       }
   """
   @spec apply(map(), binary(), boolean()) :: Operation.t()
-  def apply(resource, field_manager, force) when is_binary(field_manager) do
+  def apply(resource, field_manager \\ "elixir", force \\ true)
+      when is_binary(field_manager) and is_boolean(force) do
     Operation.build(:apply, resource, field_manager: field_manager, force: force)
   end
 
@@ -88,37 +89,19 @@ defmodule K8s.Client do
   Returns a `PATCH` operation to server-side-apply the given subresource given a resource's details and a subresource map.
   """
   @spec apply(binary, binary | atom, Keyword.t(), map(), binary(), boolean()) :: Operation.t()
-  def apply(api_version, kind, path_params, subresource, field_manager, force),
-    do:
-      Operation.build(:apply, api_version, kind, path_params, subresource,
-        field_manager: field_manager,
-        force: force
-      )
-
-  @doc """
-  Returns a `PATCH` operation to server-side-apply the given subresource given a resource map and a subresource map.
-  """
-  @spec apply(map(), map(), binary(), boolean()) :: Operation.t()
   def apply(
-        %{
-          "apiVersion" => api_version,
-          "kind" => kind,
-          "metadata" => %{"namespace" => ns, "name" => name}
-        },
-        %{"kind" => subkind} = subresource,
-        field_manager,
-        force
-      ) do
-    Operation.build(
-      :apply,
-      api_version,
-      {kind, subkind},
-      [namespace: ns, name: name],
-      subresource,
-      field_manager: field_manager,
-      force: force
-    )
-  end
+        api_version,
+        kind,
+        path_params,
+        subresource,
+        field_manager \\ "elixir",
+        force \\ true
+      ),
+      do:
+        Operation.build(:apply, api_version, kind, path_params, subresource,
+          field_manager: field_manager,
+          force: force
+        )
 
   @doc """
   Returns a `GET` operation for a resource given a Kubernetes manifest. May be a partial manifest as long as it contains:
