@@ -221,11 +221,11 @@ defmodule K8s.Selector do
   `fieldSelector` helper that creates a composable `K8s.Selector`.
 
   ## Examples
-  iex> K8s.Selector.field({"metadata.namespace", "default"})
-  %K8s.Selector{match_fields: %{"metadata.namespace" => {"=", "default"}}}
+      iex> K8s.Selector.field({"metadata.namespace", "default"})
+      %K8s.Selector{match_fields: %{"metadata.namespace" => {"=", "default"}}}
 
-  iex> K8s.Selector.field(%{"metadata.namespace" => "default", "status.phase" => "Running"})
-  %K8s.Selector{match_fields: %{"metadata.namespace" => {"=", "default"}, "status.phase" => {"=", "Running"}}}
+      iex> K8s.Selector.field(%{"metadata.namespace" => "default", "status.phase" => "Running"})
+      %K8s.Selector{match_fields: %{"metadata.namespace" => {"=", "default"}, "status.phase" => {"=", "Running"}}}
   """
 
   @spec field({binary | atom, binary} | map) :: t()
@@ -239,11 +239,11 @@ defmodule K8s.Selector do
   `fieldSelector` helper that creates a composable `K8s.Selector`.
 
   ## Examples
-  iex> K8s.Selector.field({"metadata.namespace", "default"})
-  %K8s.Selector{match_fields: %{"metadata.namespace" => {"=", "default"}}}
+      iex> K8s.Selector.field({"metadata.namespace", "default"})
+      %K8s.Selector{match_fields: %{"metadata.namespace" => {"=", "default"}}}
 
-  iex> K8s.Selector.field(%{"metadata.namespace" => "default", "status.phase" => "Running"})
-  %K8s.Selector{match_fields: %{"metadata.namespace" => {"=", "default"}, "status.phase" => {"=", "Running"}}}
+      iex> K8s.Selector.field(%{"metadata.namespace" => "default", "status.phase" => "Running"})
+      %K8s.Selector{match_fields: %{"metadata.namespace" => {"=", "default"}, "status.phase" => {"=", "Running"}}}
   """
   def field(%{} = selector_or_operation, field),
     do: merge(selector_or_operation, field(field), :field)
@@ -252,11 +252,11 @@ defmodule K8s.Selector do
   `fieldSelector` helper that creates a composable `K8s.Selector`.
 
   ## Examples
-  iex> K8s.Selector.field_not({"metadata.namespace", "default"})
-  %K8s.Selector{match_fields: %{"metadata.namespace" => {"!=", "default"}}}
+      iex> K8s.Selector.field_not({"metadata.namespace", "default"})
+      %K8s.Selector{match_fields: %{"metadata.namespace" => {"!=", "default"}}}
 
-  iex> K8s.Selector.field(%{"metadata.namespace" => "default", "status.phase" => "Running"})
-  %K8s.Selector{match_fields: %{"metadata.namespace" => {"=", "default"}, "status.phase" => {"=", "Running"}}}
+      iex> K8s.Selector.field(%{"metadata.namespace" => "default", "status.phase" => "Running"})
+      %K8s.Selector{match_fields: %{"metadata.namespace" => {"=", "default"}, "status.phase" => {"=", "Running"}}}
   """
   @spec field_not({binary | atom, binary} | map) :: t()
   def field_not({k, v}),
@@ -388,13 +388,19 @@ defmodule K8s.Selector do
   end
 
   @doc """
+  Serializes a `K8s.Selector` to a `labelSelector` query string. See `labels_to_s/1`
+  """
+  @spec to_s(t) :: binary()
+  defdelegate to_s(selector), to: __MODULE__, as: :labels_to_s
+
+  @doc """
   Serializes a `K8s.Selector` to a `labelSelector` query string.
 
   ## Examples
 
-    iex> selector = K8s.Selector.label({"component", "redis"})
-    ...> K8s.Selector.labels_to_s(selector)
-    "component=redis"
+      iex> selector = K8s.Selector.label({"component", "redis"})
+      ...> K8s.Selector.labels_to_s(selector)
+      "component=redis"
   """
   @spec labels_to_s(t) :: binary()
   def labels_to_s(%K8s.Selector{match_labels: labels, match_expressions: expr}) do
@@ -407,9 +413,9 @@ defmodule K8s.Selector do
 
   ## Examples
 
-  iex> selector = K8s.Selector.field({"status.phase", "Running"})
-  ...> K8s.Selector.fields_to_s(selector)
-  "status.phase=Running"
+      iex> selector = K8s.Selector.field({"status.phase", "Running"})
+      ...> K8s.Selector.fields_to_s(selector)
+      "status.phase=Running"
   """
   @spec fields_to_s(t) :: binary()
   def fields_to_s(%K8s.Selector{match_fields: fields}) do
@@ -423,15 +429,15 @@ defmodule K8s.Selector do
 
   ## Examples
 
-    iex> selector = %{
-    ...>   "matchLabels" => %{"component" => "redis"},
-    ...>   "matchExpressions" => [
-    ...>     %{"operator" => "In", "key" => "tier", "values" => ["cache"]},
-    ...>     %{"operator" => "NotIn", "key" => "environment", "values" => ["dev"]}
-    ...>   ]
-    ...> }
-    ...> K8s.Selector.parse(selector)
-    %K8s.Selector{match_labels: %{"component" => "redis"}, match_expressions: [%{"operator" => "In", "key" => "tier", "values" => ["cache"]},%{"operator" => "NotIn", "key" => "environment", "values" => ["dev"]}]}
+      iex> selector = %{
+      ...>   "matchLabels" => %{"component" => "redis"},
+      ...>   "matchExpressions" => [
+      ...>     %{"operator" => "In", "key" => "tier", "values" => ["cache"]},
+      ...>     %{"operator" => "NotIn", "key" => "environment", "values" => ["dev"]}
+      ...>   ]
+      ...> }
+      ...> K8s.Selector.parse(selector)
+      %K8s.Selector{match_labels: %{"component" => "redis"}, match_expressions: [%{"operator" => "In", "key" => "tier", "values" => ["cache"]},%{"operator" => "NotIn", "key" => "environment", "values" => ["dev"]}]}
   """
   @spec parse(map) :: t
   def parse(%{"spec" => %{"selector" => selector}}), do: parse(selector)
@@ -473,15 +479,15 @@ defmodule K8s.Selector do
   Returns a `fieldSelector` query string value for a set of field selectors.
 
   ## Examples
-  Builds a query string for a single field (`kubectl get pods --field-selector status.phase=Running`):
+    Builds a query string for a single field (`kubectl get pods --field-selector status.phase=Running`):
 
-  iex> K8s.Selector.serialize_match_fields(%{"status.phase" => {"=", "Running"}})
-  ["status.phase=Running"]
+      iex> K8s.Selector.serialize_match_fields(%{"status.phase" => {"=", "Running"}})
+      ["status.phase=Running"]
 
-  Builds a query string for multiple fields (`kubectl get pods --field-selector status.phase=Running,metadata.namespace!=default`):
+    Builds a query string for multiple fields (`kubectl get pods --field-selector status.phase=Running,metadata.namespace!=default`):
 
-  iex> K8s.Selector.serialize_match_fields(%{"metadata.namespace" => {"!=", "default"}, "status.phase" => {"=", "Running"}})
-  ["metadata.namespace!=default", "status.phase=Running"]
+      iex> K8s.Selector.serialize_match_fields(%{"metadata.namespace" => {"!=", "default"}, "status.phase" => {"=", "Running"}})
+      ["metadata.namespace!=default", "status.phase=Running"]
   """
   @spec serialize_match_fields(map()) :: list(binary())
   def serialize_match_fields(%{} = fields) do
