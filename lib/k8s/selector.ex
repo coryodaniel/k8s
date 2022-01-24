@@ -235,16 +235,6 @@ defmodule K8s.Selector do
   def field(fields) when is_map(fields),
     do: field_selector_from_map(fields, "=")
 
-  @doc """
-  `fieldSelector` helper that creates a composable `K8s.Selector`.
-
-  ## Examples
-      iex> K8s.Selector.field({"metadata.namespace", "default"})
-      %K8s.Selector{match_fields: %{"metadata.namespace" => {"=", "default"}}}
-
-      iex> K8s.Selector.field(%{"metadata.namespace" => "default", "status.phase" => "Running"})
-      %K8s.Selector{match_fields: %{"metadata.namespace" => {"=", "default"}, "status.phase" => {"=", "Running"}}}
-  """
   def field(%{} = selector_or_operation, field),
     do: merge(selector_or_operation, field(field), :field)
 
@@ -262,8 +252,10 @@ defmodule K8s.Selector do
   def field_not({k, v}),
     do: %K8s.Selector{match_fields: %{k => {"!=", v}}}
 
-  @spec field_not({binary | atom, binary} | map) :: t()
   def field_not(fields) when is_map(fields), do: field_selector_from_map(fields, "!=")
+
+  def field_not(%{} = selector_or_operation, field),
+    do: merge(selector_or_operation, field_not(field), :field)
 
   @doc """
   `matchLabels` helper that creates a composable `K8s.Selector`.
