@@ -78,20 +78,6 @@ defmodule K8s.Client do
         data: K8s.Resource.from_file!("test/support/manifests/nginx-deployment.yaml"),
         query_params: [fieldManager: "my-operator", force: true]
       }
-
-    Apply a status to a pod
-      iex> pod = K8s.Resource.from_file!("test/support/manifests/nginx-pod.yaml")
-      ...> eviction = K8s.Resource.from_file!("test/support/manifests/eviction-policy.yaml")
-      ...> K8s.Client.apply(pod, eviction)
-      %K8s.Operation{
-        method: :patch,
-        verb: :apply,
-        api_version: "v1",
-        name: {"Pod", "Eviction"},
-        path_params: [namespace: "default", name: "nginx"],
-        data: K8s.Resource.from_file!("test/support/manifests/eviction-policy.yaml"),
-        query_params: [fieldManager: "Elixir", force: true]
-      }
   """
   @spec apply(map(), keyword()) :: Operation.t()
   def apply(resource, mgmt_params \\ []) do
@@ -105,14 +91,18 @@ defmodule K8s.Client do
 
   ## Examples
 
-    Get the nginx deployment's status:
-      iex> K8s.Client.apply("apps/v1", "deployments/status", [namespace: "test", name: "nginx"], %{"status" => %{"some" => "value"}})
+    Apply a status to a pod:
+      iex> pod_with_status_subresource = K8s.Resource.from_file!("test/support/manifests/nginx-pod.yaml") |> Map.put("status", %{"message" => "some message"})
+      ...> K8s.Client.apply("v1", "pods/status", [namespace: "default", name: "nginx"], pod_with_status_subresource, field_manager: "my-operator", force: true)
       %K8s.Operation{
-        method: :get,
-        verb: :get,
-        api_version: "apps/v1",
-        name: "deployments/status",
-        path_params: [namespace: "test", name: "nginx"]}
+        method: :patch,
+        verb: :apply,
+        api_version: "v1",
+        name: "pods/status",
+        path_params: [namespace: "default", name: "nginx"],
+        data: K8s.Resource.from_file!("test/support/manifests/nginx-pod.yaml") |> Map.put("status", %{"message" => "some message"}),
+        query_params: [fieldManager: "my-operator", force: true]
+      }
   """
   @spec apply(binary, binary | atom, Keyword.t(), map(), keyword()) :: Operation.t()
   def apply(

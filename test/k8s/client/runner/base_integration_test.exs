@@ -111,11 +111,12 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
     @tag integration: true
     test "applying a resource that does already exist", %{conn: conn, test_id: test_id} do
       pod = build_pod("k8s-ex-#{test_id}")
+      # make sure pod is created with no label called "some"
+      assert is_nil(pod["metadata"]["labels"]["some"])
+
       operation = K8s.Client.apply(pod)
       result = K8s.Client.run(conn, operation)
       assert {:ok, _pod} = result
-
-      assert is_nil(pod["metadata"]["labels"]["some"])
 
       pod = put_in(pod, ["metadata", "labels"], %{"some" => "change"})
       operation = K8s.Client.apply(pod)
@@ -127,6 +128,67 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
       assert {:ok, pod} = result
 
       assert "change" == pod["metadata"]["labels"]["some"]
+
+      operation = K8s.Client.delete(pod)
+      result = K8s.Client.run(conn, operation)
+      assert {:ok, _pod} = result
+    end
+
+    @tag integration: true
+    test "applying a resource with different managers should return a conflict error", %{
+      conn: conn,
+      test_id: test_id
+    } do
+      pod = build_pod("k8s-ex-#{test_id}", %{"some" => "init"})
+
+      # make sure pod is created with label "some"
+      assert "init" == pod["metadata"]["labels"]["some"]
+
+      operation = K8s.Client.apply(pod, field_manager: "k8s_test_mgr_1", force: false)
+      result = K8s.Client.run(conn, operation)
+      assert {:ok, _pod} = result
+
+      pod = put_in(pod, ["metadata", "labels"], %{"some" => "change"})
+      operation = K8s.Client.apply(pod, field_manager: "k8s_test_mgr_2", force: false)
+      result = K8s.Client.run(conn, operation)
+
+      assert {:error,
+              %K8s.Client.APIError{
+                message:
+                  "Apply failed with 1 conflict: conflict with \"k8s_test_mgr_1\": .metadata.labels.some",
+                reason: "Conflict"
+              }} == result
+
+      operation = K8s.Client.delete(pod)
+      result = K8s.Client.run(conn, operation)
+      assert {:ok, _pod} = result
+    end
+
+    @tag integration: true
+    test "applying a new status to a deployment", %{conn: conn, test_id: test_id} do
+      pod = build_pod("k8s-ex-#{test_id}")
+      operation = K8s.Client.apply(pod)
+      result = K8s.Client.run(conn, operation)
+      assert {:ok, _pod} = result
+
+      pod_with_status = Map.put(pod, "status", %{"message" => "some message"})
+
+      operation =
+        K8s.Client.apply(
+          "v1",
+          "pods/status",
+          [namespace: "default", name: "k8s-ex-#{test_id}"],
+          pod_with_status
+        )
+
+      result = K8s.Client.run(conn, operation)
+      assert {:ok, _pod} = result
+
+      operation = K8s.Client.get(pod)
+      result = K8s.Client.run(conn, operation)
+      assert {:ok, pod} = result
+
+      assert "some message" == pod["status"]["message"]
 
       operation = K8s.Client.delete(pod)
       result = K8s.Client.run(conn, operation)
