@@ -66,9 +66,9 @@ defmodule K8s.Client do
   [K8s Docs](https://kubernetes.io/docs/reference/using-api/server-side-apply/):
 
   ## Examples
-
-      iex>  deployment = K8s.Resource.from_file!("test/support/manifests/nginx-deployment.yaml")
-      ...> K8s.Client.apply(deployment, "my-operator", true)
+    Apply a deployment with management parameteres
+      iex> deployment = K8s.Resource.from_file!("test/support/manifests/nginx-deployment.yaml")
+      ...> K8s.Client.apply(deployment, field_manager: "my-operator", force: true)
       %K8s.Operation{
         method: :patch,
         verb: :apply,
@@ -78,30 +78,58 @@ defmodule K8s.Client do
         data: K8s.Resource.from_file!("test/support/manifests/nginx-deployment.yaml"),
         query_params: [fieldManager: "my-operator", force: true]
       }
+
+    Apply a status to a pod
+      iex> pod = K8s.Resource.from_file!("test/support/manifests/nginx-pod.yaml")
+      ...> eviction = K8s.Resource.from_file!("test/support/manifests/eviction-policy.yaml")
+      ...> K8s.Client.apply(pod, eviction)
+      %K8s.Operation{
+        method: :patch,
+        verb: :apply,
+        api_version: "v1",
+        name: {"Pod", "Eviction"},
+        path_params: [namespace: "default", name: "nginx"],
+        data: K8s.Resource.from_file!("test/support/manifests/eviction-policy.yaml"),
+        query_params: [fieldManager: "Elixir", force: true]
+      }
   """
-  @spec apply(map(), binary(), boolean()) :: Operation.t()
-  def apply(resource, field_manager \\ "elixir", force \\ true)
-      when is_binary(field_manager) and is_boolean(force) do
+  @spec apply(map(), keyword()) :: Operation.t()
+  def apply(resource, mgmt_params \\ []) do
+    field_manager = Keyword.get(mgmt_params, :field_manager, "Elixir")
+    force = Keyword.get(mgmt_params, :force, true)
     Operation.build(:apply, resource, field_manager: field_manager, force: force)
   end
 
   @doc """
   Returns a `PATCH` operation to server-side-apply the given subresource given a resource's details and a subresource map.
+
+  ## Examples
+
+    Get the nginx deployment's status:
+      iex> K8s.Client.apply("apps/v1", "deployments/status", [namespace: "test", name: "nginx"], %{"status" => %{"some" => "value"}})
+      %K8s.Operation{
+        method: :get,
+        verb: :get,
+        api_version: "apps/v1",
+        name: "deployments/status",
+        path_params: [namespace: "test", name: "nginx"]}
   """
-  @spec apply(binary, binary | atom, Keyword.t(), map(), binary(), boolean()) :: Operation.t()
+  @spec apply(binary, binary | atom, Keyword.t(), map(), keyword()) :: Operation.t()
   def apply(
         api_version,
         kind,
         path_params,
         subresource,
-        field_manager \\ "elixir",
-        force \\ true
-      ),
-      do:
-        Operation.build(:apply, api_version, kind, path_params, subresource,
-          field_manager: field_manager,
-          force: force
-        )
+        mgmt_params \\ []
+      ) do
+    field_manager = Keyword.get(mgmt_params, :field_manager, "Elixir")
+    force = Keyword.get(mgmt_params, :force, true)
+
+    Operation.build(:apply, api_version, kind, path_params, subresource,
+      field_manager: field_manager,
+      force: force
+    )
+  end
 
   @doc """
   Returns a `GET` operation for a resource given a Kubernetes manifest. May be a partial manifest as long as it contains:
