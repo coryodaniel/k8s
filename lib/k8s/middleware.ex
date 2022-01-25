@@ -33,7 +33,7 @@ defmodule K8s.Middleware do
   def run(%Request{} = req, middlewares) do
     result =
       Enum.reduce_while(middlewares, req, fn middleware, req ->
-        case apply(middleware, :call, [req]) do
+        case middleware.call(req) do
           {:ok, updated_request} ->
             {:cont, updated_request}
 
