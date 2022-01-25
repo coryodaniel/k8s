@@ -235,6 +235,7 @@ defmodule K8s.Selector do
   def field(fields) when is_map(fields),
     do: field_selector_from_map(fields, "=")
 
+  @spec field(map(), {binary | atom, binary}) :: t()
   def field(%{} = selector_or_operation, field),
     do: merge(selector_or_operation, field(field), :field)
 
@@ -254,6 +255,7 @@ defmodule K8s.Selector do
 
   def field_not(fields) when is_map(fields), do: field_selector_from_map(fields, "!=")
 
+  @spec field_not(map(), {binary | atom, binary}) :: t()
   def field_not(%{} = selector_or_operation, field),
     do: merge(selector_or_operation, field_not(field), :field)
 
@@ -360,7 +362,6 @@ defmodule K8s.Selector do
     Operation.put_label_selector(op, merged_selector)
   end
 
-  @spec merge(selector_or_operation_t, t, atom) :: selector_or_operation_t
   defp merge(%Operation{} = op, %__MODULE__{} = next, :field) do
     prev = Operation.get_field_selector(op)
     merged_selector = merge(prev, next, :label)
@@ -553,6 +554,7 @@ defmodule K8s.Selector do
 
   defp serialize_match_expression(%{"operator" => "DoesNotExist", "key" => key}), do: "!#{key}"
 
+  @spec field_selector_from_map(map(), String.t()) :: t()
   defp field_selector_from_map(fields, op) do
     match_fields =
       fields
