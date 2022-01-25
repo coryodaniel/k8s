@@ -17,7 +17,7 @@ defmodule K8s.Test.IntegrationHelper do
     }
   end
 
-  @spec build_pod(String.t(), Map.t()) :: Map.t()
+  @spec build_pod(String.t(), map()) :: map()
   def build_pod(name, labels \\ %{}) do
     %{
       "apiVersion" => "v1",
