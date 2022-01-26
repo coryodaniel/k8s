@@ -56,9 +56,8 @@ defmodule K8s.Conn.PKI do
   @spec private_key_from_pem(String.t()) ::
           {:ok, private_key_data_t} | {:error, :enoent | K8s.Conn.Error.t()}
   def private_key_from_pem(file) do
-    with {:ok, data} <- File.read(file),
-         {:ok, private_key_data} <- decode_private_key_data(data) do
-      {:ok, private_key_data}
+    with {:ok, data} <- File.read(file) do
+      decode_private_key_data(data)
     end
   end
 
