@@ -5,8 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-### Added
 
+## Unreleased
+
+### Added
+
+- `K8s.Client.Runner.Watch.stream/3` - watches a resource and returns an elixir [Stream](https://hexdocs.pm/elixir/1.12/Stream.html) of events #121
 - `K8s.Client.apply/3` - Create a [server-side apply](https://kubernetes.io/docs/reference/using-api/server-side-apply/) operation
 
 ## [1.0.0] - 2021-07-19
