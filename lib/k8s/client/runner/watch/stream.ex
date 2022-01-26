@@ -20,7 +20,7 @@ defmodule K8s.Client.Runner.Watch.Stream do
   defstruct [:resp, :conn, :operation, :resource_version, :http_opts, remainder: ""]
 
   @doc """
-  Creates an Elixir Stream of events emmitted while watching the given operation.
+  Watches resources and returns an Elixir Stream of events emmitted by kubernetes.
 
   ### Example
 
