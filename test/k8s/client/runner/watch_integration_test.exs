@@ -63,13 +63,14 @@ defmodule K8s.Client.Runner.WatchIntegrationTest do
       {:ok, _} = K8s.Client.run(conn, op)
     end)
 
-    [add_event | events] =
+    [add_event | other_events] =
       event_stream
       |> Stream.take_while(&(&1["type"] != "DELETED"))
       |> Enum.to_list()
 
     assert "ADDED" == add_event["type"]
     assert is_nil(get_in(add_event, ~w(object metadata annotations some)))
-    assert true == Enum.all?(events, &(&1["type"] == "MODIFIED"))
+    refute Enum.empty?(other_events)
+    assert true == Enum.all?(other_events, &(&1["type"] == "MODIFIED"))
   end
 end
