@@ -13,7 +13,8 @@ defmodule K8s.Operation do
     deletecollection: :delete,
     create: :post,
     update: :put,
-    patch: :patch
+    patch: :patch,
+    apply: :patch
   }
 
   defstruct method: nil,
@@ -92,34 +93,39 @@ defmodule K8s.Operation do
         name: "Deployment"
       }
   """
-  @spec build(atom, map) :: __MODULE__.t()
+  @spec build(atom(), map(), keyword()) :: __MODULE__.t()
+  def build(verb, resource, opts \\ [])
+
   def build(
         verb,
         %{
           "apiVersion" => v,
           "kind" => k,
           "metadata" => %{"name" => name, "namespace" => ns}
-        } = resource
+        } = resource,
+        opts
       ) do
-    build(verb, v, k, [namespace: ns, name: name], resource)
+    build(verb, v, k, [namespace: ns, name: name], resource, opts)
   end
 
   def build(
         verb,
-        %{"apiVersion" => v, "kind" => k, "metadata" => %{"name" => name}} = resource
+        %{"apiVersion" => v, "kind" => k, "metadata" => %{"name" => name}} = resource,
+        opts
       ) do
-    build(verb, v, k, [name: name], resource)
+    build(verb, v, k, [name: name], resource, opts)
   end
 
   def build(
         verb,
-        %{"apiVersion" => v, "kind" => k, "metadata" => %{"namespace" => ns}} = resource
+        %{"apiVersion" => v, "kind" => k, "metadata" => %{"namespace" => ns}} = resource,
+        opts
       ) do
-    build(verb, v, k, [namespace: ns], resource)
+    build(verb, v, k, [namespace: ns], resource, opts)
   end
 
-  def build(verb, %{"apiVersion" => v, "kind" => k} = resource) do
-    build(verb, v, k, [], resource)
+  def build(verb, %{"apiVersion" => v, "kind" => k} = resource, opts) do
+    build(verb, v, k, [], resource, opts)
   end
 
   @doc """
@@ -151,8 +157,8 @@ defmodule K8s.Operation do
         name: "deployments/status"
       }
   """
-  @spec build(atom, binary, name_t(), keyword(), map() | nil) :: __MODULE__.t()
-  def build(verb, api_version, name_or_kind, path_params, data \\ nil) do
+  @spec build(atom, binary, name_t(), keyword(), map() | nil, keyword()) :: __MODULE__.t()
+  def build(verb, api_version, name_or_kind, path_params, data \\ nil, opts \\ []) do
     http_method = @verb_map[verb] || verb
 
     http_body =
@@ -161,13 +167,26 @@ defmodule K8s.Operation do
         _ -> nil
       end
 
+    query_params =
+      case verb do
+        :apply ->
+          [
+            fieldManager: Keyword.get(opts, :field_manager, "elixir"),
+            force: Keyword.get(opts, :force, true)
+          ]
+
+        _ ->
+          []
+      end
+
     %__MODULE__{
       method: http_method,
       verb: verb,
       data: http_body,
       api_version: api_version,
       name: name_or_kind,
-      path_params: path_params
+      path_params: path_params,
+      query_params: query_params
     }
   end
 
