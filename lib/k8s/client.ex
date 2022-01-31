@@ -22,6 +22,11 @@ defmodule K8s.Client do
   @type path_param :: {:name, String.t()} | {:namespace, binary() | :all}
   @type path_params :: [path_param]
 
+  @mgmt_param_defaults %{
+    field_manager: "elixir",
+    force: true
+  }
+
   alias K8s.Operation
   alias K8s.Client.Runner.{Async, Base, Stream, Wait, Watch}
 
@@ -81,8 +86,8 @@ defmodule K8s.Client do
   """
   @spec apply(map(), keyword()) :: Operation.t()
   def apply(resource, mgmt_params \\ []) do
-    field_manager = Keyword.get(mgmt_params, :field_manager, "Elixir")
-    force = Keyword.get(mgmt_params, :force, true)
+    field_manager = Keyword.get(mgmt_params, :field_manager, @mgmt_param_defaults[:field_manager])
+    force = Keyword.get(mgmt_params, :force, @mgmt_param_defaults[:force])
     Operation.build(:apply, resource, field_manager: field_manager, force: force)
   end
 
@@ -112,8 +117,8 @@ defmodule K8s.Client do
         subresource,
         mgmt_params \\ []
       ) do
-    field_manager = Keyword.get(mgmt_params, :field_manager, "Elixir")
-    force = Keyword.get(mgmt_params, :force, true)
+    field_manager = Keyword.get(mgmt_params, :field_manager, @mgmt_param_defaults[:field_manager])
+    force = Keyword.get(mgmt_params, :force, @mgmt_param_defaults[:force])
 
     Operation.build(:apply, api_version, kind, path_params, subresource,
       field_manager: field_manager,
