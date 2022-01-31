@@ -13,6 +13,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `K8s.Client.Runner.Watch.stream/3` - watches a resource and returns an elixir [Stream](https://hexdocs.pm/elixir/1.12/Stream.html) of events #121
 - `K8s.Client.apply/3` - Create a [server-side apply](https://kubernetes.io/docs/reference/using-api/server-side-apply/) operation
 
+### Changed
+
+- Handle generic kubernetes response Failure without a reason #120
+
+### Deprecated
+
+- `K8s.Client.HTTPProvider.headers/2` was deprecated in favor of `K8s.Client.HTTPProvider.headers/1`
+- `K8s.Client.DynamicHTTPProvider.headers/2` was deprecated in favor of `K8s.Client.DynamicHTTPProvider.headers/1`
+
+### Fixed
+- Preserve namespace in get_to_list/1 #122, #123
+- Fix obsolete doc on wait operation #118
 ## [1.0.0] - 2021-07-19
 
 ### Added
