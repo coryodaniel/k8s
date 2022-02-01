@@ -4,7 +4,20 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
 
   setup do
     test_id = :rand.uniform(10_000)
-    {:ok, %{conn: conn(), test_id: test_id}}
+    conn = conn()
+
+    on_exit(fn ->
+      delete_pod =
+        K8s.Client.delete(%{
+          "apiVersion" => "v1",
+          "kind" => "Pod",
+          "metadata" => %{"name" => "k8s-ex-#{test_id}"}
+        })
+
+      K8s.Client.run(conn, delete_pod)
+    end)
+
+    {:ok, %{conn: conn, test_id: test_id}}
   end
 
   describe "cluster scoped resources" do

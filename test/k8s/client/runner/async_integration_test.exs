@@ -38,5 +38,10 @@ defmodule K8s.Client.Runner.AsyncIntegrationTest do
     # [ok: pod1, ok: pod2]
     assert {:ok, _} = pod_list |> List.first()
     assert {:ok, _} = pod_list |> List.last()
+
+    pod_list
+    |> Enum.each(fn {:ok, pod} ->
+      K8s.Client.run(conn, K8s.Client.delete(pod))
+    end)
   end
 end

@@ -20,10 +20,10 @@ defmodule K8s.Client.Runner.StreamIntegrationTest do
     # Note: stream_test.exs tests functionality of creating the stream
     # This test is a simple integration test against a real cluster
     pod1 = pod("stream-nginx-#{test_id}-1", labels)
-    {:ok, _} = K8s.Client.run(conn, pod1)
+    {:ok, to_delete_1} = K8s.Client.run(conn, pod1)
 
     pod2 = pod("stream-nginx-#{test_id}-2", labels)
-    {:ok, _} = K8s.Client.run(conn, pod2)
+    {:ok, to_delete_2} = K8s.Client.run(conn, pod2)
 
     selector = K8s.Selector.label(labels)
     operation = K8s.Client.list("v1", "Pod", namespace: "default")
@@ -35,6 +35,9 @@ defmodule K8s.Client.Runner.StreamIntegrationTest do
       |> Enum.take(2)
       |> Enum.reduce([], fn resource, agg -> [K8s.Resource.name(resource) | agg] end)
       |> Enum.sort()
+
+    K8s.Client.run(conn, K8s.Client.delete(to_delete_1))
+    K8s.Client.run(conn, K8s.Client.delete(to_delete_2))
 
     assert resources == ["stream-nginx-#{test_id}-1", "stream-nginx-#{test_id}-2"]
   end
