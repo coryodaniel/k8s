@@ -30,7 +30,7 @@ defmodule K8s.Client.Runner.Watch do
   {:ok, reference} = Watch.run(conn, operation, stream_to: self())
   ```
   """
-  @spec run(Conn.t(), Operation.t(), keyword(atom)) :: Base.result_t()
+  @spec run(Conn.t(), Operation.t(), keyword()) :: Base.result_t()
   def run(%Conn{} = conn, %Operation{method: :get} = operation, http_opts) do
     case get_resource_version(conn, operation) do
       {:ok, rv} -> run(conn, operation, rv, http_opts)
@@ -62,7 +62,7 @@ defmodule K8s.Client.Runner.Watch do
   {:ok, reference} = Watch.run(conn, operation, resource_version, stream_to: self())
   ```
   """
-  @spec run(Conn.t(), Operation.t(), binary, keyword(atom)) :: Base.result_t()
+  @spec run(Conn.t(), Operation.t(), binary, keyword()) :: Base.result_t()
   def run(%Conn{} = conn, %Operation{method: :get, verb: verb} = operation, rv, http_opts)
       when verb in [:list, :list_all_namespaces] do
     opts_w_watch_params = add_watch_params_to_opts(http_opts, rv)
@@ -86,7 +86,7 @@ defmodule K8s.Client.Runner.Watch do
       op = K8s.Client.list("v1", "Namespace")
       K8s.Client.Runner.Watch.stream(conn, op) |> Stream.map(&IO.inspect/1) |> Stream.run()
   """
-  @spec stream(Conn.t(), Operation.t(), keyword(atom)) :: Enumerable.t()
+  @spec stream(Conn.t(), Operation.t(), keyword()) :: Enumerable.t()
   defdelegate stream(conn, operation, http_opts \\ []), to: Stream, as: :resource
 
   @spec get_resource_version(Conn.t(), Operation.t()) :: {:ok, binary} | Base.error_t()
