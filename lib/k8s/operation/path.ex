@@ -131,7 +131,7 @@ defmodule K8s.Operation.Path do
       "/foo/bar"
 
   """
-  @spec replace_path_vars(binary(), keyword(atom())) :: binary()
+  @spec replace_path_vars(binary(), keyword()) :: binary()
   def replace_path_vars(path_template, opts) do
     Regex.replace(~r/\{(\w+?)\}/, path_template, fn _, var ->
       opts[String.to_existing_atom(var)]

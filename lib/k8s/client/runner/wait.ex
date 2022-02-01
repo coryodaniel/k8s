@@ -34,7 +34,7 @@ defmodule K8s.Client.Runner.Wait do
   resp = K8s.Client.Runner.Wait.run(conn, op, opts)
   ```
   """
-  @spec run(Conn.t(), Operation.t(), keyword(atom())) ::
+  @spec run(Conn.t(), Operation.t(), keyword()) ::
           {:ok, map()} | {:error, :timeout | Error.t()}
   def run(%Conn{} = conn, %Operation{method: :get} = op, opts) do
     conditions =

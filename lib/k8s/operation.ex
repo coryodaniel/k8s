@@ -73,7 +73,7 @@ defmodule K8s.Operation do
           api_version: binary(),
           name: name_t(),
           data: map() | nil,
-          path_params: keyword(atom()),
+          path_params: keyword(),
           query_params: keyword()
         }
 

@@ -25,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Preserve namespace in get_to_list/1 #122, #123
 - Fix obsolete doc on wait operation #118
+- Dialyzer errors with K8s.Client functions #119
+
 ## [1.0.0] - 2021-07-19
 
 ### Added
