@@ -9,12 +9,23 @@ defmodule K8s.Client.Runner.WaitIntegrationTest do
       |> String.to_integer()
 
     test_id = :rand.uniform(10_000)
-    {:ok, %{conn: conn(), test_id: test_id, timeout: timeout}}
+    conn = conn()
+
+    on_exit(fn ->
+      delete_job =
+        "wait-job-#{test_id}"
+        |> job()
+        |> K8s.Client.delete()
+
+      K8s.Client.run(conn, delete_job)
+    end)
+
+    {:ok, %{conn: conn, test_id: test_id, timeout: timeout}}
   end
 
   @spec job(binary) :: K8s.Operation.t()
   defp job(name) do
-    K8s.Client.create(%{
+    %{
       "apiVersion" => "batch/v1",
       "kind" => "Job",
       "metadata" => %{"name" => name, "namespace" => "default"},
@@ -33,7 +44,7 @@ defmodule K8s.Client.Runner.WaitIntegrationTest do
           }
         }
       }
-    })
+    }
   end
 
   @tag integration: true
@@ -42,7 +53,7 @@ defmodule K8s.Client.Runner.WaitIntegrationTest do
     test_id: test_id,
     timeout: timeout
   } do
-    create_job = job("wait-job-#{test_id}")
+    create_job = "wait-job-#{test_id}" |> job() |> K8s.Client.create()
     {:ok, _} = K8s.Client.run(conn, create_job)
 
     op = K8s.Client.get("batch/v1", :job, namespace: "default", name: "wait-job-#{test_id}")
@@ -58,7 +69,7 @@ defmodule K8s.Client.Runner.WaitIntegrationTest do
     test_id: test_id,
     timeout: timeout
   } do
-    create_job = job("wait-job-#{test_id}")
+    create_job = "wait-job-#{test_id}" |> job() |> K8s.Client.create()
     {:ok, _} = K8s.Client.run(conn, create_job)
 
     op = K8s.Client.get("batch/v1", :job, namespace: "default", name: "wait-job-#{test_id}")

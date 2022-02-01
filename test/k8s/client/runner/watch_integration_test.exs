@@ -5,7 +5,20 @@ defmodule K8s.Client.Runner.WatchIntegrationTest do
   setup do
     test_id = :rand.uniform(10_000)
     labels = %{"k8s-ex-watch-test" => "#{test_id}", "k8s-ex" => "true"}
-    {:ok, %{conn: conn(), test_id: test_id, labels: labels}}
+    conn = conn()
+
+    on_exit(fn ->
+      delete_pod =
+        K8s.Client.delete(%{
+          "apiVersion" => "v1",
+          "kind" => "Pod",
+          "metadata" => %{"name" => "watch-nginx-#{test_id}"}
+        })
+
+      K8s.Client.run(conn, delete_pod)
+    end)
+
+    {:ok, %{conn: conn, test_id: test_id, labels: labels}}
   end
 
   @spec pod(binary, map) :: K8s.Operation.t()
@@ -24,7 +37,7 @@ defmodule K8s.Client.Runner.WatchIntegrationTest do
     this = self()
     {:ok, _reference} = K8s.Client.Runner.Watch.run(conn, operation, "0", stream_to: this)
 
-    pod1 = pod("watch-nginx-#{test_id}-1", labels)
+    pod1 = pod("watch-nginx-#{test_id}", labels)
     {:ok, pod1} = K8s.Client.run(conn, pod1)
 
     assert_receive %HTTPoison.AsyncStatus{code: 200}
@@ -46,7 +59,7 @@ defmodule K8s.Client.Runner.WatchIntegrationTest do
       # give watcher time to initialize in order to not miss first event
       :timer.sleep(500)
 
-      pod = build_pod("watch-nginx-#{test_id}-2", labels)
+      pod = build_pod("watch-nginx-#{test_id}", labels)
 
       op = K8s.Client.create(pod)
       {:ok, _} = K8s.Client.run(conn, op)
