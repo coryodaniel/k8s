@@ -195,7 +195,7 @@ defmodule K8s.Conn do
           verify_options =
             case conn.insecure_skip_tls_verify do
               true -> [verify: :verify_none]
-              _ -> []
+              _ -> [verify: :verify_peer]
             end
 
           ca_options =
