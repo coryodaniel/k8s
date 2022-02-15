@@ -1,4 +1,4 @@
-use Mix.Config
+import Config
 
 config :k8s,
   discovery_driver: K8s.Discovery.Driver.File,
