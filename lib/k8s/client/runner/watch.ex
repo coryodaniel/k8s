@@ -86,8 +86,17 @@ defmodule K8s.Client.Runner.Watch do
       op = K8s.Client.list("v1", "Namespace")
       K8s.Client.Runner.Watch.stream(conn, op) |> Stream.map(&IO.inspect/1) |> Stream.run()
   """
-  @spec stream(Conn.t(), Operation.t(), keyword()) :: Enumerable.t()
-  defdelegate stream(conn, operation, http_opts \\ []), to: Stream, as: :resource
+  @spec stream(Conn.t(), Operation.t(), keyword()) :: {:ok, Enumerable.t()} | {:error, Error.t()}
+  def stream(conn, operation, http_opts \\ [])
+
+  def stream(conn, %Operation{method: :get} = operation, http_opts) do
+    {:ok, Stream.resource(conn, operation, http_opts)}
+  end
+
+  def stream(op, _, _) do
+    msg = "Only HTTP GET operations (list, get) are supported. #{inspect(op)}"
+    {:error, %Error{message: msg}}
+  end
 
   @spec get_resource_version(Conn.t(), Operation.t()) :: {:ok, binary} | Base.error_t()
   def get_resource_version(%Conn{} = conn, %Operation{} = operation) do
