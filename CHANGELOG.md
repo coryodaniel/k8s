@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Preserve namespace in get_to_list/1 #122, #123
 - Fix obsolete doc on wait operation #118
 - Dialyzer errors with K8s.Client functions #119
+- Enable peer certificate authentication #127.  Be aware, this will break configurations that have been using incorrect certificate(s) up to this point.
 
 ## [1.0.0] - 2021-07-19
 
