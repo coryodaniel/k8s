@@ -53,7 +53,7 @@ defmodule K8s.Client.Runner.WatchIntegrationTest do
     selector = K8s.Selector.label(labels)
     operation = K8s.Client.list("v1", "Pod", namespace: "default")
     operation = K8s.Operation.put_label_selector(operation, selector)
-    event_stream = K8s.Client.Runner.Watch.stream(conn, operation)
+    {:ok, event_stream} = K8s.Client.Runner.Watch.stream(conn, operation)
 
     Task.async(fn ->
       # give watcher time to initialize in order to not miss first event
