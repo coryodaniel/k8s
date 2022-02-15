@@ -180,7 +180,7 @@ defmodule K8s.Client do
         path_params: [namespace: "test", name: "nginx"]
       }
 
-    Get the nginx deployment in the default namespace using atom for kind.  e.g. `name: :deployment`:
+    Get the nginx deployment in the default namespace by passing the kind as atom.
       iex> K8s.Client.get("apps/v1", :deployment, namespace: "test", name: "nginx")
       %K8s.Operation{
         method: :get,
