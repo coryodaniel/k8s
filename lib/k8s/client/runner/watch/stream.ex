@@ -5,6 +5,7 @@ defmodule K8s.Client.Runner.Watch.Stream do
 
   alias K8s.Client.Runner.Base
   alias K8s.Client.Runner.Watch
+  alias K8s.Sys.Logger, as: K8sLogger
 
   require Logger
 
@@ -79,7 +80,11 @@ defmodule K8s.Client.Runner.Watch.Stream do
   defp next_fun({:recv, %__MODULE__{} = state}) do
     receive do
       %HTTPoison.AsyncEnd{} ->
-        Logger.warn(@log_prefix <> "AsyncEnd received - tryin to restart watcher", library: :k8s)
+        Logger.warn(
+          @log_prefix <> "AsyncEnd received - tryin to restart watcher",
+          K8sLogger.metadata()
+        )
+
         {[], {:start, state}}
 
       %HTTPoison.AsyncHeaders{} ->
@@ -91,8 +96,9 @@ defmodule K8s.Client.Runner.Watch.Stream do
         {[], {:recv, state}}
 
       %HTTPoison.AsyncStatus{code: 410} ->
-        Logger.warn(@log_prefix <> "410 Gone received from watcher - trying to restart",
-          library: :k8s
+        Logger.warn(
+          @log_prefix <> "410 Gone received from watcher - trying to restart",
+          K8sLogger.metadata()
         )
 
         {[], {:start, state}}
@@ -100,8 +106,7 @@ defmodule K8s.Client.Runner.Watch.Stream do
       %HTTPoison.AsyncStatus{code: _} = error ->
         Logger.warn(
           @log_prefix <> "Erronous async status received from watcher - aborting the watch",
-          library: :k8s,
-          error: error
+          K8sLogger.metadata(error: error)
         )
 
         {:halt, nil}
@@ -114,7 +119,10 @@ defmodule K8s.Client.Runner.Watch.Stream do
         |> transform_to_events()
 
       %HTTPoison.Error{reason: {:closed, :timeout}} ->
-        Logger.debug(@log_prefix <> "Watch request timed out - resuming the watch", library: :k8s)
+        Logger.debug(
+          @log_prefix <> "Watch request timed out - resuming the watch",
+          K8sLogger.metadata()
+        )
 
         %{
           conn: conn,
@@ -128,9 +136,9 @@ defmodule K8s.Client.Runner.Watch.Stream do
         {[], {:recv, %{state | resp: %HTTPoison.AsyncResponse{id: ref}}}}
 
       other ->
-        Logger.debug(@log_prefix <> "Wacher received unexpected message.",
-          library: :k8s,
-          message: other
+        Logger.debug(
+          @log_prefix <> "Wacher received unexpected message.",
+          K8sLogger.metadata(message: other)
         )
 
         # ignore other messages and continue
@@ -150,7 +158,7 @@ defmodule K8s.Client.Runner.Watch.Stream do
       error ->
         Logger.error(
           @log_prefix <> "Can't restart watcher - stopping watcher stream: #{inspect(error)}",
-          library: :k8s
+          K8sLogger.metadata()
         )
 
         {:halt, nil}
@@ -195,9 +203,9 @@ defmodule K8s.Client.Runner.Watch.Stream do
         {events, {:start, state}}
 
       {:error, error}, {events, acc} ->
-        Logger.error(@log_prefix <> "Could not decode JSON - chunk seems to be malformed",
-          error: error,
-          library: :k8s
+        Logger.error(
+          @log_prefix <> "Could not decode JSON - chunk seems to be malformed",
+          K8sLogger.metadata(error: error)
         )
 
         {events, acc}
@@ -215,8 +223,9 @@ defmodule K8s.Client.Runner.Watch.Stream do
          {:recv, %__MODULE__{state | resource_version: new_resource_version}}}
 
       {:ok, %{"object" => %{"message" => message}}}, {events, {_, state}} ->
-        Logger.error(@log_prefix <> "Erronous event received from watcher: #{message}",
-          library: :k8s
+        Logger.error(
+          @log_prefix <> "Erronous event received from watcher: #{message}",
+          K8sLogger.metadata()
         )
 
         {events, {:start, state}}
