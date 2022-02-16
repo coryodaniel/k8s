@@ -8,6 +8,8 @@ defmodule K8s.Client.Runner.Watch.Stream do
 
   require Logger
 
+  @log_prefix "#{__MODULE__} - " |> String.replace_leading("Elixir.", "")
+
   @type t :: %__MODULE__{
           resp: HTTPoison.AsyncResponse.t(),
           conn: K8s.Conn.t(),
@@ -77,7 +79,7 @@ defmodule K8s.Client.Runner.Watch.Stream do
   defp next_fun({:recv, %__MODULE__{} = state}) do
     receive do
       %HTTPoison.AsyncEnd{} ->
-        Logger.warn("AsyncEnd received - tryin to restart watcher")
+        Logger.warn(@log_prefix <> "AsyncEnd received - tryin to restart watcher", library: :k8s)
         {[], {:start, state}}
 
       %HTTPoison.AsyncHeaders{} ->
@@ -89,19 +91,22 @@ defmodule K8s.Client.Runner.Watch.Stream do
         {[], {:recv, state}}
 
       %HTTPoison.AsyncStatus{code: 410} ->
-        Logger.warn("410 Gone received from watcher - trying to restart")
+        Logger.warn(@log_prefix <> "410 Gone received from watcher - trying to restart",
+          library: :k8s
+        )
+
         {[], {:start, state}}
 
       %HTTPoison.AsyncStatus{code: _} = error ->
         Logger.warn(
-          "Erronous async status received from watcher - aborting the watch",
+          @log_prefix <> "Erronous async status received from watcher - aborting the watch",
+          library: :k8s,
           error: error
         )
 
         {:halt, nil}
 
       %HTTPoison.AsyncChunk{chunk: chunk} ->
-        Logger.debug("Chunk received")
         HTTPoison.stream_next(state.resp)
 
         {chunk, state}
@@ -109,7 +114,7 @@ defmodule K8s.Client.Runner.Watch.Stream do
         |> transform_to_events()
 
       %HTTPoison.Error{reason: {:closed, :timeout}} ->
-        Logger.debug("Request timed out - resuming the watch")
+        Logger.debug(@log_prefix <> "Watch request timed out - resuming the watch", library: :k8s)
 
         %{
           conn: conn,
@@ -123,7 +128,11 @@ defmodule K8s.Client.Runner.Watch.Stream do
         {[], {:recv, %{state | resp: %HTTPoison.AsyncResponse{id: ref}}}}
 
       other ->
-        Logger.debug("Received unexpected message.", message: other)
+        Logger.debug(@log_prefix <> "Wacher received unexpected message.",
+          library: :k8s,
+          message: other
+        )
+
         # ignore other messages and continue
         {[], {:recv, state}}
     end
@@ -139,7 +148,11 @@ defmodule K8s.Client.Runner.Watch.Stream do
         {[], {:recv, state}}
 
       error ->
-        Logger.error("Can't restart watcher - stopping watcher stream: #{inspect(error)}")
+        Logger.error(
+          @log_prefix <> "Can't restart watcher - stopping watcher stream: #{inspect(error)}",
+          library: :k8s
+        )
+
         {:halt, nil}
     end
   end
@@ -182,7 +195,11 @@ defmodule K8s.Client.Runner.Watch.Stream do
         {events, {:start, state}}
 
       {:error, error}, {events, acc} ->
-        Logger.error("Could not decode JSON - chunk seems to be malformed", error: error)
+        Logger.error(@log_prefix <> "Could not decode JSON - chunk seems to be malformed",
+          error: error,
+          library: :k8s
+        )
+
         {events, acc}
 
       {:ok, %{"object" => %{"metadata" => %{"resourceVersion" => new_resource_version}}}},
@@ -198,7 +215,10 @@ defmodule K8s.Client.Runner.Watch.Stream do
          {:recv, %__MODULE__{state | resource_version: new_resource_version}}}
 
       {:ok, %{"object" => %{"message" => message}}}, {events, {_, state}} ->
-        Logger.error("Erronous event received from watcher: #{message}")
+        Logger.error(@log_prefix <> "Erronous event received from watcher: #{message}",
+          library: :k8s
+        )
+
         {events, {:start, state}}
     end)
   end
