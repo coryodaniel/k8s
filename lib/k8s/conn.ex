@@ -165,7 +165,10 @@ defmodule K8s.Conn do
           auth
 
         {:error, error} ->
-          Logger.debug("Provider (#{provider}) failed to generate auth, skipping. #{error}")
+          Logger.debug("Provider (#{provider}) failed to generate auth, skipping. #{error}",
+            library: :k8s
+          )
+
           nil
 
         :skip ->
