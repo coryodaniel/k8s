@@ -23,10 +23,18 @@ defmodule K8s.Sys.Logger do
         _ -> preferred_level
       end
 
-    Logger.log(level, "TELEMETRY: #{event_name}",
-      measurements: measurements,
-      metadata: metadata,
-      library: :k8s
+    Logger.log(
+      level,
+      "TELEMETRY: #{event_name}",
+      metadata(
+        measurements: measurements,
+        metadata: metadata
+      )
     )
+  end
+
+  @spec metadata(keyword()) :: keyword()
+  def metadata(meta \\ []) do
+    Keyword.merge(meta, library: :k8s)
   end
 end
