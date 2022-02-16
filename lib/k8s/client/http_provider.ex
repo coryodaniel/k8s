@@ -8,19 +8,17 @@ defmodule K8s.Client.HTTPProvider do
 
   @impl true
   def request(method, url, body, headers, http_opts) do
-    {duration, response} = :timer.tc(HTTPoison, :request, [method, url, body, headers, http_opts])
-    measurements = %{duration: duration}
-    metadata = %{method: method}
+    :telemetry.span([:http, :request], %{method: method, url: url}, fn ->
+      response = HTTPoison.request(method, url, body, headers, http_opts)
 
-    case handle_response(response) do
-      {:ok, any} ->
-        K8s.Sys.Event.http_request_succeeded(measurements, metadata)
-        {:ok, any}
+      case handle_response(response) do
+        {:ok, result} ->
+          {{:ok, result}, %{}}
 
-      {:error, any} ->
-        K8s.Sys.Event.http_request_failed(measurements, metadata)
-        {:error, any}
-    end
+        {:error, error} ->
+          {{:error, error}, %{error: error}}
+      end
+    end)
   end
 
   @doc """

@@ -8,7 +8,7 @@ defmodule K8s.Sys.Logger do
   """
   @spec attach() :: :ok
   def attach do
-    events = K8s.Sys.Event.events()
+    events = K8s.Sys.Telemetry.events()
     :telemetry.attach_many("k8s-events-logger", events, &log_handler/4, :debug)
   end
 
