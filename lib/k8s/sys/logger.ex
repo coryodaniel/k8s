@@ -8,8 +8,8 @@ defmodule K8s.Sys.Logger do
   """
   @spec attach() :: :ok
   def attach do
-    events = K8s.Sys.Event.events()
-    :telemetry.attach_many("k8s-events-logger", events, &log_handler/4, :debug)
+    events = K8s.Sys.Telemetry.events()
+    :telemetry.attach_many("k8s-events-logger", events, &__MODULE__.log_handler/4, :debug)
   end
 
   @doc false
@@ -23,6 +23,18 @@ defmodule K8s.Sys.Logger do
         _ -> preferred_level
       end
 
-    Logger.log(level, "[#{event_name}] #{inspect(measurements)} #{inspect(metadata)}")
+    Logger.log(
+      level,
+      "TELEMETRY: #{event_name}",
+      metadata(
+        measurements: measurements,
+        metadata: metadata
+      )
+    )
+  end
+
+  @spec metadata(keyword()) :: keyword()
+  def metadata(meta \\ []) do
+    Keyword.merge(meta, library: :k8s)
   end
 end

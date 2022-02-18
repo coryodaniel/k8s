@@ -125,6 +125,16 @@ operation = K8s.Client.get("apps/v1", :deployment, [namespace: "default", name: 
 
 Watch operations use the Kubernetes Watch API to stream `added`, `modified`, and `deleted` as they occur.
 
+To get a stream of events:
+
+```elixir
+operation = K8s.Client.list("apps/v1", :deployment, namespace: :all)
+{:ok, conn} = K8s.Conn.from_file("path/to/kubeconfig.yaml")
+{:ok, event_stream} = K8s.Client.watch_and_stream(conn, operation)
+```
+
+To get messages sent to your process: 
+
 ```elixir
 operation = K8s.Client.list("apps/v1", :deployment, namespace: :all)
 {:ok, conn} = K8s.Conn.from_file("path/to/kubeconfig.yaml")

@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Handle generic kubernetes response Failure without a reason #120
+- Replace Notion with Telemetry and improve Logging #128
 
 ### Deprecated
 

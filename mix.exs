@@ -35,8 +35,7 @@ defmodule K8s.MixProject do
       {:yaml_elixir, "~> 2.8"},
       {:httpoison, "~> 1.7"},
       {:jason, "~> 1.0"},
-      {:notion, "~> 0.2"},
-      {:telemetry, ">=  0.4.0"},
+      {:telemetry, "~> 1.0"},
 
       # dev/test deps (e.g. code coverage)
       {:inch_ex, github: "rrrene/inch_ex", only: [:dev, :test]},
