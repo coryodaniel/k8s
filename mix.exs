@@ -36,6 +36,7 @@ defmodule K8s.MixProject do
       {:httpoison, "~> 1.7"},
       {:jason, "~> 1.0"},
       {:telemetry, "~> 1.0"},
+      {:opentelemetry_telemetry, "~> 1.0.0-beta.4", optional: true},
 
       # dev/test deps (e.g. code coverage)
       {:inch_ex, github: "rrrene/inch_ex", only: [:dev, :test]},
