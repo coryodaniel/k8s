@@ -35,10 +35,10 @@ defmodule K8s.Sys.OpenTelemetry do
 
   @doc false
   @spec handle_event(
-          Telemetry.event_name(),
-          Telemetry.event_measurements(),
-          Telemetry.event_metadata(),
-          Telemetry.handler_config()
+          :telemetry.event_name(),
+          :telemetry.event_measurements(),
+          :telemetry.event_metadata(),
+          :telemetry.handler_config()
         ) :: any()
   def handle_event(
         _event,
@@ -70,7 +70,7 @@ defmodule K8s.Sys.OpenTelemetry do
         %{type: :exception, tracer_id: tracer_id}
       ) do
     ctx = OpentelemetryTelemetry.set_current_telemetry_span(tracer_id, metadata)
-    status = Opentelemetry.status(:error, inspect(reason))
+    status = OpenTelemetry.status(:error, inspect(reason))
     OpenTelemetry.Span.record_exception(ctx, kind, stacktrace, duration: duration)
     OpenTelemetry.Tracer.set_status(status)
     OpentelemetryTelemetry.end_telemetry_span(tracer_id, metadata)
