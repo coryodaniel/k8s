@@ -14,10 +14,10 @@ defmodule K8s.Sys.Logger do
 
   @doc false
   @spec log_handler(
-          Telemetry.event_name(),
-          Telemetry.event_measurements(),
-          Telemetry.event_metadata(),
-          Telemetry.handler_config()
+          :telemetry.event_name(),
+          :telemetry.event_measurements(),
+          :telemetry.event_metadata(),
+          :telemetry.handler_config()
         ) :: any()
   def log_handler(event, measurements, metadata, preferred_level) do
     event_name = Enum.join(event, ".")
