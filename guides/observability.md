@@ -20,7 +20,7 @@ them.
 
 There are two connectors to `:telemetry` spans/events. 
 
-### OpenTelemetry
+### OpenTelemetry
 
 If you're [OpenTelemetry](https://opentelemetry.io/docs/instrumentation/erlang/), attach 
 `:telemetry` spans/events to the OpenTelemetry handler:
@@ -29,8 +29,9 @@ If you're [OpenTelemetry](https://opentelemetry.io/docs/instrumentation/erlang/)
 K8s.Sys.OpenTelemetry.attach()
 ```
 
-### Spandex
+### Spandex
 
+:warning: Requires Elixir ~> 1.10
 
 If you're using a [Spandex](https://github.com/spandex-project/spandex) tracer, Attach 
 `:telemetry` spans/events to the Spandex handler. Pass the tracer you created according
