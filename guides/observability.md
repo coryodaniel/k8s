@@ -18,4 +18,24 @@ them.
 
 ## Tracing
 
-Tracing has not been implemented yet.
+There are two connectors to `:telemetry` spans/events. 
+
+### OpenTelemetry
+
+If you're [OpenTelemetry](https://opentelemetry.io/docs/instrumentation/erlang/), attach 
+`:telemetry` spans/events to the OpenTelemetry handler:
+
+```elixir
+K8s.Sys.OpenTelemetry.attach()
+```
+
+### Spandex
+
+
+If you're using a [Spandex](https://github.com/spandex-project/spandex) tracer, Attach 
+`:telemetry` spans/events to the Spandex handler. Pass the tracer you created according
+to the Spandex documentation as argument to the `attach/1` function.
+
+```elixir
+K8s.Sys.Spandex.attach(MyApp.Tracer)
+```

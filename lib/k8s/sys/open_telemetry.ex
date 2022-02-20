@@ -1,5 +1,13 @@
 defmodule K8s.Sys.OpenTelemetry do
-  @moduledoc "Converts telemetry spans to opentelemetry tracing spans"
+  @moduledoc """
+  This module is still in beta! It has not been tested well and feedback is welcome!
+
+  Converts telemetry spans to opentelemetry tracing spans
+
+  ### Usage
+
+      K8s.Sys.OpenTelemetry.attach()
+  """
 
   @doc """
   Attaches telemetry spans to the opentelemetry processor
