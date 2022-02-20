@@ -11,6 +11,9 @@ defmodule K8s.Sys.Spandex do
 
   require Spandex
 
+  @doc """
+  Attaches telemetry spans to the spandex processor
+  """
   @spec attach(atom()) :: :ok
   def attach(tracer) do
     for span <- K8s.Sys.Telemetry.spans() do
@@ -68,7 +71,7 @@ defmodule K8s.Sys.Spandex do
         %{type: :stop, tracer: tracer}
       ) do
     tracer.update_span(tags: Map.to_list(metadata))
-    tracer.finish_span() |> IO.inspect()
+    tracer.finish_span()
     :ok
   end
 

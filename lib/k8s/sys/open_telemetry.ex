@@ -1,7 +1,11 @@
 defmodule K8s.Sys.OpenTelemetry do
   @moduledoc "Converts telemetry spans to opentelemetry tracing spans"
+
+  @doc """
+  Attaches telemetry spans to the opentelemetry processor
+  """
   @spec attach() :: :ok
-  def attach() do
+  def attach do
     for span <- K8s.Sys.Telemetry.spans() do
       span_name = Enum.join(span, ".")
 
