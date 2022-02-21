@@ -6,14 +6,19 @@ defmodule K8s.Sys.Logger do
   @doc """
   Attaches telemetry events to the Elixir Logger
   """
-  @spec attach() :: :ok
+  @spec attach() :: :ok | {:error, :already_exists}
   def attach do
     events = K8s.Sys.Telemetry.events()
     :telemetry.attach_many("k8s-events-logger", events, &__MODULE__.log_handler/4, :debug)
   end
 
   @doc false
-  @spec log_handler(keyword, map | integer, map, atom) :: :ok
+  @spec log_handler(
+          :telemetry.event_name(),
+          :telemetry.event_measurements(),
+          :telemetry.event_metadata(),
+          :telemetry.handler_config()
+        ) :: any()
   def log_handler(event, measurements, metadata, preferred_level) do
     event_name = Enum.join(event, ".")
 

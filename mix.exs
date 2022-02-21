@@ -31,11 +31,13 @@ defmodule K8s.MixProject do
 
   # Run "mix help deps" to learn about dependencies.
   defp deps do
-    [
+    deps = [
       {:yaml_elixir, "~> 2.8"},
       {:httpoison, "~> 1.7"},
       {:jason, "~> 1.0"},
       {:telemetry, "~> 1.0"},
+      {:opentelemetry_telemetry, "~> 1.0.0-beta.4", optional: true},
+      {:opentelemetry, "~> 1.0", optional: true},
 
       # dev/test deps (e.g. code coverage)
       {:inch_ex, github: "rrrene/inch_ex", only: [:dev, :test]},
@@ -45,6 +47,11 @@ defmodule K8s.MixProject do
       {:excoveralls, "~> 0.14", only: [:test]},
       {:mix_test_watch, "~> 1.1", only: :dev, runtime: false}
     ]
+
+    # spandex requires 1.10
+    if Version.match?(System.version(), "~> 1.10"),
+      do: [{:spandex, "~> 3.0.3", optional: true} | deps],
+      else: deps
   end
 
   defp package do
@@ -93,7 +100,14 @@ defmodule K8s.MixProject do
   defp dialyzer do
     [
       ignore_warnings: ".dialyzer_ignore.exs",
-      plt_add_apps: [:mix, :eex],
+      plt_add_apps: [
+        :mix,
+        :eex,
+        :opentelemetry,
+        :opentelemetry_telemetry,
+        :opentelemetry_api,
+        :spandex
+      ],
       plt_core_path: "priv/plts",
       plt_file: {:no_warn, "priv/plts/k8s.plt"}
     ]

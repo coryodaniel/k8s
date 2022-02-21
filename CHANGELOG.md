@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `K8s.Client.Runner.Watch.stream/3` - watches a resource and returns an elixir [Stream](https://hexdocs.pm/elixir/1.12/Stream.html) of events #121
 - `K8s.Client.apply/3` - Create a [server-side apply](https://kubernetes.io/docs/reference/using-api/server-side-apply/) operation
+- `K8s.Sys.OpenTelemetry` - BETA! - Connects telemetry spans to an OpenTelemetry tracer
+- `K8s.Sys.Spandex` - BETA! - Connects telemetry spans to a Spandex tracer
 
 ### Changed
 
