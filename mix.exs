@@ -1,11 +1,14 @@
 defmodule K8s.MixProject do
   use Mix.Project
 
+  @source_url "https://github.com/coryodaniel/k8s"
+  @version "1.1.0"
+
   def project do
     [
       app: :k8s,
       description: "Kubernetes API Client for Elixir",
-      version: "1.0.0",
+      version: @version,
       elixir: "~> 1.9",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -53,7 +56,7 @@ defmodule K8s.MixProject do
       maintainers: ["Cory O'Daniel"],
       licenses: ["MIT"],
       links: %{
-        "GitHub" => "https://github.com/coryodaniel/k8s",
+        "GitHub" => @source_url,
         "Changelog" => "https://hexdocs.pm/k8s/changelog.html"
       },
       exclude_patterns: ["priv/plts/*.plt"]
@@ -75,7 +78,8 @@ defmodule K8s.MixProject do
         "guides/testing.md"
       ],
       main: "readme",
-      source_url: "https://github.com/coryodaniel/k8s",
+      source_ref: @version,
+      source_url: @source_url,
       formatters: ["html"]
     ]
   end
