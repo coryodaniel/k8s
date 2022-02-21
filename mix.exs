@@ -59,7 +59,7 @@ defmodule K8s.MixProject do
         "GitHub" => @source_url,
         "Changelog" => "https://hexdocs.pm/k8s/changelog.html"
       },
-      exclude_patterns: ["priv/plts/*.plt"]
+      files: ["lib", "mix.exs", "README*", "LICENSE*", "CHANGELOG.md"]
     ]
   end
 
