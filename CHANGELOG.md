@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [1.1.0] - 2022-02-21
+
 ### Added
 
 - `K8s.Client.Runner.Watch.stream/3` - watches a resource and returns an elixir [Stream](https://hexdocs.pm/elixir/1.12/Stream.html) of events #121
