@@ -75,7 +75,8 @@ defmodule K8s.MixProject do
         "guides/authentication.md",
         "guides/discovery.md",
         "guides/advanced.md",
-        "guides/testing.md"
+        "guides/testing.md",
+        "guides/observability.md"
       ],
       main: "readme",
       source_ref: @version,
