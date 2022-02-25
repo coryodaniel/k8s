@@ -32,3 +32,6 @@ k8s-*.tar
 
 # Ignore local k8s config/integration test files
 integration.yaml
+
+# direnv & nix
+.direnv
