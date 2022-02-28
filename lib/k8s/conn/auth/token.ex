@@ -19,7 +19,7 @@ defmodule K8s.Conn.Auth.Token do
     def generate(%K8s.Conn.Auth.Token{token: token}) do
       {:ok,
        %K8s.Conn.RequestOptions{
-         headers: [{"Authorization", "Bearer #{token}"}],
+         headers: [Authorization: "Bearer #{token}"],
          ssl_options: []
        }}
     end
