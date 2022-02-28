@@ -123,7 +123,7 @@ defmodule K8s.ConnTest do
       assert {:ok, %RequestOptions{headers: headers, ssl_options: ssl_options}} =
                RequestOptions.generate(conn)
 
-      assert [{"Authorization", _bearer_token}] = headers
+      assert [Authorization: _bearer_token] = headers
       assert [verify: :verify_none] = ssl_options
     end
 
