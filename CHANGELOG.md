@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [1.1.1] - 2022-03-01
+
+### Fixed
+
+- Initialize authorization header as valid keyword list [#142](https://github.com/coryodaniel/k8s/pull/142)
+- Restore deprecated `K8s.Sys.Event` module.
+
 ## [1.1.0] - 2022-02-21
 
 ### Added
@@ -17,8 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Handle generic kubernetes response Failure without a reason #120
-- Replace Notion with Telemetry and improve Logging #128
+- Handle generic kubernetes response Failure without a reason [#120](https://github.com/coryodaniel/k8s/pull/120)
+- Replace Notion with Telemetry and improve Logging [#128](https://github.com/coryodaniel/k8s/pull/128)
 
 ### Deprecated
 
@@ -26,9 +33,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `K8s.Client.DynamicHTTPProvider.headers/2` was deprecated in favor of `K8s.Client.DynamicHTTPProvider.headers/1`
 
 ### Fixed
-- Preserve namespace in get_to_list/1 #122, #123
-- Fix obsolete doc on wait operation #118
-- Dialyzer errors with K8s.Client functions #119
+- Preserve namespace in get_to_list/1 [#122](https://github.com/coryodaniel/k8s/issues/122), [#123](https://github.com/coryodaniel/k8s/pull/123)
+- Fix obsolete doc on wait operation [#118](https://github.com/coryodaniel/k8s/pull/118)
+- Dialyzer errors with K8s.Client functions [#119](https://github.com/coryodaniel/k8s/issues/119)
 - Enable peer certificate authentication #127.  Be aware, this will break configurations that have been using incorrect certificate(s) up to this point.
 
 ## [1.0.0] - 2021-07-19
