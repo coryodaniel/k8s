@@ -1,5 +1,7 @@
 defmodule K8s.Sys.Telemetry do
-  @moduledoc false
+  @moduledoc """
+  Telemetry event defimitions for this library
+  """
 
   @events [
     [:http, :request, :start],
