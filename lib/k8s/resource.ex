@@ -141,7 +141,7 @@ defmodule K8s.Resource do
   """
   @spec from_file!(binary, keyword | nil) :: map | no_return
   def from_file!(path, assigns \\ []) do
-    case from_file(path, assigns) |> IO.inspect do
+    case from_file(path, assigns) do
       {:ok, resource} -> resource
       {:error, :enoent} -> raise File.Error
       {:error, error} -> raise error
