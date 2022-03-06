@@ -29,6 +29,7 @@ defmodule K8s.Client.DynamicHTTPProvider do
            }}
           | {:ok, any}
 
+
   @doc "See `K8s.Client.HTTPProvider.handle_response/1`"
   defdelegate handle_response(resp), to: K8s.Client.HTTPProvider
 
