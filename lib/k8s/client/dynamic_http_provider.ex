@@ -17,18 +17,6 @@ defmodule K8s.Client.DynamicHTTPProvider do
   defdelegate headers(method, request_options), to: K8s.Client.HTTPProvider
 
   @impl true
-  @spec handle_response(
-          {:error, HTTPoison.Error.t()}
-          | {:ok,
-             %{:__struct__ => HTTPoison.AsyncResponse | HTTPoison.Response, optional(any) => any}}
-        ) ::
-          {:error,
-           %{
-             :__struct__ => HTTPoison.Error | HTTPoison.Response | K8s.Client.APIError,
-             optional(any) => any
-           }}
-          | {:ok, any}
-
   @doc "See `K8s.Client.HTTPProvider.handle_response/1`"
   defdelegate handle_response(resp), to: K8s.Client.HTTPProvider
 
