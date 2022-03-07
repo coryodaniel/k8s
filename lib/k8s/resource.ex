@@ -143,7 +143,7 @@ defmodule K8s.Resource do
   def from_file!(path, assigns \\ []) do
     case from_file(path, assigns) do
       {:ok, resource} -> resource
-      error -> raise error
+      {:error, error} -> raise error
     end
   end
 
@@ -255,7 +255,8 @@ defmodule K8s.Resource do
         {:ok, rendered}
 
       {:error, reason} ->
-        %File.Error{reason: reason}
+        {:error,
+         %File.Error{reason: reason, action: "read file", path: IO.chardata_to_string(filepath)}}
     end
   end
 end

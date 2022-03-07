@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+
+### Fixed
+
+* Wrong exception raised by `K8s.Resource.from_file!/2` [#137](https://github.com/coryodaniel/k8s/issues/137), [#143](https://github.com/coryodaniel/k8s/issues/143)
+
 ## [1.1.1] - 2022-03-01
 
 ### Fixed
@@ -33,7 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `K8s.Client.DynamicHTTPProvider.headers/2` was deprecated in favor of `K8s.Client.DynamicHTTPProvider.headers/1`
 
 ### Fixed
-- Preserve namespace in get_to_list/1 [#122](https://github.com/coryodaniel/k8s/issues/122), [#123](https://github.com/coryodaniel/k8s/pull/123)
+- Preserve namespace in `get_to_list/1` [#122](https://github.com/coryodaniel/k8s/issues/122), [#123](https://github.com/coryodaniel/k8s/pull/123)
 - Fix obsolete doc on wait operation [#118](https://github.com/coryodaniel/k8s/pull/118)
 - Dialyzer errors with K8s.Client functions [#119](https://github.com/coryodaniel/k8s/issues/119)
 - Enable peer certificate authentication #127.  Be aware, this will break configurations that have been using incorrect certificate(s) up to this point.
