@@ -143,7 +143,7 @@ defmodule K8s.Resource do
   def from_file!(path, assigns \\ []) do
     case from_file(path, assigns) do
       {:ok, resource} -> resource
-      {:error, error} -> raise error
+      error -> raise error
     end
   end
 
@@ -254,8 +254,8 @@ defmodule K8s.Resource do
         rendered = EEx.eval_string(template, assigns)
         {:ok, rendered}
 
-      error ->
-        error
+      {:error, reason} ->
+        %File.Error{reason: reason}
     end
   end
 end
