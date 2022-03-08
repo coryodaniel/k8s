@@ -47,7 +47,7 @@ defmodule K8s.Conn do
           discovery_driver: module(),
           discovery_opts: Keyword.t(),
           http_provider: module(),
-          cacertfile: String.t(),
+          cacertfile: String.t()
         }
 
   @doc """

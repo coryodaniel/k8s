@@ -119,6 +119,7 @@ defmodule K8s.ConnTest do
     test "generates headers for the given auth provider" do
       opts = [user: "token-user", cluster: "insecure-cluster"]
       {:ok, conn} = K8s.Conn.from_file("test/support/kube-config.yaml", opts)
+
       assert {:ok, %RequestOptions{headers: headers, ssl_options: ssl_options}} =
                RequestOptions.generate(conn)
 
@@ -134,7 +135,9 @@ defmodule K8s.ConnTest do
                RequestOptions.generate(conn)
 
       assert headers == []
-      assert [cert: _, key: _, verify: :verify_none, cacertfile: '/etc/ssl/cert.pem'] = ssl_options
+
+      assert [cert: _, key: _, verify: :verify_none, cacertfile: '/etc/ssl/cert.pem'] =
+               ssl_options
     end
 
     test "includes cacerts if provided" do
@@ -156,7 +159,9 @@ defmodule K8s.ConnTest do
                RequestOptions.generate(conn)
 
       assert headers == []
-      assert [cert: _, key: _, verify: :verify_none, cacertfile: '/etc/ssl/cert.pem'] = ssl_options
+
+      assert [cert: _, key: _, verify: :verify_none, cacertfile: '/etc/ssl/cert.pem'] =
+               ssl_options
     end
   end
 end
