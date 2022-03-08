@@ -54,8 +54,8 @@ defmodule K8s do
   @doc """
   Returns the default CAStore
   """
-  @spec default_ca_provider() :: module()
-  def default_ca_provider do
-    Application.get_env(:k8s, :ca_provider, CAStore)
+  @spec default_cacertfile() :: module()
+  def default_cacertfile do
+    Application.get_env(:k8s, :cacertfile, CAStore.file_path())
   end
 end
