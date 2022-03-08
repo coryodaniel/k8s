@@ -118,24 +118,25 @@ defmodule K8s.ConnTest do
   describe "generating RequestOptions" do
     test "generates headers for the given auth provider" do
       opts = [user: "token-user", cluster: "insecure-cluster"]
+      cacertfile = '#{File.cwd!()}/_build/test/lib/castore/priv/cacerts.pem'
       {:ok, conn} = K8s.Conn.from_file("test/support/kube-config.yaml", opts)
-
       assert {:ok, %RequestOptions{headers: headers, ssl_options: ssl_options}} =
                RequestOptions.generate(conn)
 
       assert [Authorization: _bearer_token] = headers
-      assert [verify: :verify_none] = ssl_options
+      assert [verify: :verify_none, cacertfile: ^cacertfile] = ssl_options
     end
 
     test "generates ssl_options for the given auth provider" do
       opts = [user: "pem-cert-user", cluster: "insecure-cluster"]
+      cacertfile = '#{File.cwd!()}/_build/test/lib/castore/priv/cacerts.pem'
       {:ok, conn} = K8s.Conn.from_file("test/support/kube-config.yaml", opts)
 
       assert {:ok, %RequestOptions{headers: headers, ssl_options: ssl_options}} =
                RequestOptions.generate(conn)
 
       assert headers == []
-      assert [cert: _, key: _, verify: :verify_none] = ssl_options
+      assert [cert: _, key: _, verify: :verify_none, cacertfile: ^cacertfile] = ssl_options
     end
 
     test "includes cacerts if provided" do
@@ -151,13 +152,14 @@ defmodule K8s.ConnTest do
 
     test "when skipping TLS verification" do
       opts = [user: "pem-cert-user", cluster: "insecure-cluster"]
+      cacertfile = '#{File.cwd!()}/_build/test/lib/castore/priv/cacerts.pem'
       {:ok, conn} = K8s.Conn.from_file("test/support/kube-config.yaml", opts)
 
       assert {:ok, %RequestOptions{headers: headers, ssl_options: ssl_options}} =
                RequestOptions.generate(conn)
 
       assert headers == []
-      assert [cert: _, key: _, verify: :verify_none] = ssl_options
+      assert [cert: _, key: _, verify: :verify_none, cacertfile: ^cacertfile] = ssl_options
     end
   end
 end
