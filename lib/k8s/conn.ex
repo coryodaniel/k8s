@@ -28,7 +28,8 @@ defmodule K8s.Conn do
             middleware: K8s.Middleware.Stack.default(),
             discovery_driver: K8s.default_discovery_driver(),
             discovery_opts: K8s.default_discovery_opts(),
-            http_provider: K8s.default_http_provider()
+            http_provider: K8s.default_http_provider(),
+            ca_provider: K8s.default_ca_provider()
 
   @typedoc """
   * `cluster_name` - The cluster name if read from a kubeconfig file
@@ -45,7 +46,8 @@ defmodule K8s.Conn do
           middleware: K8s.Middleware.Stack.t(),
           discovery_driver: module(),
           discovery_opts: Keyword.t(),
-          http_provider: module()
+          http_provider: module(),
+          ca_provider: module(),
         }
 
   @doc """
@@ -204,7 +206,7 @@ defmodule K8s.Conn do
 
           ca_options =
             case conn.ca_cert do
-              nil -> []
+              nil -> [cacertfile: conn.ca_provider.file_path() |> String.to_charlist()]
               cert -> [cacerts: [cert]]
             end
 
