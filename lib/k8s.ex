@@ -44,4 +44,12 @@ defmodule K8s do
   def default_discovery_opts do
     Application.get_env(:k8s, :discovery_opts, [])
   end
+
+  @doc """
+  Returns the default CAStore
+  """
+  @spec default_cacertfile() :: module()
+  def default_cacertfile do
+    Application.get_env(:k8s, :cacertfile, CAStore.file_path())
+  end
 end
