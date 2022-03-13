@@ -13,7 +13,7 @@ jobs:
         otp: [24.x]
         elixir: [1.13.x]
     steps:
-      - uses: debianmaster/actions-k3s@master
+      - uses: debianmaster/actions-k3s@v1.0.5
         id: k3s
         with:
           version: ${{ matrix.k8s_version }}
