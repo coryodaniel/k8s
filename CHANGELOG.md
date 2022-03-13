@@ -5,15 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-
 ## Unreleased
 
-## Added
-
-* Support for FQDN K8s API servers and Root CA chains [#144](https://github.com/coryodaniel/k8s/issues/144)
+## [1.1.2] - 2022-03-13
 
 ### Fixed
 
+* Support for FQDN K8s API servers and Root CA chains [#144](https://github.com/coryodaniel/k8s/issues/144)
 * Wrong exception raised by `K8s.Resource.from_file!/2` [#137](https://github.com/coryodaniel/k8s/issues/137), [#143](https://github.com/coryodaniel/k8s/issues/143)
 * `K8s.Client.Runner.Watch.stream/3` - convert `:get` to `:list` operation with field selector.
 * Make Logger metadata `library: :k8s` available at compile time.
