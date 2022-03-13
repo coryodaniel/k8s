@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Wrong exception raised by `K8s.Resource.from_file!/2` [#137](https://github.com/coryodaniel/k8s/issues/137), [#143](https://github.com/coryodaniel/k8s/issues/143)
 * `K8s.Client.Runner.Watch.stream/3` - convert `:get` to `:list` operation with field selector.
+* Make Logger metadata `library: :k8s` available at compile time.
 
 ## [1.1.1] - 2022-03-01
 
