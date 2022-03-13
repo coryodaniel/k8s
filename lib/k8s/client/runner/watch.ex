@@ -71,9 +71,7 @@ defmodule K8s.Client.Runner.Watch do
 
   def run(%Conn{} = conn, %Operation{method: :get, verb: :get} = operation, rv, http_opts) do
     {list_op, field_selector_params} = get_to_list(operation)
-    params = Keyword.get(http_opts, :params, [])
-    updated_params = Keyword.merge(params, field_selector_params)
-    http_opts = Keyword.put(http_opts, :params, updated_params)
+    http_opts = Keyword.update(http_opts, :params, [], &Keyword.merge(&1, field_selector_params))
     run(conn, list_op, rv, http_opts)
   end
 
@@ -82,12 +80,26 @@ defmodule K8s.Client.Runner.Watch do
 
   ### Example
 
-      {:ok, conn} = K8s.Conn.from_file("test/support/kube-config.yaml")
-      op = K8s.Client.list("v1", "Namespace")
-      K8s.Client.Runner.Watch.stream(conn, op) |> Stream.map(&IO.inspect/1) |> Stream.run()
+  ```elixir
+  {:ok, conn} = K8s.Conn.from_file("test/support/kube-config.yaml")
+  op = K8s.Client.list("v1", "Configmap")
+  K8s.Client.Runner.Watch.stream(conn, op) |> Stream.map(&IO.inspect/1) |> Stream.run()
+  ```
+
+  ```elixir
+  {:ok, conn} = K8s.Conn.from_file("test/support/kube-config.yaml")
+  op = K8s.Client.get("v1", "Configmap", name: "test")
+  K8s.Client.Runner.Watch.stream(conn, op) |> Stream.map(&IO.inspect/1) |> Stream.run()
+  ```
   """
   @spec stream(Conn.t(), Operation.t(), keyword()) :: {:ok, Enumerable.t()} | {:error, Error.t()}
   def stream(conn, operation, http_opts \\ [])
+
+  def stream(conn, %Operation{method: :get, verb: :get} = operation, http_opts) do
+    {list_op, field_selector_params} = get_to_list(operation)
+    http_opts = Keyword.update(http_opts, :params, [], &Keyword.merge(&1, field_selector_params))
+    {:ok, Stream.resource(conn, list_op, http_opts)}
+  end
 
   def stream(conn, %Operation{method: :get} = operation, http_opts) do
     {:ok, Stream.resource(conn, operation, http_opts)}
@@ -121,7 +133,7 @@ defmodule K8s.Client.Runner.Watch do
   defp parse_resource_version(_), do: "0"
 
   @spec get_to_list(Operation.t()) :: {Operation.t(), keyword}
-  defp get_to_list(get_op) do
+  def get_to_list(get_op) do
     {name, other_path_params} = Keyword.pop(get_op.path_params, :name)
     list_op = %{get_op | verb: :list, path_params: other_path_params}
     field_selector_params = [fieldSelector: "metadata.name=#{name}"]
