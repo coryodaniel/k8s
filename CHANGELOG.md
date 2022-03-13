@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## Added
+
+* Support for FQDN K8s API servers and Root CA chains [#144](https://github.com/coryodaniel/k8s/issues/144)
 
 ### Fixed
 
