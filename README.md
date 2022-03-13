@@ -1,14 +1,14 @@
 # K8s
 
-[![Build Status](https://travis-ci.org/coryodaniel/k8s.svg?branch=master)](https://travis-ci.org/coryodaniel/k8s)
+[![Build Status](https://github.com/coryodaniel/k8s/workflows/CI/badge.svg)](https://github.com/coryodaniel/k8s/actions)
 [![Module Version](https://img.shields.io/hexpm/v/k8s.svg)](https://hex.pm/packages/k8s)
-[![Coverage Status](https://coveralls.io/repos/github/coryodaniel/k8s/badge.svg?branch=master)](https://coveralls.io/github/coryodaniel/k8s?branch=master)
-[![Last Updated](https://img.shields.io/github/last-commit/coryodaniel/k8s.svg)](https://github.com/coryodaniel/k8s/commits/master)
+[![Coverage Status](https://coveralls.io/repos/github/coryodaniel/k8s/badge.svg?branch=develop)](https://coveralls.io/github/coryodaniel/k8s?branch=develop)
+[![Last Updated](https://img.shields.io/github/last-commit/coryodaniel/k8s.svg)](https://github.com/coryodaniel/k8s/commits/develop)
 
 
 [![Hex Docs](https://img.shields.io/badge/hex-docs-lightgreen.svg)](https://hexdocs.pm/k8s/)
 [![Total Download](https://img.shields.io/hexpm/dt/k8s.svg)](https://hex.pm/packages/k8s)
-[![License](https://img.shields.io/hexpm/l/k8s.svg)](https://github.com/coryodaniel/k8s/blob/master/LICENSE)
+[![License](https://img.shields.io/hexpm/l/k8s.svg)](https://github.com/coryodaniel/k8s/blob/develop/LICENSE)
 
 [K8s](https://hexdocs.pm/k8s/usage.html) - Kubernetes API Client for Elixir
 
