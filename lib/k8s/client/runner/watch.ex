@@ -71,7 +71,15 @@ defmodule K8s.Client.Runner.Watch do
 
   def run(%Conn{} = conn, %Operation{method: :get, verb: :get} = operation, rv, http_opts) do
     {list_op, field_selector_params} = get_to_list(operation)
-    http_opts = Keyword.update(http_opts, :params, [], &Keyword.merge(&1, field_selector_params))
+
+    http_opts =
+      Keyword.update(
+        http_opts,
+        :params,
+        field_selector_params,
+        &Keyword.merge(&1, field_selector_params)
+      )
+
     run(conn, list_op, rv, http_opts)
   end
 
@@ -97,7 +105,15 @@ defmodule K8s.Client.Runner.Watch do
 
   def stream(conn, %Operation{method: :get, verb: :get} = operation, http_opts) do
     {list_op, field_selector_params} = get_to_list(operation)
-    http_opts = Keyword.update(http_opts, :params, [], &Keyword.merge(&1, field_selector_params))
+
+    http_opts =
+      Keyword.update(
+        http_opts,
+        :params,
+        field_selector_params,
+        &Keyword.merge(&1, field_selector_params)
+      )
+
     {:ok, Stream.resource(conn, list_op, http_opts)}
   end
 
