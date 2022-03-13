@@ -169,7 +169,7 @@ defmodule K8s.Conn do
         {:error, error} ->
           Logger.debug(
             "Provider (#{provider}) failed to generate auth, skipping. #{error}",
-            K8s.Sys.Logger.metadata()
+            library: :k8s
           )
 
           nil
