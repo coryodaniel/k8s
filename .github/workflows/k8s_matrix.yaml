@@ -10,7 +10,7 @@ jobs:
     strategy:
       matrix:
         k8s_version: [v1.21.9-k3s1, v1.22.6-k3s1, latest]
-        otp: [24.2] # with 24.3.0 hackney returns :checkout_failure
+        otp: [24.x] # with 24.3.0 hackney returns :checkout_failure
         elixir: [1.13.x]
     steps:
       - uses: debianmaster/actions-k3s@v1.0.5
