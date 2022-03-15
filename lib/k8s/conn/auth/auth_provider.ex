@@ -56,7 +56,7 @@ defmodule K8s.Conn.Auth.AuthProvider do
         {:ok, token} ->
           {:ok,
            %RequestOptions{
-             headers: [{"Authorization", "Bearer #{token}"}],
+             headers: [{:Authorization, "Bearer #{token}"}],
              ssl_options: []
            }}
 

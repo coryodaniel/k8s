@@ -22,7 +22,7 @@ defmodule K8s.Conn.Auth.BasicAuth do
     def generate(%K8s.Conn.Auth.BasicAuth{token: token}) do
       {:ok,
        %K8s.Conn.RequestOptions{
-         headers: [{"Authorization", "Basic #{token}"}],
+         headers: [{:Authorization, "Basic #{token}"}],
          ssl_options: []
        }}
     end

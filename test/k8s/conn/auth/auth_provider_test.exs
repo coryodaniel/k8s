@@ -48,7 +48,7 @@ defmodule K8s.Conn.Auth.AuthProviderTest do
     {:ok, %Conn.RequestOptions{headers: headers, ssl_options: ssl_options}} =
       Conn.RequestOptions.generate(provider)
 
-    assert headers == [{"Authorization", "Bearer foo"}]
+    assert headers == [{:Authorization, "Bearer foo"}]
     assert ssl_options == []
   end
 end
