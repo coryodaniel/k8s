@@ -8,7 +8,7 @@ defprotocol K8s.Conn.RequestOptions do
   @typedoc """
   HTTP Request options
   """
-  @type t :: %__MODULE__{headers: list(), ssl_options: keyword()}
+  @type t :: %__MODULE__{headers: keyword(), ssl_options: keyword()}
   defstruct headers: [], ssl_options: []
 
   @typedoc """

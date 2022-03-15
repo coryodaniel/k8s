@@ -21,7 +21,7 @@ defmodule K8s.Conn.Auth.BasicAuthTest do
     {:ok, %Conn.RequestOptions{headers: headers, ssl_options: ssl_options}} =
       Conn.RequestOptions.generate(conn.auth)
 
-    assert headers == [{"Authorization", "Basic #{token}"}]
+    assert headers == [{:Authorization, "Basic #{token}"}]
     assert ssl_options == []
   end
 end

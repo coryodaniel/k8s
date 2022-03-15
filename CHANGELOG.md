@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [1.1.4] - 2022-03-15
+
+- Fix more authorization headers that are not keyword lists [#148](https://github.com/coryodaniel/k8s/pull/148)
+
 ## [1.1.3] - 2022-03-13
 
 ### Fixed
