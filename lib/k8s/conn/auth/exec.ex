@@ -72,7 +72,7 @@ defmodule K8s.Conn.Auth.Exec do
         {
           :ok,
           %K8s.Conn.RequestOptions{
-            headers: [{"Authorization", "Bearer #{token}"}],
+            headers: [{:Authorization, "Bearer #{token}"}],
             ssl_options: []
           }
         }
