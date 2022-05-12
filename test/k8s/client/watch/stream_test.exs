@@ -51,35 +51,13 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
       end
     end
 
-    def request(:get, "https://localhost:6443/api/v1/services", _body, _headers, opts) do
-      case get_in(opts, [:params, :watch]) do
-        true ->
-          assert "10" == get_in(opts, [:params, :resourceVersion])
-          pid = Keyword.fetch!(opts, :stream_to)
-          send(pid, %HTTPoison.AsyncEnd{})
-
-          send_object(pid, %{
-            "type" => "ADDED",
-            "object" => %{
-              "apiVersion" => "v1",
-              "kind" => "Service",
-              "metadata" => %{"resourceVersion" => "11"}
-            }
-          })
-
-          {:ok, %HTTPoison.AsyncResponse{id: make_ref()}}
-
-        nil ->
-          render(%{"metadata" => %{"resourceVersion" => "10"}})
-      end
-    end
-
     def request(:get, "https://localhost:6443/api/v1/pods", _body, _headers, opts) do
       case get_in(opts, [:params, :watch]) do
         true ->
           assert "10" == get_in(opts, [:params, :resourceVersion])
           pid = Keyword.fetch!(opts, :stream_to)
           send(pid, %HTTPoison.AsyncStatus{code: 410})
+          send(pid, %HTTPoison.AsyncEnd{})
 
           send_object(pid, %{
             "type" => "ADDED",
@@ -213,6 +191,8 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
             }
           })
 
+          send(pid, %HTTPoison.AsyncEnd{})
+
           send_object(pid, %{
             "type" => "DELETED",
             "object" => %{
@@ -223,6 +203,48 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
           })
 
           {:ok, %HTTPoison.AsyncResponse{id: make_ref()}}
+
+        nil ->
+          render(%{"metadata" => %{"resourceVersion" => "10"}})
+      end
+    end
+
+    def request(:get, "https://localhost:6443/api/v1/services", _body, _headers, opts) do
+      case get_in(opts, [:params, :watch]) do
+        true ->
+          case get_in(opts, [:params, :resourceVersion]) do
+            "10" ->
+              pid = Keyword.fetch!(opts, :stream_to)
+              send(pid, %HTTPoison.AsyncStatus{code: 200})
+
+              send_object(pid, %{
+                "type" => "BOOKMARK",
+                "object" => %{
+                  "apiVersion" => "v1",
+                  "kind" => "Service",
+                  "metadata" => %{"resourceVersion" => "11"}
+                }
+              })
+
+              send(pid, %HTTPoison.AsyncEnd{})
+
+              {:ok, %HTTPoison.AsyncResponse{id: make_ref()}}
+
+            "11" ->
+              pid = Keyword.fetch!(opts, :stream_to)
+              send(pid, %HTTPoison.AsyncStatus{code: 200})
+
+              send_object(pid, %{
+                "type" => "ADDED",
+                "object" => %{
+                  "apiVersion" => "v1",
+                  "kind" => "Service",
+                  "metadata" => %{"resourceVersion" => "12"}
+                }
+              })
+
+              {:ok, %HTTPoison.AsyncResponse{id: make_ref()}}
+          end
 
         nil ->
           render(%{"metadata" => %{"resourceVersion" => "10"}})
@@ -255,23 +277,6 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
     end
 
     @tag timeout: 1_000
-    test "Resumes the stream when AsyncEnd is sent", %{conn: conn} do
-      test = fn ->
-        operation = K8s.Client.list("v1", "Service")
-
-        events =
-          MUT.resource(conn, operation, [])
-          |> Stream.take(4)
-          |> Enum.to_list()
-
-        #  goes on forever, but we only took 4
-        assert ["ADDED", "ADDED", "ADDED", "ADDED"] == Enum.map(events, & &1["type"])
-      end
-
-      assert capture_log(test) =~ "AsyncEnd received"
-    end
-
-    @tag timeout: 1_000
     test "Resumes the stream when 410 Gone is sent", %{conn: conn} do
       test = fn ->
         operation = K8s.Client.list("v1", "Pod")
@@ -286,6 +291,23 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
       end
 
       assert capture_log(test) =~ "410 Gone received"
+    end
+
+    @tag timeout: 1_000
+    test "Updates the resource version when BOOKMARK event is received", %{conn: conn} do
+      test = fn ->
+        operation = K8s.Client.list("v1", "Service")
+
+        events =
+          MUT.resource(conn, operation, [])
+          |> Stream.take(1)
+          |> Enum.to_list()
+
+        #  goes on forever, but we only took 4
+        assert ["ADDED"] == Enum.map(events, & &1["type"])
+      end
+
+      assert capture_log(test) =~ "Bookmark received"
     end
 
     @tag timeout: 1_000

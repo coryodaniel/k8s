@@ -7,6 +7,21 @@
       "verbs": ["create", "delete", "get", "list", "patch", "update", "watch"]
     },
     {
+      "kind": "ConfigMap",
+      "name": "configmaps",
+      "namespaced": true,
+      "verbs": [
+        "create",
+        "delete",
+        "deletecollection",
+        "get",
+        "list",
+        "patch",
+        "update",
+        "watch"
+      ]
+    },
+    {
       "kind": "Service",
       "name": "services",
       "namespaced": true,
