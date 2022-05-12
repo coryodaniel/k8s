@@ -11,7 +11,14 @@ defmodule K8s.Discovery.Driver.FileTest do
 
       resource_names = Enum.map(resources, & &1["name"])
       sorted_resource_names = Enum.sort(resource_names)
-      assert sorted_resource_names == ["namespaces", "pods", "pods/eviction", "services"]
+
+      assert sorted_resource_names == [
+               "configmaps",
+               "namespaces",
+               "pods",
+               "pods/eviction",
+               "services"
+             ]
     end
   end
 

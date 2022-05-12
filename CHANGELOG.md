@@ -7,7 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-- Request BOOKMARK events and process them when watching resource collectons.
+- Fix 410 Gone not rescued in `watch_and_stream/2`
+- Request BOOKMARK events and process them when watching resource collections.
 
 ## [1.1.4] - 2022-03-15
 
