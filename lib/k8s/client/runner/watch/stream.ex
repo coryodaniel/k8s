@@ -54,6 +54,7 @@ defmodule K8s.Client.Runner.Watch.Stream do
       http_opts
       |> Keyword.put_new(:params, [])
       |> put_in([:params, :resourceVersion], resource_version)
+      |> put_in([:params, :allowWatchBookmarks], true)
       |> put_in([:params, :watch], true)
       |> Keyword.put(:stream_to, self())
       |> Keyword.put(:async, :once)
@@ -212,17 +213,19 @@ defmodule K8s.Client.Runner.Watch.Stream do
 
         {events, acc}
 
+      {:ok, %{"type" => "BOOKMARK", "object" => object}}, {events, {:recv, state}} ->
+        {events,
+         {:recv, %__MODULE__{state | resource_version: object["metadata"]["resourceVersion"]}}}
+
       {:ok, %{"object" => %{"metadata" => %{"resourceVersion" => new_resource_version}}}},
       {events, {:recv, %__MODULE__{resource_version: resource_version} = state}}
       when new_resource_version == resource_version ->
         {events, {:recv, state}}
 
-      {:ok,
-       %{"object" => %{"metadata" => %{"resourceVersion" => new_resource_version}}} = new_event},
-      {events, {:recv, state}} ->
+      {:ok, %{"object" => object} = new_event}, {events, {:recv, state}} ->
         # new resource_version => append new event to the stream
         {events ++ [new_event],
-         {:recv, %__MODULE__{state | resource_version: new_resource_version}}}
+         {:recv, %__MODULE__{state | resource_version: object["metadata"]["resourceVersion"]}}}
 
       {:ok, %{"object" => %{"message" => message}}}, {events, {_, state}} ->
         Logger.error(
