@@ -25,7 +25,10 @@ defmodule K8s.Client.Runner.WatchTest do
     end
 
     def request(:get, @namespaced_url <> "/test", _, _, _) do
-      render(nil)
+      raise """
+      The resource version should be retrieved from the resource collection, NOT the resource!
+      I.e. the library should call list, not get to retrieve it.
+      """
     end
   end
 
