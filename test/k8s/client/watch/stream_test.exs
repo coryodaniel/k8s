@@ -251,6 +251,61 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
       end
     end
 
+    def request(:get, "https://localhost:6443/api/v1/configmaps", _body, _headers, opts) do
+      case get_in(opts, [:params, :watch]) do
+        true ->
+          pid = Keyword.fetch!(opts, :stream_to)
+
+          case get_in(opts, [:params, :resourceVersion]) do
+            "10" ->
+              send(pid, %HTTPoison.AsyncStatus{code: 200})
+
+              send_object(pid, %{
+                "type" => "ADDED",
+                "object" => %{
+                  "apiVersion" => "v1",
+                  "kind" => "Pod",
+                  "metadata" => %{"resourceVersion" => "11"}
+                }
+              })
+
+              send_object(pid, %{
+                "type" => "ADDED",
+                "object" => %{
+                  "apiVersion" => "v1",
+                  "kind" => "Pod",
+                  "metadata" => %{"resourceVersion" => "12"}
+                }
+              })
+
+              send(pid, %HTTPoison.AsyncEnd{})
+
+            "12" ->
+              send(pid, %HTTPoison.AsyncStatus{code: 200})
+
+              send_object(pid, %{
+                "type" => "ERROR",
+                "object" => %{
+                  "apiVersion" => "v1",
+                  "code" => 410,
+                  "kind" => "Status",
+                  "message" => "too old resource version: 11 (12)",
+                  "metadata" => %{},
+                  "reason" => "Expired",
+                  "status" => "Failure"
+                }
+              })
+
+              send(pid, %HTTPoison.AsyncEnd{})
+          end
+
+          {:ok, %HTTPoison.AsyncResponse{id: make_ref()}}
+
+        nil ->
+          render(%{"metadata" => %{"resourceVersion" => "10"}})
+      end
+    end
+
     def request(_method, _url, _body, _headers, _opts) do
       Logger.error("Call to #{__MODULE__}.request/5 not handled: #{inspect(binding())}")
       {:error, %HTTPoison.Error{reason: "request not mocked"}}
@@ -291,6 +346,26 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
       end
 
       assert capture_log(test) =~ "410 Gone received"
+    end
+
+    @tag timeout: 1_000
+    test "Resumes the stream when 410 Gone is sent as chunk", %{conn: conn} do
+      test = fn ->
+        operation = K8s.Client.list("v1", "ConfigMap")
+
+        events =
+          MUT.resource(conn, operation, [])
+          |> Stream.take(4)
+          |> Enum.to_list()
+
+        #  goes on forever, but we only took 4
+        assert ["ADDED", "ADDED", "ADDED", "ADDED"] == Enum.map(events, & &1["type"])
+
+        assert ["11", "12", "11", "12"] ==
+                 Enum.map(events, & &1["object"]["metadata"]["resourceVersion"])
+      end
+
+      assert capture_log(test) =~ "too old resource version"
     end
 
     @tag timeout: 1_000
