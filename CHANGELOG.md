@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [1.1.5] - 2022-05-19
+
 ### Fixed
 
 - `K8s.Client.watch_and_stream/2`: 410 Gone not rescued [#159](https://github.com/coryodaniel/k8s/pull/159)
