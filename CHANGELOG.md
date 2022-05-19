@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `K8s.Client.watch_and_stream/2`: 410 Gone not rescued [#159](https://github.com/coryodaniel/k8s/pull/159)
 - `K8s.Client.watch/3`: `get` operations should be transformed to `list` BEFORE retrieving the resource version [#160](https://github.com/coryodaniel/k8s/pull/160)
 
-### Added
+### Changed
 
 - `K8s.Client.watch_and_stream/2`: Request BOOKMARK events and process them when watching resource collections. [#159](https://github.com/coryodaniel/k8s/pull/159)
 
