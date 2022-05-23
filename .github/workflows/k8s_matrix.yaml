@@ -22,7 +22,7 @@ jobs:
         with:
           otp-version: ${{matrix.otp}}
           elixir-version: ${{matrix.elixir}}
-      
+
       - name: Retrieve Build Cache
         uses: actions/cache@v1
         id: build-folder-cache
@@ -41,3 +41,5 @@ jobs:
       - run: mix local.hex --force
       - run: mix deps.get
       - run: TEST_KUBECONFIG=$KUBECONFIG TEST_WAIT_TIMEOUT=110 mix test --timeout 120000 --only integration --max-failures 1
+        env:
+          ERL_INETRC: "./priv/erl_inetrc"

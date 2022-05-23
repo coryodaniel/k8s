@@ -18,7 +18,7 @@ jobs:
         otp: [24.2]
     steps:
       - uses: actions/checkout@v2
-      
+
       - uses: debianmaster/actions-k3s@v1.0.5
         id: k3s
         with:
@@ -67,6 +67,7 @@ jobs:
       - name: Run Coverage
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ERL_INETRC: "./priv/erl_inetrc"
         run: TEST_KUBECONFIG=$KUBECONFIG TEST_WAIT_TIMEOUT=110 mix coveralls.github --timeout 120000 --include integration --max-failures 1
 
       - name: Run dialyzer

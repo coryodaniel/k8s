@@ -1,0 +1,4 @@
+%% -- ERLANG INET CONFIGURATION FILE --
+%% add a particular host
+{host, {127,0,0,1}, ["k8s.k3d.localhost"]}.
+{lookup, [file, dns]}.

@@ -13,7 +13,8 @@ defmodule K8s.Test.IntegrationHelper do
       conn
       | discovery_driver: K8s.Discovery.Driver.HTTP,
         discovery_opts: [],
-        http_provider: K8s.Client.HTTPProvider
+        http_provider: K8s.Client.HTTPProvider,
+        url: "https://k8s.k3d.localhost:#{conn.url |> URI.parse() |> Map.get(:port)}"
     }
   end
 

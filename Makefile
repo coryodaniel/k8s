@@ -31,17 +31,17 @@ integration.yaml: ## Create a k3d cluster
 .PHONY: test.integration
 test.integration: integration.yaml
 test.integration: ## Run integration tests using k3d `make cluster`
-	TEST_KUBECONFIG=${K3D_KUBECONFIG_PATH} mix test --only integration
+	ERL_INETRC="./priv/erl_inetrc" TEST_KUBECONFIG=${K3D_KUBECONFIG_PATH} mix test --only integration
 
 .PHONY: test
 test: integration.yaml
 test: ## Run all tests
-	TEST_KUBECONFIG=${K3D_KUBECONFIG_PATH} mix test --include integration
+	TERL_INETRC="./priv/erl_inetrc" TEST_KUBECONFIG=${K3D_KUBECONFIG_PATH} mix test --include integration
 
 .PHONY: test.watch
 test.watch: integration.yaml
 test.watch: ## Run all tests with mix.watch
-	TEST_KUBECONFIG=${K3D_KUBECONFIG_PATH} mix test.watch --include integration
+	ERL_INETRC="./priv/erl_inetrc" TEST_KUBECONFIG=${K3D_KUBECONFIG_PATH} mix test.watch --include integration
 
 .PHONY: k3d.delete
 k3d.delete: ## Delete k3d cluster
