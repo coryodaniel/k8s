@@ -49,34 +49,44 @@ defmodule K8s.Client.DynamicHTTPProvider do
   """
   @impl true
   def request(method, url, body, headers, opts) do
-    module = locate(self())
+    self()
+    |> locate()
+    |> do_request(method, url, body, headers, opts)
+  end
 
-    case module do
+  defp do_request(nil, method, url, body, headers, opts) do
+    parent =
+      self()
+      |> Process.info(:links)
+      |> elem(1)
+      |> List.first()
+      |> locate()
+
+    case parent do
       nil ->
-        parent =
-          self()
-          |> Process.info(:links)
-          |> elem(1)
-          |> List.first()
-          |> locate()
+        raise "No handler module registered for process #{inspect(self())} or parent."
 
-        case parent do
-          nil ->
-            raise "No handler module registered for process #{self()} or parent."
-
-          parent ->
-            response = parent.request(method, url, body, headers, opts)
-            handle_response(response)
-        end
-
-      module when is_atom(module) ->
-        response = module.request(method, url, body, headers, opts)
-        handle_response(response)
-
-      func when is_function(func) ->
-        response = func.(method, url, body, headers, opts)
-        handle_response(response)
+      parent ->
+        do_request(parent, method, url, body, headers, opts)
     end
+  end
+
+  defp do_request({module, name}, method, url, body, headers, opts) when is_atom(module) do
+    name
+    |> module.request(method, url, body, headers, opts)
+    |> handle_response()
+  end
+
+  defp do_request(module, method, url, body, headers, opts) when is_atom(module) do
+    method
+    |> module.request(url, body, headers, opts)
+    |> handle_response()
+  end
+
+  defp do_request(func, method, url, body, headers, opts) when is_function(func) do
+    method
+    |> func.(url, body, headers, opts)
+    |> handle_response()
   end
 
   @impl true
