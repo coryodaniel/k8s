@@ -13,3 +13,4 @@
 
 - [ ] New unit tests were created
 - [ ] New integration tests were created
+- [ ] PR description contains a link to the according kubernetes documentation
