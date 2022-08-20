@@ -14,11 +14,11 @@ jobs:
     strategy:
       matrix:
         k8s_version: [latest]
-        elixir: [1.13.x]
-        otp: [24.2]
+        elixir: [1.14.x]
+        otp: [25.x]
     steps:
       - uses: actions/checkout@v2
-      
+
       - uses: debianmaster/actions-k3s@v1.0.5
         id: k3s
         with:
@@ -31,25 +31,29 @@ jobs:
           otp-version: ${{matrix.otp}}
 
       - name: Retrieve Build Cache
-        uses: actions/cache@v1
+        uses: actions/cache@v3
         id: build-folder-cache
         with:
           path: _build
           key: ${{ runner.os }}-${{ matrix.otp }}-${{ matrix.elixir }}-build-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
 
       - name: Retrieve Mix Dependencies Cache
-        uses: actions/cache@v1
+        uses: actions/cache@v3
         id: mix-cache
         with:
           path: deps
           key: ${{ runner.os }}-${{ matrix.otp }}-${{ matrix.elixir }}-mix-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
 
-      - name: Retrieve PLT Cache
-        uses: actions/cache@v1
+      - name: Restore PLT Cache
+        uses: actions/cache@v3
         id: plt-cache
         with:
-          path: priv/plts
-          key: ${{ runner.os }}-${{ matrix.otp }}-${{ matrix.elixir }}-plts-v2-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
+          key: |
+            ${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-plt
+          restore-keys: |
+            ${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-plt
+          path: |
+            priv/plts
 
       - name: Install Mix Dependencies
         if: steps.mix-cache.outputs.cache-hit != 'true'
@@ -69,8 +73,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: TEST_KUBECONFIG=$KUBECONFIG TEST_WAIT_TIMEOUT=110 mix coveralls.github --timeout 120000 --include integration --max-failures 1
 
-      - name: Run dialyzer
+      # Create PLTs if no cache was found
+      - name: Create PLTs
         if: steps.plt-cache.outputs.cache-hit != 'true'
         run: |
           mkdir -p priv/plts
           mix dialyzer
+      - name: Run dialyzer
+        run: mix dialyzer --format github
