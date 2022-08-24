@@ -55,8 +55,9 @@ defmodule K8s.Selector do
 
       iex> K8s.Client.get("v1", :pods)
       ...> |> K8s.Selector.label({"app", "nginx"})
+      ...> |> K8s.Selector.label(%{"tier" => "backend"})
       ...> |> K8s.Selector.label_in({"environment", ["qa", "prod"]})
-      %K8s.Operation{data: nil, api_version: "v1", query_params: [labelSelector: %K8s.Selector{match_expressions: [%{"key" => "environment", "operator" => "In", "values" => ["qa", "prod"]}], match_labels: %{"app" => "nginx"}}], method: :get, name: :pods, path_params: [], verb: :get}
+      %K8s.Operation{data: nil, api_version: "v1", query_params: [labelSelector: %K8s.Selector{match_expressions: [%{"key" => "environment", "operator" => "In", "values" => ["qa", "prod"]}], match_labels: %{"app" => "nginx", "tier" => "backend"}}], method: :get, name: :pods, path_params: [], verb: :get}
   """
 
   alias K8s.{Operation, Resource}
@@ -223,7 +224,7 @@ defmodule K8s.Selector do
       %K8s.Selector{match_labels: %{"component" => "redis"}}
 
       iex> K8s.Selector.label(%{"component" => "redis", "env" => "prod"})
-      %K8s.Selector{match_labels: %{"component" => "redis", "env" => "prod"}}      
+      %K8s.Selector{match_labels: %{"component" => "redis", "env" => "prod"}}
   """
   @spec label({binary | atom, binary} | map) :: t()
   def label({key, value}), do: %K8s.Selector{match_labels: %{key => value}}
@@ -237,7 +238,7 @@ defmodule K8s.Selector do
       ...> K8s.Selector.label(selector, {"environment", "dev"})
       %K8s.Selector{match_labels: %{"component" => "redis", "environment" => "dev"}}
   """
-  @spec label(selector_or_operation_t, {binary | atom, binary}) :: selector_or_operation_t()
+  @spec label(selector_or_operation_t, {binary | atom, binary} | map) :: selector_or_operation_t()
   def label(%{} = selector_or_operation, label), do: merge(selector_or_operation, label(label))
 
   @doc """
