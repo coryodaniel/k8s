@@ -7,9 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+<!-- Add your changelog entry to the relevant subsection -->
+
+<!-- ### Added | Changed | Deprecated | Removed | Fixed | Security -->
+
 ### Fixed
 
 - `K8s.Resourse.label/2`: spec updated to accept label maps as a second argument [#177](https://github.com/coryodaniel/k8s/pull/177)
+
+
+
+
+
+
+
+
+
+<!--------------------- Don't add new entries after this line --------------------->
 
 ## [1.1.5] - 2022-05-19
 
