@@ -35,6 +35,24 @@ defmodule K8s.Test.IntegrationHelper do
     }
   end
 
+  @spec build_configmap(binary(), map(), keyword()) :: map()
+  def build_configmap(name, data, opts) do
+    labels = Keyword.get(opts, :labels, %{})
+    annotations = Keyword.get(opts, :annotations, %{})
+
+    %{
+      "apiVersion" => "v1",
+      "kind" => "ConfigMap",
+      "metadata" => %{
+        "name" => name,
+        "namespace" => "default",
+        "labels" => labels,
+        "annotations" => annotations
+      },
+      "data" => data
+    }
+  end
+
   @doc "Kubernetes Namespace manifest"
   @spec build_namespace(binary) :: map
   def build_namespace(name) do

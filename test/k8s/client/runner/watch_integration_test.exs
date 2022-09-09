@@ -48,81 +48,165 @@ defmodule K8s.Client.Runner.WatchIntegrationTest do
     K8s.Client.run(conn, K8s.Client.delete(pod1))
   end
 
-  @tag integration: true
-  test "watches and streams a resource list", %{conn: conn, labels: labels, test_id: test_id} do
-    selector = K8s.Selector.label(labels)
-    operation = K8s.Client.list("v1", "Pod", namespace: "default")
-    operation = K8s.Operation.put_label_selector(operation, selector)
-    {:ok, event_stream} = K8s.Client.Runner.Watch.stream(conn, operation)
+  describe "watch_and_stream" do
+    setup %{test_id: test_id} do
+      timeout =
+        "TEST_WAIT_TIMEOUT"
+        |> System.get_env("5")
+        |> String.to_integer()
+        |> Kernel.*(1000)
 
-    Task.async(fn ->
-      # give watcher time to initialize in order to not miss first event
+      handle_stream =
+        &Stream.map(&1, fn evt ->
+          pid =
+            evt
+            |> get_in(~w(object data pid))
+            |> String.to_charlist()
+            |> :erlang.list_to_pid()
+
+          ref =
+            evt
+            |> get_in(~w(object data ref))
+            |> String.to_charlist()
+            |> :erlang.list_to_ref()
+
+          name = get_in(evt, ~w(object metadata name))
+          type = evt["type"]
+
+          send(pid, {ref, type, name})
+        end)
+
+      [
+        handle_stream: handle_stream,
+        resource_name: "watch-nginx-#{test_id}",
+        timeout: timeout
+      ]
+    end
+
+    @tag integration: true
+    test "watches and streams a resource list", %{
+      conn: conn,
+      labels: labels,
+      handle_stream: handle_stream,
+      resource_name: resource_name,
+      timeout: timeout
+    } do
+      selector = K8s.Selector.label(labels)
+      operation = K8s.Client.list("v1", "ConfigMap", namespace: "default")
+      operation = K8s.Operation.put_label_selector(operation, selector)
+      {:ok, event_stream} = K8s.Client.Runner.Watch.stream(conn, operation)
+
+      Task.start(fn -> event_stream |> handle_stream.() |> Stream.run() end)
       :timer.sleep(500)
 
-      pod = build_pod("watch-nginx-#{test_id}", labels)
+      pid = self()
+      ref = make_ref()
 
-      op = K8s.Client.create(pod)
+      data = %{
+        "pid" => pid |> :erlang.pid_to_list() |> List.to_string(),
+        "ref" => ref |> :erlang.ref_to_list() |> List.to_string()
+      }
+
+      cm = build_configmap(resource_name, data, labels: labels)
+
+      op = K8s.Client.create(cm)
       {:ok, _} = K8s.Client.run(conn, op)
+      assert_receive({^ref, "ADDED", ^resource_name}, timeout)
 
       op =
-        pod
+        cm
         |> put_in(["metadata", Access.key("annotations", %{}), "some"], "value")
         |> Map.delete("spec")
         |> K8s.Client.patch()
 
       {:ok, _} = K8s.Client.run(conn, op)
+      assert_receive({^ref, "MODIFIED", ^resource_name}, timeout)
 
-      op = K8s.Client.delete(pod)
+      op = K8s.Client.delete(cm)
       {:ok, _} = K8s.Client.run(conn, op)
-    end)
+      assert_receive({^ref, "DELETED", ^resource_name}, timeout)
+    end
 
-    [add_event | other_events] =
-      event_stream
-      |> Stream.take_while(&(&1["type"] != "DELETED"))
-      |> Enum.to_list()
+    @tag integration: true
+    test "watches and streams a signle resource", %{
+      conn: conn,
+      labels: labels,
+      handle_stream: handle_stream,
+      resource_name: resource_name,
+      timeout: timeout
+    } do
+      selector = K8s.Selector.label(labels)
+      operation = K8s.Client.get("v1", "ConfigMap", namespace: "default", name: resource_name)
+      operation = K8s.Operation.put_label_selector(operation, selector)
+      {:ok, event_stream} = K8s.Client.Runner.Watch.stream(conn, operation)
 
-    assert "ADDED" == add_event["type"]
-    assert is_nil(get_in(add_event, ~w(object metadata annotations some)))
-    refute Enum.empty?(other_events)
-    assert true == Enum.all?(other_events, &(&1["type"] == "MODIFIED"))
-  end
-
-  @tag integration: true
-  test "watches and streams a signle resource", %{conn: conn, labels: labels, test_id: test_id} do
-    selector = K8s.Selector.label(labels)
-    operation = K8s.Client.get("v1", "Pod", namespace: "default", name: "watch-nginx-#{test_id}")
-    operation = K8s.Operation.put_label_selector(operation, selector)
-    {:ok, event_stream} = K8s.Client.Runner.Watch.stream(conn, operation)
-
-    Task.async(fn ->
-      # give watcher time to initialize in order to not miss first event
+      Task.start(fn -> event_stream |> handle_stream.() |> Stream.run() end)
       :timer.sleep(500)
 
-      pod = build_pod("watch-nginx-#{test_id}", labels)
+      pid = self()
+      ref = make_ref()
 
-      op = K8s.Client.create(pod)
+      data = %{
+        "pid" => pid |> :erlang.pid_to_list() |> List.to_string(),
+        "ref" => ref |> :erlang.ref_to_list() |> List.to_string()
+      }
+
+      cm = build_configmap(resource_name, data, labels: labels)
+
+      op = K8s.Client.create(cm)
       {:ok, _} = K8s.Client.run(conn, op)
+      assert_receive({^ref, "ADDED", ^resource_name}, timeout)
 
       op =
-        pod
+        cm
         |> put_in(["metadata", Access.key("annotations", %{}), "some"], "value")
         |> Map.delete("spec")
         |> K8s.Client.patch()
 
       {:ok, _} = K8s.Client.run(conn, op)
+      assert_receive({^ref, "MODIFIED", ^resource_name}, timeout)
 
-      op = K8s.Client.delete(pod)
+      op = K8s.Client.delete(cm)
       {:ok, _} = K8s.Client.run(conn, op)
-    end)
+      assert_receive({^ref, "DELETED", ^resource_name}, timeout)
+    end
 
-    [add_event | other_events] =
-      event_stream
-      |> Stream.take_while(&(&1["type"] != "DELETED"))
-      |> Enum.to_list()
+    # Excluded by default - run with --only reliability
+    @tag :reliability
+    test "events are created reliably", %{
+      conn: conn,
+      labels: labels,
+      handle_stream: handle_stream,
+      timeout: timeout
+    } do
+      selector = K8s.Selector.label(labels)
+      operation = K8s.Client.list("v1", "ConfigMap", namespace: "default")
+      operation = K8s.Operation.put_label_selector(operation, selector)
+      {:ok, event_stream} = K8s.Client.Runner.Watch.stream(conn, operation)
 
-    assert "ADDED" == add_event["type"]
-    assert is_nil(get_in(add_event, ~w(object metadata annotations some)))
-    refute Enum.empty?(other_events)
-    assert true == Enum.all?(other_events, &(&1["type"] == "MODIFIED"))
+      Task.start(fn -> event_stream |> handle_stream.() |> Stream.run() end)
+      :timer.sleep(500)
+
+      pid = self()
+      ref = make_ref()
+
+      data = %{
+        "pid" => pid |> :erlang.pid_to_list() |> List.to_string(),
+        "ref" => ref |> :erlang.ref_to_list() |> List.to_string()
+      }
+
+      for run <- 1..1000 do
+        resource_name = "test-rel-#{run}"
+        cm = build_configmap(resource_name, data, labels: labels)
+
+        op = K8s.Client.create(cm)
+        {:ok, _} = K8s.Client.run(conn, op)
+        assert_receive({^ref, "ADDED", ^resource_name}, timeout)
+
+        op = K8s.Client.delete(cm)
+        {:ok, _} = K8s.Client.run(conn, op)
+        assert_receive({^ref, "DELETED", ^resource_name}, timeout)
+      end
+    end
   end
 end
