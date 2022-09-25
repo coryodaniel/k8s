@@ -5,7 +5,7 @@ defmodule K8s.Client.Runner.PodExecTest do
   alias K8s.Client.Runner.PodExec
 
   setup do
-    {:ok, conn} = K8s.Conn.lookup(:test)
+    {:ok, conn} = K8s.Conn.from_file("test/support/kube-config.yaml")
     {:ok, %{conn: conn}}
   end
 
@@ -40,7 +40,7 @@ defmodule K8s.Client.Runner.PodExecTest do
 
   def receive_loop(websocket_pid) do
     receive do
-      {:ok, _message} -> receive_loop(websocket_pid)
+      {:ok, message} -> receive_loop(websocket_pid)
       {:exit, reason} -> reason
     after
       5000 ->

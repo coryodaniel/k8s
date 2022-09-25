@@ -94,7 +94,6 @@ defmodule K8s.Client.Runner.Base do
     with {:ok, url} <- K8s.Discovery.url_for(conn, operation),
          req <- new_request(conn, url, operation, body, http_opts),
          {:ok, req} <- K8s.Middleware.run(req, conn.middleware.request) do
-
       ## headers for websocket connection to k8s API
       headers =
         req.headers ++ [{"Accept", "*/*"}, {"Content-Type", "application/json"}]

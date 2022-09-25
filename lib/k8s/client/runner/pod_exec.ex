@@ -6,6 +6,7 @@ defmodule K8s.Client.Runner.PodExec do
   alias K8s.Operation
   alias K8s.Conn.RequestOptions
   alias K8s.Discovery
+  require Logger
 
   @doc """
   Execute a command in a Pod.

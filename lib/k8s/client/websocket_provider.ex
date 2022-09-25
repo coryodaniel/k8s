@@ -42,9 +42,7 @@ defmodule K8s.Client.WebSocketProvider do
     {:ok, state}
   end
 
-  @doc """
-    Websocket stdout handler. The frame starts with a <<1>> and is followed by a payload.
-  """
+  @doc "Websocket stdout handler. The frame starts with a <<1>> and is followed by a payload."
   def handle_frame({type, <<1, msg::binary>>}, state) do
     Logger.debug(
       "Pod Command Received STDOUT Message - Type: #{inspect(type)} -- Message: #{inspect(msg)}"
@@ -55,17 +53,13 @@ defmodule K8s.Client.WebSocketProvider do
     {:ok, state}
   end
 
-  @doc """
-    Websocket sterr handler. The frame starts with a <<2>> and is a noop because of the empy payload.
-  """
+  @doc "Websocket sterr handler. The frame starts with a <<2>> and is a noop because of the empy payload."
   def handle_frame({_type, <<2, "">>}, state) do
     # no need to print out an empty response
     {:ok, state}
   end
 
-  @doc """
-    Websocket stderr handler. The frame starts with a 2 and is followed by a message.
-  """
+  @doc "Websocket stderr handler. The frame starts with a 2 and is followed by a message."
   def handle_frame({type, <<2, msg::binary>>}, state) do
     Logger.debug(
       "Pod Command Received STDERR Message  - Type: #{inspect(type)} -- Message: #{inspect(msg)}"
@@ -74,9 +68,7 @@ defmodule K8s.Client.WebSocketProvider do
     {:ok, state}
   end
 
-  @doc """
-    Websocket uknown command handler. This is a binary frame we are not familiar with.
-  """
+  @doc "Websocket uknown command handler. This is a binary frame we are not familiar with."
   def handle_frame({type, <<_eot::binary-size(1), msg::binary>>}, state) do
     Logger.error(
       "Exec Command - Received Unknown Message - Type: #{inspect(type)} -- Message: #{msg}"
