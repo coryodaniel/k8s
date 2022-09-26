@@ -12,12 +12,6 @@ defmodule K8s do
     Application.get_env(:k8s, :http_provider, K8s.Client.HTTPProvider)
   end
 
-  @doc false
-  @spec websocket_provider() :: module()
-  def websocket_provider do
-    Application.get_env(:k8s, :websocket_provider, K8s.Client.WebSocketProvider)
-  end
-
   @doc """
   Returns the _default_ driver for discovery.
 

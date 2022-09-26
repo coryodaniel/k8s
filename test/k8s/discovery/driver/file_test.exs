@@ -17,6 +17,7 @@ defmodule K8s.Discovery.Driver.FileTest do
                "namespaces",
                "pods",
                "pods/eviction",
+               "pods/exec",
                "services"
              ]
     end

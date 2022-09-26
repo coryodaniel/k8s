@@ -613,33 +613,4 @@ defmodule K8s.Client do
   def delete_all(api_version, kind, namespace: namespace) do
     Operation.build(:deletecollection, api_version, kind, namespace: namespace)
   end
-
-  @doc """
-  Returns a `CONNECT` operation for a resource by manifest. May be a partial manifest as long as it contains:
-
-  * apiVersion
-  * kind
-  * name
-  * namespace (if applicable)
-
-  [K8s Docs](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.13/):
-
-
-  ## Examples
-
-      iex> K8s.Client.connect("v1", "pods/exec", [namespace: "default", name: "minio-569964ddfc-dcmxb"])
-      %K8s.Operation{
-         api_version: "v1",
-         data: nil,
-         label_selector: nil,
-         method: :connect,
-         name: "pods/exec",
-         path_params: [namespace: "default", name: "minio-569964ddfc-dcmxb"],
-         query_params: nil,
-         verb: :connect
-        }
-
-  """
-  @spec connect(binary(), binary() | atom(), namespace: binary()) :: Operation.t()
-  def connect(api_version, kind, opts), do: Operation.build(:connect, api_version, kind, opts)
 end

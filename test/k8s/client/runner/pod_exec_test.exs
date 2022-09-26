@@ -40,7 +40,7 @@ defmodule K8s.Client.Runner.PodExecTest do
 
   def receive_loop(websocket_pid) do
     receive do
-      {:ok, message} -> receive_loop(websocket_pid)
+      {:ok, _message} -> receive_loop(websocket_pid)
       {:exit, reason} -> reason
     after
       5000 ->
