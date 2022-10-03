@@ -34,10 +34,12 @@ defmodule K8s.Discovery.Driver.File do
   @behaviour K8s.Discovery.Driver
 
   @impl true
-  def resources(api_version, %K8s.Conn{}, opts \\ []), do: get_resources(api_version, opts)
+  def resources(api_version, %K8s.Conn{} = conn, opts \\ []),
+    do: get_resources(api_version, Keyword.merge(conn.discovery_opts, opts))
 
   @impl true
-  def versions(%K8s.Conn{}, opts \\ []), do: get_versions(opts)
+  def versions(%K8s.Conn{} = conn, opts \\ []),
+    do: get_versions(Keyword.merge(conn.discovery_opts, opts))
 
   @spec get_versions(keyword) :: {:ok, list(binary)} | {:error, :enoent | Jason.DecodeError.t()}
   defp get_versions(opts) do
