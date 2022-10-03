@@ -11,13 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- ### Added | Changed | Deprecated | Removed | Fixed | Security -->
 
+<!--------------------- Don't add new entries after this line --------------------->
+
+## [1.1.6] - 2022-10-03
+
 ### Fixed
 
 - `K8s.Resourse.label/2`: spec updated to accept label maps as a second argument [#177](https://github.com/coryodaniel/k8s/pull/177)
 - `K8s.Discovery.Driver.File`: Use `conn.discovery_opts` in file discovery driver ([#180](https://github.com/coryodaniel/k8s/pull/180))
 - `K8s.Client.DynamicHTTPProvider.request/5`: Fix converting PID to string inside error message ([#181](https://github.com/coryodaniel/k8s/pull/181))
-
-<!--------------------- Don't add new entries after this line --------------------->
 
 ## [1.1.5] - 2022-05-19
 
