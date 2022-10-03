@@ -62,7 +62,7 @@ defmodule K8s.Client.DynamicHTTPProvider do
 
         case parent do
           nil ->
-            raise "No handler module registered for process #{self()} or parent."
+            raise "No handler module registered for process #{inspect(self())} or parent."
 
           parent ->
             response = parent.request(method, url, body, headers, opts)
