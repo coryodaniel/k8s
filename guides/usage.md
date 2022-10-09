@@ -75,7 +75,6 @@ If your Pod has only one container, then you do not have to specify which contai
   end
 ```
 
-```elixir
 Same as above, but you explicitly set the container you want to run the command in.
 
 ```elixir
