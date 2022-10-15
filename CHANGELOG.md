@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- ### Added | Changed | Deprecated | Removed | Fixed | Security -->
 
+### Fixed
+
+- Fix protocol implementations in Elixir 1.14.1: Replace `__MODULE__` with actual module name. [#185](https://github.com/coryodaniel/k8s/pull/185)
+
 <!--------------------- Don't add new entries after this line --------------------->
 
 ## [1.1.6] - 2022-10-03

@@ -48,7 +48,7 @@ defmodule K8s.Conn.Auth.AuthProvider do
     |> String.split(".")
   end
 
-  defimpl RequestOptions, for: __MODULE__ do
+  defimpl RequestOptions, for: K8s.Conn.Auth.AuthProvider do
     @doc "Generates HTTP Authorization options for auth-provider authentication"
     @spec generate(AuthProvider.t()) :: RequestOptions.generate_t()
     def generate(%AuthProvider{} = provider) do
