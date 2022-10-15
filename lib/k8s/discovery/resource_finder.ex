@@ -49,7 +49,9 @@ defmodule K8s.Discovery.ResourceFinder do
     case resource do
       nil ->
         {:error,
-         %K8s.Discovery.Error{message: "Unsupported Kubernetes resource: #{name_or_kind}"}}
+         %K8s.Discovery.Error{
+           message: "Unsupported Kubernetes resource: #{inspect(name_or_kind)}"
+         }}
 
       resource ->
         {:ok, resource}
