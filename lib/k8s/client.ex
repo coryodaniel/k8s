@@ -115,7 +115,7 @@ defmodule K8s.Client do
         query_params: [fieldManager: "my-operator", force: true]
       }
   """
-  @spec apply(binary, binary | atom, Keyword.t(), map(), keyword()) :: Operation.t()
+  @spec apply(binary, Operation.name_t(), Keyword.t(), map(), keyword()) :: Operation.t()
   def apply(
         api_version,
         kind,
@@ -211,7 +211,7 @@ defmodule K8s.Client do
         path_params: [namespace: "test", name: "nginx"]}
 
   """
-  @spec get(binary, binary | atom, path_params | nil) :: Operation.t()
+  @spec get(binary, Operation.name_t(), path_params | nil) :: Operation.t()
   def get(api_version, kind, path_params \\ []),
     do: Operation.build(:get, api_version, kind, path_params)
 
@@ -246,7 +246,7 @@ defmodule K8s.Client do
       }
 
   """
-  @spec list(binary, binary | atom, path_params | nil) :: Operation.t()
+  @spec list(binary, Operation.name_t(), path_params | nil) :: Operation.t()
   def list(api_version, kind, path_params \\ [])
 
   def list(api_version, kind, namespace: :all),
@@ -325,7 +325,7 @@ defmodule K8s.Client do
         data: K8s.Resource.from_file!("test/support/manifests/eviction-policy.yaml")
       }
   """
-  @spec create(binary, binary | atom, Keyword.t(), map()) :: Operation.t()
+  @spec create(binary, Operation.name_t(), Keyword.t(), map()) :: Operation.t()
   def create(api_version, kind, path_params, subresource),
     do: Operation.build(:create, api_version, kind, path_params, subresource)
 
@@ -401,7 +401,7 @@ defmodule K8s.Client do
   @doc """
   Returns a `PATCH` operation to patch the given subresource given a resource's details and a subresource map.
   """
-  @spec patch(binary, binary | atom, Keyword.t(), map()) :: Operation.t()
+  @spec patch(binary, Operation.name_t(), Keyword.t(), map()) :: Operation.t()
   def patch(api_version, kind, path_params, subresource),
     do: Operation.build(:patch, api_version, kind, path_params, subresource)
 
@@ -469,7 +469,7 @@ defmodule K8s.Client do
         verb: :update
       }
   """
-  @spec update(binary, binary | atom, Keyword.t(), map()) :: Operation.t()
+  @spec update(binary, Operation.name_t(), Keyword.t(), map()) :: Operation.t()
   def update(api_version, kind, path_params, subresource),
     do: Operation.build(:update, api_version, kind, path_params, subresource)
 
@@ -553,7 +553,7 @@ defmodule K8s.Client do
       }
 
   """
-  @spec delete(binary, binary | atom, path_params | nil) :: Operation.t()
+  @spec delete(binary, Operation.name_t(), path_params | nil) :: Operation.t()
   def delete(api_version, kind, path_params),
     do: Operation.build(:delete, api_version, kind, path_params)
 
