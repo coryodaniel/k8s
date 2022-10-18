@@ -37,13 +37,13 @@ defmodule K8s.Client do
   defdelegate run(conn, operation, http_opts), to: Base
 
   @doc "alias of `K8s.Client.Runner.Async.run/3`"
-  defdelegate async(operations, conn), to: Async, as: :run
+  defdelegate async(conn, operations), to: Async, as: :run
 
   @doc "alias of `K8s.Client.Runner.Async.run/3`"
-  defdelegate async(operations, conn, http_opts), to: Async, as: :run
+  defdelegate async(conn, operations, http_opts), to: Async, as: :run
 
   @doc "alias of `K8s.Client.Runner.Async.run/3`"
-  defdelegate parallel(operations, conn, http_opts), to: Async, as: :run
+  defdelegate parallel(conn, operations, http_opts), to: Async, as: :run
 
   @doc "alias of `K8s.Client.Runner.Wait.run/3`"
   defdelegate wait_until(conn, operation, wait_opts), to: Wait, as: :run
