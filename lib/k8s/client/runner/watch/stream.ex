@@ -32,8 +32,18 @@ defmodule K8s.Client.Runner.Watch.Stream do
   """
   @spec resource(K8s.Conn.t(), K8s.Operation.t(), keyword()) :: Enumerable.t() | {:error, any()}
   def resource(conn, operation, http_opts) do
+    {:ok, resource_version} = Watch.get_resource_version(conn, operation)
+
     Stream.resource(
-      fn -> {:start, %__MODULE__{conn: conn, operation: operation, http_opts: http_opts}} end,
+      fn ->
+        {:start,
+         %__MODULE__{
+           conn: conn,
+           operation: operation,
+           http_opts: http_opts,
+           resource_version: resource_version
+         }}
+      end,
       &next_fun/1,
       fn _state -> :ok end
     )
