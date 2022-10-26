@@ -11,11 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- ### Added | Changed | Deprecated | Removed | Fixed | Security -->
 
+<!--------------------- Don't add new entries after this line --------------------->
+
+## [1.1.8] - 2022-10-26
+
 ### Fixed
 
 `K8s.Client.watch_and_stream/2`: Get resource vesrion before creating the Stream resource in order to not miss anything. ([#187](https://github.com/coryodaniel/k8s/pull/187))
-
-<!--------------------- Don't add new entries after this line --------------------->
 
 ## [1.1.7] - 2022-10-15
 
