@@ -6,6 +6,7 @@ defmodule K8s.Client.Runner.Base do
   @type error_t ::
           {:error, K8s.Middleware.Error.t()}
           | {:error, K8s.Operation.Error.t()}
+          | {:error, K8s.Client.APIError.t()}
           | {:error, atom()}
           | {:error, binary()}
   @type result_t :: {:ok, map() | reference()} | error_t

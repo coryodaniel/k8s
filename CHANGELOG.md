@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- ### Added | Changed | Deprecated | Removed | Fixed | Security -->
 
+### Fixed
+`K8s.Client.run/2`: spec updated to include `t:K8s.Client.APIError.t/0` in possible error structs
+
 <!--------------------- Don't add new entries after this line --------------------->
 
 ## [1.1.8] - 2022-10-26
