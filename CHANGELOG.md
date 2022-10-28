@@ -11,10 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- ### Added | Changed | Deprecated | Removed | Fixed | Security -->
 
-### Fixed
-`K8s.Client.run/2`: spec updated to include `t:K8s.Client.APIError.t/0` in possible error structs
-
 <!--------------------- Don't add new entries after this line --------------------->
+
+## [1.1.9] - 2022-10-28
+
+### Fixed
+
+`K8s.Client.run/2`: spec updated to include `t:K8s.Client.APIError.t/0` in possible error structs ([#189](https://github.com/coryodaniel/k8s/pull/189))
+`K8s.Operation.Path.build/1`: Allow namespace to be `nil`
 
 ## [1.1.8] - 2022-10-26
 
