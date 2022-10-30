@@ -26,6 +26,19 @@ defmodule K8s.Operation.Path do
       ...> K8s.Operation.Path.build(operation)
       {:ok, "/apis/apps/v1/certificatesigningrequests/foo"}
 
+
+      iex> resource = K8s.Resource.build("apps/v1", "CertificateSigningRequest", "foo")
+      ...> operation = %K8s.Operation{
+      ...>  method: :put,
+      ...>  verb: :update,
+      ...>  data: resource,
+      ...>  path_params: [name: "foo", namespace: nil],
+      ...>  api_version: "apps/v1",
+      ...>  name: "certificatesigningrequests"
+      ...> }
+      ...> K8s.Operation.Path.build(operation)
+      {:ok, "/apis/apps/v1/certificatesigningrequests/foo"}
+
   Generate a path for a namespace scoped resource:
 
       iex> resource = K8s.Resource.build("v1", "Pod", "default", "foo")
@@ -162,7 +175,7 @@ defmodule K8s.Operation.Path do
 
   @spec to_path(K8s.Operation.t()) :: binary
   defp to_path(%K8s.Operation{path_params: params} = operation) do
-    has_namespace = Keyword.has_key?(params || [], :namespace)
+    has_namespace = !is_nil(params[:namespace])
     namespaced = has_namespace && params[:namespace] != :all
 
     prefix =

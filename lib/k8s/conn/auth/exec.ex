@@ -64,7 +64,7 @@ defmodule K8s.Conn.Auth.Exec do
   defp format_env(env) when is_list(env), do: Enum.into(env, %{}, &format_env/1)
   defp format_env(%{"name" => key, "value" => value}), do: {key, value}
 
-  defimpl K8s.Conn.RequestOptions, for: __MODULE__ do
+  defimpl K8s.Conn.RequestOptions, for: K8s.Conn.Auth.Exec do
     @doc "Generates HTTP Authorization options for auth-provider authentication"
     @spec generate(Exec.t()) :: K8s.Conn.RequestOptions.generate_t()
     def generate(%Exec{} = provider) do

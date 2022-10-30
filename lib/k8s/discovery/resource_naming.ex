@@ -21,6 +21,10 @@ defmodule K8s.Discovery.ResourceNaming do
       iex> K8s.Discovery.ResourceNaming.matches?(%{"kind" => "Eviction", "name" => "pods/eviction"}, {"Pod", "Eviction"})
       true
 
+      Supports matching tuples of `{resource, subresource}` kind
+      iex> K8s.Discovery.ResourceNaming.matches?(%{"kind" => "Deployment", "name" => "deployments/status"}, {"Deployment", "Status"})
+      true
+
       Supports matching subresources
       iex> K8s.Discovery.ResourceNaming.matches?(%{"kind" => "Deployment", "name" => "deployments/status"}, "deployments/status")
       true
@@ -58,6 +62,11 @@ defmodule K8s.Discovery.ResourceNaming do
   def matches?(%{"kind" => subkind, "name" => name} = _subresource, {kind, subkind}) do
     resource_kind_as_nameish = String.downcase(kind)
     String.starts_with?(name, resource_kind_as_nameish)
+  end
+
+  def matches?(%{"kind" => kind, "name" => name} = _subresource, {kind, subkind}) do
+    subkind_as_nameish = String.downcase(subkind)
+    String.ends_with?(name, "/" <> subkind_as_nameish)
   end
 
   def matches?(_map, {_kind, _subkind}), do: false

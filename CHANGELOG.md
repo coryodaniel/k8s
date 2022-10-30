@@ -13,6 +13,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!--------------------- Don't add new entries after this line --------------------->
 
+## [1.1.9] - 2022-10-28
+
+### Fixed
+
+- `K8s.Client.run/2`: spec updated to include `t:K8s.Client.APIError.t/0` in possible error structs ([#189](https://github.com/coryodaniel/k8s/pull/189))
+- `K8s.Operation.Path.build/1`: Allow namespace to be `nil`
+
+## [1.1.8] - 2022-10-26
+
+### Fixed
+
+`K8s.Client.watch_and_stream/2`: Get resource vesrion before creating the Stream resource in order to not miss anything. ([#187](https://github.com/coryodaniel/k8s/pull/187))
+
+## [1.1.7] - 2022-10-15
+
+### Fixed
+
+- Fix protocol implementations in Elixir 1.14.1: Replace `__MODULE__` with actual module name. [#185](https://github.com/coryodaniel/k8s/pull/185)
+- Match subresources when the kind does not equal the subresource ([#184](https://github.com/coryodaniel/bonny/issues/184))
+
 ## [1.1.6] - 2022-10-03
 
 ### Fixed
