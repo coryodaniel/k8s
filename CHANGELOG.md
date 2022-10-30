@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!--------------------- Don't add new entries after this line --------------------->
 
+## [1.1.10] - 2022-10-30
+
+### Fixed
+
+- `K8s.Client.run/2`: spec updated to include `t:K8s.Discovery.Error.t/0` in possible error structs
+
 ## [1.1.9] - 2022-10-28
 
 ### Fixed
