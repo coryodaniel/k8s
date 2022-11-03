@@ -29,7 +29,7 @@ defmodule K8s.Client.WebSocketProvider do
           keyword(tuple()),
           keyword(atom())
         ) ::
-          {:ok, Pid.t()} | {:error, binary()}
+          {:ok, pid()} | {:error, binary()}
   def request(url, insecure, ssl_options, cacerts, headers, opts) do
     conn =
       WebSockex.Conn.new(url,

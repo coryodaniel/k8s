@@ -3,6 +3,7 @@ defmodule K8s.Client.Runner.PodExec do
   Exec functionality for `K8s.Client`.
   """
 
+  alias K8s.Client.Runner.Base
   alias K8s.Operation
   alias K8s.Conn.RequestOptions
   alias K8s.Discovery
@@ -34,8 +35,8 @@ defmodule K8s.Client.Runner.PodExec do
   opts defaults are [stdin: true, stderr: true, stdout: true, tty: true, stream_to: self()]
 
   """
-  @spec run(Conn.t(), Operation.t(), keyword(atom())) ::
-          {:ok, Pid.t()} | {:error, binary()}
+  @spec run(K8s.Conn.t(), Operation.t(), keyword(atom())) ::
+          {:ok, pid()} | {:error, binary()}
   def run(conn, %Operation{name: "pods/exec"} = operation, opts) when is_list(opts) do
     Process.flag(:trap_exit, true)
 
