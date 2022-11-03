@@ -131,5 +131,4 @@ defmodule K8s.Client.Runner.Base do
     default = [stdin: true, stdout: true, stderr: true, tty: true]
     Keyword.merge(default, opts)
   end
-
 end

@@ -20,21 +20,29 @@ defmodule K8s.Client.Runner.PodExecTest do
   end
 
   describe "run/3" do
-    test "returns an error when `:command` is not provided", %{conn: conn}  do
-      {:error, msg} = PodExec.run(operation(), conn, [stdin: true, container: "fluentd"])
+    test "returns an error when `:command` is not provided", %{conn: conn} do
+      {:error, msg} = PodExec.run(conn, operation(), stdin: true, container: "fluentd")
       assert msg == ":command is required"
     end
 
     test "returns an error when the operation is not named `pods/exec`", %{conn: conn} do
       operation = operation("pods")
-      {:error, msg} = PodExec.run(operation, conn, [command: ["date"], stream_to: self()])
+      {:error, msg} = PodExec.run(conn, operation, command: ["date"], stream_to: self())
       assert msg == :unsupported_operation
     end
 
     test "returns the command results and the websocket exit normal", %{conn: conn} do
-     exec_opts = [command: ["/bin/sh", "-c", "date"], stdin: true, stderr: true, stdout: true, tty: true, stream_to: self()]
-      {:ok, websocket_pid} = PodExec.run(operation(), conn, exec_opts)
-     receive_loop(websocket_pid)
+      exec_opts = [
+        command: ["/bin/sh", "-c", "date"],
+        stdin: true,
+        stderr: true,
+        stdout: true,
+        tty: true,
+        stream_to: self()
+      ]
+
+      {:ok, websocket_pid} = PodExec.run(conn, operation(), exec_opts)
+      receive_loop(websocket_pid)
     end
   end
 
@@ -45,7 +53,7 @@ defmodule K8s.Client.Runner.PodExecTest do
     after
       5000 ->
         Process.exit(websocket_pid, :kill)
-        IO.puts "Timed out waiting for response from pod via websocket"
+        IO.puts("Timed out waiting for response from pod via websocket")
     end
   end
 end

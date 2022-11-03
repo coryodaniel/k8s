@@ -16,27 +16,27 @@ defmodule K8s.Client.Runner.PodExec do
   Running the `nginx -t` command inside a nginx pod without only one container and stream back the result to self():
 
   ```elixir
-  conn = K8s.Conn.from_file("~/.kube/config")
-  op = K8s.Client.create("v1", "pods/exec", [namespace: "default", name: "nginx", ])
+  {:ok, conn} = K8s.Conn.from_file("~/.kube/config")
+  op = K8s.Client.create(%{"apiVersion" => "v1", "kind" => "pods/exec", "metadata" => %{"namespace" => "default", "name" => "nginx-76d6c9b8c-sq56w"}})
   exec_opts = [command: ["/bin/sh", "-c", "nginx -t"], stdin: true, stderr: true, stdout: true, tty: true, stream_to: self()]
-  {:ok, pid} = K8s.Client.Runner.PodExec.run(op, conn, exec_opts)
+  {:ok, pid} = K8s.Client.Runner.PodExec.run(conn, op, exec_opts)
   ```
 
   Running the `gem list` command inside a nginx pod specifying the fluentd container and stream back the result to self():
 
   ```elixir
-  conn = K8s.Conn.from_file("~/.kube/config")
-  op = K8s.Client.create("v1", "pods/exec", [namespace: "default", name: "nginx", ])
+  {:ok, conn} = K8s.Conn.from_file("~/.kube/config")
+  op = K8s.Client.create(%{"apiVersion" => "v1", "kind" => "pods/exec", "metadata" => %{"namespace" => "default", "name" => "nginx-76d6c9b8c-sq56w"}})
   exec_opts = [command: ["/bin/sh", "-c", "gem list"], container: "fluentd", stdin: true, stderr: true, stdout: true, tty: true, stream_to: self()]
-  {:ok, pid} = K8s.Client.Runner.PodExec.run(op, conn, exec_opts)
+  {:ok, pid} = K8s.Client.Runner.PodExec.run(conn, op, exec_opts)
   ```
 
   opts defaults are [stdin: true, stderr: true, stdout: true, tty: true, stream_to: self()]
 
   """
-  @spec run(Operation.t(), Conn.t(), keyword(atom())) ::
+  @spec run(Conn.t(), Operation.t(), keyword(atom())) ::
           {:ok, Pid.t()} | {:error, binary()}
-  def run(%Operation{name: "pods/exec"} = operation, conn, opts) when is_list(opts) do
+  def run(conn, %Operation{name: "pods/exec"} = operation, opts) when is_list(opts) do
     Process.flag(:trap_exit, true)
 
     with {:ok, opts} <- process_opts(opts),
@@ -50,16 +50,14 @@ defmodule K8s.Client.Runner.PodExec do
 
       cacerts = Keyword.get(request_options.ssl_options, :cacerts)
 
-      K8s.websocket_provider().request(url, false, request_options.ssl_options, cacerts, headers, opts)
-      conn =
-        WebSockex.Conn.new(url,
-          insecure: false,
-          ssl_options: request_options.ssl_options,
-          cacerts: cacerts,
-          extra_headers: headers
-        )
-
-      WebSockex.start_link(conn, __MODULE__, opts, async: true)
+      K8s.websocket_provider().request(
+        url,
+        false,
+        request_options.ssl_options,
+        cacerts,
+        headers,
+        opts
+      )
     else
       {:error, message} -> {:error, message}
       error -> {:error, inspect(error)}
@@ -67,66 +65,6 @@ defmodule K8s.Client.Runner.PodExec do
   end
 
   def run(_, _, _), do: {:error, :unsupported_operation}
-
-  @doc false
-  def handle_frame({_type, <<1, "">>}, state) do
-    # no need to print out an empty response
-    {:ok, state}
-  end
-
-  @doc """
-    Websocket stdout handler. The frame starts with a <<1>> and is followed by a payload.
-  """
-  def handle_frame({type, <<1, msg::binary>>}, state) do
-    Logger.debug(
-      "Pod Command Received STDOUT Message - Type: #{inspect(type)} -- Message: #{inspect(msg)}"
-    )
-
-    from = Keyword.get(state, :stream_to)
-    send(from, {:ok, msg})
-    {:ok, state}
-  end
-
-  @doc """
-    Websocket sterr handler. The frame starts with a <<2>> and is a noop because of the empy payload.
-  """
-  def handle_frame({_type, <<2, "">>}, state) do
-    # no need to print out an empty response
-    {:ok, state}
-  end
-
-  @doc """
-    Websocket stderr handler. The frame starts with a 2 and is followed by a message.
-  """
-  def handle_frame({type, <<2, msg::binary>>}, state) do
-    Logger.debug(
-      "Pod Command Received STDERR Message  - Type: #{inspect(type)} -- Message: #{inspect(msg)}"
-    )
-
-    {:ok, state}
-  end
-
-  @doc """
-    Websocket uknown command handler. This is a binary frame we are not familiar with.
-  """
-  def handle_frame({type, <<_eot::binary-size(1), msg::binary>>}, state) do
-    Logger.error(
-      "Exec Command - Received Unknown Message - Type: #{inspect(type)} -- Message: #{msg}"
-    )
-
-    from = Keyword.get(state, :stream_to)
-    send(from, {:error, msg})
-    {:ok, state}
-  end
-
-  @doc """
-    Websocket disconnect handler. This frame is received when the web socket is disconnected.
-  """
-  def handle_disconnect(data, state) do
-    from = Keyword.get(state, :stream_to)
-    send(from, {:exit, data.reason})
-    {:ok, state}
-  end
 
   defp process_opts(opts) do
     default = [stream_to: self(), stdin: true, stdout: true, stderr: true, tty: true]

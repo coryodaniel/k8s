@@ -244,15 +244,18 @@ defmodule K8s.Operation do
     new_params = Keyword.put(params, key, value)
     %Operation{op | query_params: new_params}
   end
+
   # covers when query_params are a keyword list for operations like for Pod Connect
-  def put_query_param(%Operation{query_params: params} = op, opts) when is_list(opts) and is_list(params) do
+  def put_query_param(%Operation{query_params: params} = op, opts)
+      when is_list(opts) and is_list(params) do
     new_params = params ++ opts
     %Operation{op | query_params: new_params}
   end
+
   def put_query_param(%Operation{query_params: _params} = op, opts) when is_list(opts) do
     %Operation{op | query_params: opts}
   end
-  
+
   @doc """
   Get a query param of an operation
 

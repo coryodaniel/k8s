@@ -52,18 +52,16 @@ operation = K8s.Client.get("apps/v1", :deployment, [namespace: "default", name: 
 {:ok, deployment} = K8s.Client.run(conn, operation)
 ```
 
-### Running a command in a pod
+### Executing a command
 
-If your Pod has only one container, then you do not have to specify which container to run the command.
-
-
-If your Pod has only one container, then you do not have to specify which container to run the command.
+If your Pod has only one container, then you do not have to specify which container to run the command in.
 
 ```elixir
-  conn = K8s.Conn.from_file("~/.kube/config")
-  op = K8s.Client.create("v1", "pods/exec", [namespace: "prod", name: "nginx"])
+  {:ok, conn} = K8s.Conn.from_file("~/.kube/config")
+
+  operation = K8s.Client.create("v1", "pods/exec", [namespace: "prod", name: "nginx"])
   exec_opts = [command: ["/bin/sh", "-c", "nginx -t"], stdin: true, stderr: true, stdout: true, tty: true, stream_to: self()]
-  {:ok, pid} = K8s.Client.exec(op, conn, exec_opts)
+  {:ok, pid} = K8s.Client.exec(conn, operation, exec_opts)
 
   # wait for the response from the pod
   receive do
@@ -75,16 +73,16 @@ If your Pod has only one container, then you do not have to specify which contai
   end
 ```
 
-Same as above, but you explicitly set the container you want to run the command in.
+Same as above, but you explicitly set the container name you want to run a command in.
 
 ```elixir
-  conn = K8s.Conn.from_file("~/.kube/config")
-  op = K8s.Client.create("v1", "pods/exec", [namespace: "prod", name: "nginx"])
+  {:ok, conn} = K8s.Conn.from_file("~/.kube/config")
+  operation = K8s.Client.create("v1", "pods/exec", [namespace: "prod", name: "nginx"])
   exec_opts = [command: ["/bin/sh", "-c", "gem list"], container: "fluentd", stdin: true, stderr: true, stdout: true, tty: true, stream_to: self()]
-  {:ok, pid} = K8s.Client.exec(op, conn, exec_opts)
+  {:ok, pid} = K8s.Client.exec(conn, operation, exec_opts)
 
   receive do
-    {:ok, message} -> #do something with the messages. There can be a lot of output.
+    {:ok, message} -> # Do something with the messages. There can be a lot of output.
     {:exit, {:remote, 1000, ""}} -> # The websocket closed because of normal reasons.
     error -> # Something unexpected happened.
   after

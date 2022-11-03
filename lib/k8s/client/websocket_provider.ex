@@ -21,28 +21,35 @@ defmodule K8s.Client.WebSocketProvider do
   ```
 
   """
-  @spec request(String.t, boolean(), keyword(atom()), keyword(binary()), keyword(tuple()), keyword(atom())) ::
-          {:ok, Pid.t} | {:error, binary()}
+  @spec request(
+          String.t(),
+          boolean(),
+          keyword(atom()),
+          keyword(binary()),
+          keyword(tuple()),
+          keyword(atom())
+        ) ::
+          {:ok, Pid.t()} | {:error, binary()}
   def request(url, insecure, ssl_options, cacerts, headers, opts) do
-      conn =
-        WebSockex.Conn.new(url,
-          insecure: insecure,
-          ssl_options: ssl_options,
-          cacerts: cacerts,
-          extra_headers: headers
-        )
-      WebSockex.start_link(conn, __MODULE__, opts, async: true)
+    conn =
+      WebSockex.Conn.new(url,
+        insecure: insecure,
+        ssl_options: ssl_options,
+        cacerts: cacerts,
+        extra_headers: headers
+      )
+
+    WebSockex.start_link(conn, __MODULE__, opts, async: true)
   end
 
-  @doc """
-   Websocket stdout handler. The frame starts with a <<1>> and is a noop because of the empty payload.
-  """
+  @doc false
+  # Websocket stdout handler. The frame starts with a <<1>> and is a noop because of the empty payload.
   def handle_frame({_type, <<1, "">>}, state) do
     # no need to print out an empty response
     {:ok, state}
   end
 
-  @doc "Websocket stdout handler. The frame starts with a <<1>> and is followed by a payload."
+  # Websocket stdout handler. The frame starts with a <<1>> and is followed by a payload.
   def handle_frame({type, <<1, msg::binary>>}, state) do
     Logger.debug(
       "Pod Command Received STDOUT Message - Type: #{inspect(type)} -- Message: #{inspect(msg)}"
@@ -53,13 +60,13 @@ defmodule K8s.Client.WebSocketProvider do
     {:ok, state}
   end
 
-  @doc "Websocket sterr handler. The frame starts with a <<2>> and is a noop because of the empy payload."
+  # Websocket sterr handler. The frame starts with a <<2>> and is a noop because of the empy payload.
   def handle_frame({_type, <<2, "">>}, state) do
     # no need to print out an empty response
     {:ok, state}
   end
 
-  @doc "Websocket stderr handler. The frame starts with a 2 and is followed by a message."
+  # Websocket stderr handler. The frame starts with a 2 and is followed by a message.
   def handle_frame({type, <<2, msg::binary>>}, state) do
     Logger.debug(
       "Pod Command Received STDERR Message  - Type: #{inspect(type)} -- Message: #{inspect(msg)}"
@@ -68,7 +75,7 @@ defmodule K8s.Client.WebSocketProvider do
     {:ok, state}
   end
 
-  @doc "Websocket uknown command handler. This is a binary frame we are not familiar with."
+  # Websocket uknown command handler. This is a binary frame we are not familiar with.
   def handle_frame({type, <<_eot::binary-size(1), msg::binary>>}, state) do
     Logger.error(
       "Exec Command - Received Unknown Message - Type: #{inspect(type)} -- Message: #{msg}"
@@ -79,13 +86,10 @@ defmodule K8s.Client.WebSocketProvider do
     {:ok, state}
   end
 
-  @doc """
-    Websocket disconnect handler. This frame is received when the web socket is disconnected.
-  """
+  # Websocket disconnect handler. This frame is received when the web socket is disconnected.
   def handle_disconnect(data, state) do
     from = Keyword.get(state, :stream_to)
     send(from, {:exit, data.reason})
     {:ok, state}
   end
 end
-
