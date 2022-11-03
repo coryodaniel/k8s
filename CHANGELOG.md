@@ -19,6 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `K8s.Client.Runner.PodExec.run/3` - Executes a [command in a Pod](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.22/#execaction-v1-core) [#]()
 
+## [1.1.10] - 2022-10-30
+
+### Fixed
+
+- `K8s.Client.run/2`: spec updated to include `t:K8s.Discovery.Error.t/0` in possible error structs
+
 ## [1.1.9] - 2022-10-28
 
 ### Fixed
