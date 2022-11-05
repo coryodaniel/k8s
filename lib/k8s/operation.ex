@@ -12,6 +12,7 @@ defmodule K8s.Operation do
     list: :get,
     deletecollection: :delete,
     create: :post,
+    connect: :post,
     update: :put,
     patch: :patch,
     apply: :patch
@@ -239,7 +240,7 @@ defmodule K8s.Operation do
       ...> K8s.Operation.put_query_param(operation, :foo, "bar")
       %K8s.Operation{query_params: [foo: "bar"]}
   """
-  @spec put_query_param(Operation.t(), atom(), String.t() | K8s.Selector.t()) :: Operation.t()
+  @spec put_query_param(Operation.t(), any(), String.t() | K8s.Selector.t()) :: Operation.t()
   def put_query_param(%Operation{query_params: params} = op, key, value) when is_list(params) do
     new_params = Keyword.put(params, key, value)
     %Operation{op | query_params: new_params}
@@ -252,6 +253,7 @@ defmodule K8s.Operation do
     %Operation{op | query_params: new_params}
   end
 
+  @spec put_query_param(Operation.t(), list() | K8s.Selector.t()) :: Operation.t()
   def put_query_param(%Operation{query_params: _params} = op, opts) when is_list(opts) do
     %Operation{op | query_params: opts}
   end

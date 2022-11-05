@@ -44,6 +44,7 @@ defmodule K8s.Client.WebSocketProvider do
 
   @doc false
   # Websocket stdout handler. The frame starts with a <<1>> and is a noop because of the empty payload.
+  @spec handle_frame({term, binary()}, state :: term) :: {:ok, term}
   def handle_frame({_type, <<1, "">>}, state) do
     # no need to print out an empty response
     {:ok, state}
@@ -87,6 +88,7 @@ defmodule K8s.Client.WebSocketProvider do
   end
 
   # Websocket disconnect handler. This frame is received when the web socket is disconnected.
+  @spec handle_disconnect(any(), state :: term) :: {:ok, term}
   def handle_disconnect(data, state) do
     from = Keyword.get(state, :stream_to)
     send(from, {:exit, data.reason})

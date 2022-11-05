@@ -12,16 +12,26 @@ defmodule K8s.Client.DynamicWebSocketProvider do
 
   @doc """
   Handle a `request/6`.
-
   """
+  @spec request(
+          String.t(),
+          boolean(),
+          keyword(atom()),
+          keyword(binary()),
+          keyword(tuple()),
+          keyword(atom())
+        ) ::
+          {:ok, pid()} | {:error, binary()}
   def request(_url, _insecure, _ssl_options, _cacerts, _headers, opts) do
     GenServer.call(__MODULE__, {:request, opts})
   end
 
+  @spec init(atom) :: {:ok, map()}
   def init(:ok) do
     {:ok, %{}}
   end
 
+  @spec handle_info(atom(), state :: term()) :: {:noreply, term()}
   def handle_info(:send_command_results, state) do
     from = Map.get(state, :from)
     cmnd_result = {:ok, "Fri Apr 17 23:55:24 UTC 2020\n"}
@@ -33,6 +43,14 @@ defmodule K8s.Client.DynamicWebSocketProvider do
     {:noreply, state}
   end
 
+  @spec handle_call({atom(), term()}, {pid(), any()}, term()) ::
+          {:noreply, any()}
+          | {:noreply, any(), :hibernate | :infinity | non_neg_integer() | {:continue, any()}}
+          | {:reply, any(), any()}
+          | {:stop, any(), any()}
+          | {:reply, any(), any(),
+             :hibernate | :infinity | non_neg_integer() | {:continue, any()}}
+          | {:stop, any(), any(), any()}
   def handle_call({:request, opts}, _from, state) do
     stream_to = Keyword.fetch!(opts, :stream_to)
     Process.send_after(self(), :send_command_results, 1_000)

@@ -58,6 +58,17 @@ defmodule K8s.Client.Runner.BaseTest do
         ) do
       render(body)
     end
+
+    def request(
+          :post,
+          @base_url <> "/api/v1/namespaces/default/pods/nginx/exec",
+          _body,
+          _headers,
+          _opts
+        ) do
+      render(nil)
+    end
+
   end
 
   setup do

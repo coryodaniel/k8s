@@ -86,10 +86,39 @@ defmodule K8s.Client.Runner.Base do
     do: run(conn, operation, [])
 
   @doc """
-  Run an operation and pass `http_opts` to `K8s.Client.HTTPProvider`
-  See `run/2`
+  Run a connect operation and pass `websocket_driver_opts` to `K8s.Client.WebSocketProvider`
+  See `run/3`
   """
   @spec run(Conn.t(), Operation.t(), keyword()) :: result_t
+  def run(%Conn{} = conn, %Operation{verb: :connect} = operation, websocket_driver_opts) do
+    Process.flag(:trap_exit, true)
+    body = operation.data
+    all_options = Keyword.merge(websocket_driver_opts, operation.query_params)
+
+    with {:ok, url} <- K8s.Discovery.url_for(conn, operation),
+         {:ok, opts} <- process_opts(all_options),
+         req <- new_request(conn, url, operation, body, []),
+         {:ok, req} <- K8s.Middleware.run(req, conn.middleware.request) do
+      # update headers
+      headers = Keyword.merge(req.headers, Accept: "*/*")
+      ssl = Keyword.get(req.opts, :ssl)
+      cacerts = Keyword.get(ssl, :cacerts)
+
+      K8s.websocket_provider().request(
+        req.url,
+        false,
+        ssl,
+        cacerts,
+        headers,
+        all_options
+      )
+    end
+  end
+
+  @doc """
+  Run an operation and pass `http_opts` to `K8s.Client.HTTPProvider`
+  See `run/3`
+  """
   def run(%Conn{} = conn, %Operation{} = operation, http_opts) do
     body = operation.data
 
@@ -102,6 +131,23 @@ defmodule K8s.Client.Runner.Base do
 
   @spec new_request(Conn.t(), String.t(), Operation.t(), body_t, Keyword.t()) ::
           Request.t()
+  defp new_request(%Conn{} = conn, url, %Operation{verb: :connect} = operation, body, http_opts) do
+    req = %Request{conn: conn, method: operation.method, body: body, url: url}
+
+    headers = ["Content-Type": "application/json"]
+
+    operation_query_params = build_query_params(operation)
+    # websockex needs a populated url with query params
+    updated_url = URI.append_query(URI.new!(url), operation_query_params)
+
+    http_opts_params = Keyword.get(http_opts, :params, [])
+    merged_params = http_opts_params
+    http_opts_w_merged_params = Keyword.put(http_opts, :params, merged_params)
+    updated_http_opts = Keyword.merge(req.opts, http_opts_w_merged_params)
+
+    %Request{req | url: updated_url, opts: updated_http_opts, headers: headers}
+  end
+
   defp new_request(%Conn{} = conn, url, %Operation{} = operation, body, http_opts) do
     req = %Request{conn: conn, method: operation.method, body: body, url: url}
 
@@ -121,15 +167,48 @@ defmodule K8s.Client.Runner.Base do
     %Request{req | opts: updated_http_opts, headers: headers}
   end
 
-  @spec build_query_params(Operation.t()) :: keyword()
+  @spec build_query_params(Operation.t()) :: String.t() | keyword()
+  defp build_query_params(%Operation{verb: :connect} = operation) do
+    Enum.map_join(operation.query_params, "&", fn {k, v} ->
+      case k do
+        :command when is_list(v) ->
+          res = command_builder(v, [])
+          Enum.join(res, "&")
+
+        :command ->
+          res = command_builder([v], [])
+          Enum.join(res, "&")
+
+        _ ->
+          "#{URI.encode_query(%{k => v})}"
+      end
+    end)
+  end
+
   defp build_query_params(%Operation{} = operation) do
     label_selector = Operation.get_label_selector(operation)
     Keyword.merge(operation.query_params, labelSelector: K8s.Selector.to_s(label_selector))
   end
 
-  # for Pod connect
+  @doc false
+  # k8s api can take multiple commands params per request
+  @spec command_builder(list, list) :: list
+  defp command_builder([], acc), do: Enum.reverse(acc)
+
+  defp command_builder([h | t], acc) do
+    params = URI.encode_query(%{"command" => h})
+    command_builder(t, ["#{params}" | acc])
+  end
+
+  # Pod connect - fail if missing command
+  @spec process_opts(list) :: {:ok, term()} | {:error, String.t()}
   defp process_opts(opts) do
-    default = [stdin: true, stdout: true, stderr: true, tty: true]
-    Keyword.merge(default, opts)
+    default = [stream_to: self(), stdin: true, stdout: true, stderr: true, tty: true]
+    processed = Keyword.merge(default, opts)
+    # check for command
+    case Keyword.get(processed, :command) do
+      nil -> {:error, ":command is required in params"}
+      _ -> {:ok, processed}
+    end
   end
 end
