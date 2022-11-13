@@ -59,9 +59,11 @@ If your Pod has only one container, then you do not have to specify which contai
 ```elixir
   {:ok, conn} = K8s.Conn.from_file("~/.kube/config")
 
-  operation = K8s.Client.create(%{"apiVersion" => "v1", "kind" => "pods/exec", "metadata" => %{"namespace" => "default", "name" => "nginx-76d6c9b8c-sq56w"}})
-  exec_opts = [command: ["/bin/sh", "-c", "nginx -t"], stdin: true, stderr: true, stdout: true, tty: true, stream_to: self()]
-  {:ok, pid} = K8s.Client.exec(conn, operation, exec_opts)
+  connect = K8s.Client.connect("v1", "pods/exec", [namespace: "default", name: "nginx-8f458dc5b-zwmkb"])
+
+  op = K8s.Operation.put_query_param(connect, [command: ["/bin/sh", "-c", "nginx -t"], stdin: true, stdout: true, stderr: true, tty: true])
+
+  K8s.Client.run(conn, op, stream_to: self())
 
   # wait for the response from the pod
   receive do
@@ -77,9 +79,11 @@ Same as above, but you explicitly set the container name you want to run a comma
 
 ```elixir
   {:ok, conn} = K8s.Conn.from_file("~/.kube/config")
-  operation = K8s.Client.create(%{"apiVersion" => "v1", "kind" => "pods/exec", "metadata" => %{"namespace" => "default", "name" => "nginx-76d6c9b8c-sq56w"}})
-  exec_opts = [command: ["/bin/sh", "-c", "gem list"], container: "fluentd", stdin: true, stderr: true, stdout: true, tty: true, stream_to: self()]
-  {:ok, pid} = K8s.Client.exec(conn, operation, exec_opts)
+  connect = K8s.Client.connect("v1", "pods/exec", [namespace: "default", name: "nginx-8f458dc5b-zwmkb"])
+
+  op = K8.Operation.put_query_param(connect, [command: ["/bin/sh", "-c", "nginx -t"], container: "fluentd", stdin: true, stdout: true, stderr: true, tty: true])
+
+  K8s.Client.run(conn, op, stream_to: self())
 
   receive do
     {:ok, message} -> # Do something with the messages. There can be a lot of output.

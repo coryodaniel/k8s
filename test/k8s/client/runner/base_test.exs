@@ -68,7 +68,6 @@ defmodule K8s.Client.Runner.BaseTest do
         ) do
       render(nil)
     end
-
   end
 
   setup do

@@ -246,13 +246,13 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
         K8s.Client.connect("v1", "pods/exec", namespace: "default", name: "nginx-BAF-sq56w")
 
       operation =
-        K8s.Operation.put_query_param(connect_op, [
+        K8s.Operation.put_query_param(connect_op,
           kommand: ["/bin/sh", "-c", "date"],
           stdin: true,
           stdout: true,
           stderr: true,
           tty: true
-        ])
+        )
 
       assert {:error, msg} = K8s.Client.run(conn, operation, stream_to: self())
       assert msg == ":command is required in params"
@@ -274,7 +274,9 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
           tty: true
         )
 
-      assert {:error, %K8s.Discovery.Error{message: "Unsupported Kubernetes resource: \"not-real\""}} = K8s.Client.run(conn, operation, stream_to: self())
+      assert {:error,
+              %K8s.Discovery.Error{message: "Unsupported Kubernetes resource: \"not-real\""}} =
+               K8s.Client.run(conn, operation, stream_to: self())
     end
   end
 

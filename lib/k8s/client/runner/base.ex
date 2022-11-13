@@ -110,15 +110,11 @@ defmodule K8s.Client.Runner.Base do
         ssl,
         cacerts,
         headers,
-        all_options
+        opts
       )
     end
   end
-
-  @doc """
-  Run an operation and pass `http_opts` to `K8s.Client.HTTPProvider`
-  See `run/3`
-  """
+  # Run an operation and pass `http_opts` to `K8s.Client.HTTPProvider`
   def run(%Conn{} = conn, %Operation{} = operation, http_opts) do
     body = operation.data
 
