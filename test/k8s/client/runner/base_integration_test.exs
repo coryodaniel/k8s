@@ -75,8 +75,8 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
           tty: true
         )
 
-      assert {:ok, websocket_pid} = K8s.Client.run(conn, operation, stream_to: self())
-      receive_loop(websocket_pid)
+      assert {:ok, _websocket_pid} = K8s.Client.run(conn, operation, stream_to: self())
+      assert_receive {:ok, _message}, 5_000
     end
   end
 
@@ -277,18 +277,6 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
       assert {:error,
               %K8s.Discovery.Error{message: "Unsupported Kubernetes resource: \"not-real\""}} =
                K8s.Client.run(conn, operation, stream_to: self())
-    end
-  end
-
-  @spec receive_loop(pid) :: {:ok, term} | {:exit, term} | String.t()
-  def receive_loop(websocket_pid) do
-    receive do
-      {:ok, _message} -> receive_loop(websocket_pid)
-      {:exit, reason} -> reason
-    after
-      5000 ->
-        Process.exit(websocket_pid, :kill)
-        IO.puts("Timed out waiting for response from pod via websocket")
     end
   end
 end

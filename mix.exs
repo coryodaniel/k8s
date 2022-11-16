@@ -48,7 +48,6 @@ defmodule K8s.MixProject do
       {:ex_doc, "~> 0.27", only: :dev, runtime: false},
       {:excoveralls, "~> 0.14", only: [:test]},
       {:mix_test_watch, "~> 1.1", only: :dev, runtime: false},
-      {:stream_data, "~> 0.4", only: :test},
       {:websockex, "~> 0.4.0"}
     ]
   end
