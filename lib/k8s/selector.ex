@@ -381,10 +381,19 @@ defmodule K8s.Selector do
   end
 
   @doc """
-  Serializes a `K8s.Selector` to a `labelSelector` query string. See `labels_to_s/1`
+  Serializes `K8s.Selector` into a keyword list containing the `labelSelector` and `fieldSelector` query strings.
+
+  ## Examples
+
+      iex> selector = K8s.Selector.label({"component", "redis"})
+      ...> selector = K8s.Selector.field(selector, {"status.phase", "Running"})
+      ...> K8s.Selector.to_s(selector)
+      [field_selector: "status.phase=Running", label_selector: "component=redis"]
   """
-  @spec to_s(t) :: binary()
-  defdelegate to_s(selector), to: __MODULE__, as: :labels_to_s
+  @spec to_s(t) :: keyword()
+  def to_s(selector) do
+    [field_selector: fields_to_s(selector), label_selector: labels_to_s(selector)]
+  end
 
   @doc """
   Serializes a `K8s.Selector` to a `labelSelector` query string.
