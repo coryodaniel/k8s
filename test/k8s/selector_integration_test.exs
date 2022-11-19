@@ -26,6 +26,7 @@ defmodule K8s.SelectorIntegrationTest do
   end
 
   describe "labels" do
+    @tag integration: true
     test "Finds resource via label selectors", %{conn: conn} do
       op =
         K8s.Client.list("v1", "ConfigMap", namespace: "default")
@@ -46,6 +47,7 @@ defmodule K8s.SelectorIntegrationTest do
       {:ok, %{"items" => []}} = K8s.Client.run(conn, op)
     end
 
+    @tag integration: true
     test "Finds resource via label_not selectors", %{conn: conn} do
       op =
         K8s.Client.list("v1", "ConfigMap", namespace: "default")
@@ -66,6 +68,7 @@ defmodule K8s.SelectorIntegrationTest do
       {:ok, %{"items" => []}} = K8s.Client.run(conn, op)
     end
 
+    @tag integration: true
     test "Finds resource via label_does_not_exist expression", %{conn: conn} do
       op =
         K8s.Client.list("v1", "ConfigMap", namespace: "default")
@@ -85,6 +88,7 @@ defmodule K8s.SelectorIntegrationTest do
       assert "selector-integration-test" == resource["metadata"]["name"]
     end
 
+    @tag integration: true
     test "Finds resource via label_exists expression", %{conn: conn} do
       op =
         K8s.Client.list("v1", "ConfigMap", namespace: "default")
@@ -104,6 +108,7 @@ defmodule K8s.SelectorIntegrationTest do
       assert "selector-integration-test" == resource["metadata"]["name"]
     end
 
+    @tag integration: true
     test "Finds resource via label_in and label_not_in expression", %{conn: conn} do
       op =
         K8s.Client.list("v1", "ConfigMap", namespace: "default")
@@ -125,6 +130,7 @@ defmodule K8s.SelectorIntegrationTest do
   end
 
   describe "fields" do
+    @tag integration: true
     test "Finds resource via field selectors", %{conn: conn} do
       op =
         K8s.Client.list("v1", "ConfigMap", namespace: "default")
@@ -147,6 +153,7 @@ defmodule K8s.SelectorIntegrationTest do
       {:ok, %{"items" => []}} = K8s.Client.run(conn, op)
     end
 
+    @tag integration: true
     test "Finds resource via field_not selectors", %{conn: conn} do
       op =
         K8s.Client.list("v1", "ConfigMap", namespace: "default")
