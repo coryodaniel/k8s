@@ -37,17 +37,18 @@ defmodule K8s.Selector do
 
       iex> {"component", "redis"}
       ...> |> K8s.Selector.label()
+      ...> |> K8s.Selector.label_not({"foo", "bar"})
       ...> |> K8s.Selector.label_in({"tier", "cache"})
       ...> |> K8s.Selector.label_not_in({"environment", "dev"})
       ...> |> K8s.Selector.label_exists("foo")
       ...> |> K8s.Selector.label_does_not_exist("bar")
       %K8s.Selector{
-        match_labels: %{"component" => "redis"},
+        match_labels: %{"component" => {"=", "redis"}, "foo" => {"!=", "bar"}},
         match_expressions: [
-          %{"key" => "tier", "operator" => "In", "values" => ["cache"]},
-          %{"key" => "environment", "operator" => "NotIn", "values" => ["dev"]},
+          %{"key" => "bar", "operator" => "DoesNotExist"},
           %{"key" => "foo", "operator" => "Exists"},
-          %{"key" => "bar", "operator" => "DoesNotExist"}
+          %{"key" => "environment", "operator" => "NotIn", "values" => ["dev"]},
+          %{"key" => "tier", "operator" => "In", "values" => ["cache"]}
         ]
       }
 
@@ -55,19 +56,20 @@ defmodule K8s.Selector do
 
       iex> K8s.Client.get("v1", :pods)
       ...> |> K8s.Selector.label({"app", "nginx"})
-      ...> |> K8s.Selector.label(%{"tier" => "backend"})
+      ...> |> K8s.Selector.label_not(%{"tier" => "backend"})
       ...> |> K8s.Selector.label_in({"environment", ["qa", "prod"]})
-      %K8s.Operation{data: nil, api_version: "v1", query_params: [labelSelector: %K8s.Selector{match_expressions: [%{"key" => "environment", "operator" => "In", "values" => ["qa", "prod"]}], match_labels: %{"app" => "nginx", "tier" => "backend"}}], method: :get, name: :pods, path_params: [], verb: :get}
+      %K8s.Operation{data: nil, api_version: "v1", query_params: [labelSelector: %K8s.Selector{match_expressions: [%{"key" => "environment", "operator" => "In", "values" => ["qa", "prod"]}], match_labels: %{"app" => {"=", "nginx"}, "tier" => {"!=", "backend"}}}], method: :get, name: :pods, path_params: [], verb: :get}
   """
 
   alias K8s.{Operation, Resource}
 
   @type t :: %__MODULE__{
           match_labels: map(),
+          match_fields: map(),
           match_expressions: list(map())
         }
   @type selector_or_operation_t :: t() | Operation.t()
-  defstruct match_labels: %{}, match_expressions: []
+  defstruct match_labels: %{}, match_fields: %{}, match_expressions: []
 
   @doc """
   Checks if a `K8s.Resource` matches all `matchLabels` using a logcal `AND`
@@ -217,29 +219,101 @@ defmodule K8s.Selector do
   def match_expression?(_, _), do: false
 
   @doc """
-  `matchLabels` helper that creates a composable `K8s.Selector`.
+  `fieldSelector` helper that creates a composable `K8s.Selector`.
 
   ## Examples
-      iex> K8s.Selector.label({"component", "redis"})
-      %K8s.Selector{match_labels: %{"component" => "redis"}}
+      iex> K8s.Selector.field({"metadata.namespace", "default"})
+      %K8s.Selector{match_fields: %{"metadata.namespace" => {"=", "default"}}}
 
-      iex> K8s.Selector.label(%{"component" => "redis", "env" => "prod"})
-      %K8s.Selector{match_labels: %{"component" => "redis", "env" => "prod"}}
+      iex> K8s.Selector.field(%{"metadata.namespace" => "default", "status.phase" => "Running"})
+      %K8s.Selector{match_fields: %{"metadata.namespace" => {"=", "default"}, "status.phase" => {"=", "Running"}}}
   """
-  @spec label({binary | atom, binary} | map) :: t()
-  def label({key, value}), do: %K8s.Selector{match_labels: %{key => value}}
-  def label(labels) when is_map(labels), do: %K8s.Selector{match_labels: labels}
+
+  @spec field({binary | atom, binary} | map) :: t()
+  def field(fields),
+    do: field(%K8s.Selector{}, fields)
+
+  @spec field(selector_or_operation_t(), {binary | atom, binary} | map) ::
+          selector_or_operation_t()
+  def field(%{} = selector_or_operation, fields) do
+    do_add_selector(selector_or_operation, :match_fields, fields, "=")
+  end
+
+  @doc """
+  `fieldSelector` helper that creates a composable `K8s.Selector`.
+
+  ## Examples
+      iex> K8s.Selector.field_not({"metadata.namespace", "default"})
+      %K8s.Selector{match_fields: %{"metadata.namespace" => {"!=", "default"}}}
+
+      iex> K8s.Selector.field(%{"metadata.namespace" => "default", "status.phase" => "Running"})
+      %K8s.Selector{match_fields: %{"metadata.namespace" => {"=", "default"}, "status.phase" => {"=", "Running"}}}
+  """
+
+  @spec field_not({binary | atom, binary} | map) :: t()
+  def field_not(fields) do
+    field_not(%K8s.Selector{}, fields)
+  end
+
+  @spec field_not(selector_or_operation_t(), {binary | atom, binary}) :: selector_or_operation_t()
+  def field_not(%{} = selector_or_operation, fields) do
+    do_add_selector(selector_or_operation, :match_fields, fields, "!=")
+  end
 
   @doc """
   `matchLabels` helper that creates a composable `K8s.Selector`.
 
   ## Examples
-      iex> selector = K8s.Selector.label({"component", "redis"})
-      ...> K8s.Selector.label(selector, {"environment", "dev"})
-      %K8s.Selector{match_labels: %{"component" => "redis", "environment" => "dev"}}
+      iex> K8s.Selector.label({"component", "redis"})
+      %K8s.Selector{match_labels: %{"component" => {"=", "redis"}}}
+
+      iex> K8s.Selector.label(%{"component" => "redis", "env" => "prod"})
+      %K8s.Selector{match_labels: %{"component" => {"=", "redis"}, "env" => {"=", "prod"}}}
+  """
+
+  @spec label({binary | atom, binary} | map) :: t()
+  def label(labels), do: label(%K8s.Selector{}, labels)
+
+  @doc """
+  `matchLabels` helper that creates a composable `K8s.Selector`.
+
+  ## Examples
+      iex> K8s.Selector.label({"component", "redis"})
+      ...> |> K8s.Selector.label({"environment", "dev"})
+      %K8s.Selector{match_labels: %{"component" => {"=", "redis"}, "environment" => {"=", "dev"}}}
   """
   @spec label(selector_or_operation_t, {binary | atom, binary} | map) :: selector_or_operation_t()
-  def label(%{} = selector_or_operation, label), do: merge(selector_or_operation, label(label))
+
+  def label(%{} = selector_or_operation, labels),
+    do: do_add_selector(selector_or_operation, :match_labels, labels, "=")
+
+  @doc """
+  `matchLabels` helper that creates a composable `K8s.Selector`.
+
+  ## Examples
+      iex> K8s.Selector.label_not({"component", "redis"})
+      %K8s.Selector{match_labels: %{"component" => {"!=", "redis"}}}
+
+      iex> K8s.Selector.label_not(%{"component" => "redis", "env" => "prod"})
+      %K8s.Selector{match_labels: %{"component" => {"!=", "redis"}, "env" => {"!=", "prod"}}}
+  """
+
+  @spec label_not({binary | atom, binary} | map) :: t()
+  def label_not(labels), do: label_not(%K8s.Selector{}, labels)
+
+  @doc """
+  `matchLabels` helper that creates a composable `K8s.Selector`.
+
+  ## Examples
+      iex> K8s.Selector.label_not({"component", "redis"})
+      ...> |> K8s.Selector.label_not({"environment", "dev"})
+      %K8s.Selector{match_labels: %{"component" => {"!=", "redis"}, "environment" => {"!=", "dev"}}}
+  """
+  @spec label_not(selector_or_operation_t, {binary | atom, binary} | map) ::
+          selector_or_operation_t()
+
+  def label_not(%{} = selector_or_operation, labels),
+    do: do_add_selector(selector_or_operation, :match_labels, labels, "!=")
 
   @doc """
   `In` expression helper that creates a composable `K8s.Selector`.
@@ -249,17 +323,18 @@ defmodule K8s.Selector do
       %K8s.Selector{match_expressions: [%{"key" => "component", "operator" => "In", "values" => ["redis"]}]}
   """
   @spec label_in({binary, binary | list(binary())}) :: t()
-  def label_in({key, values}) when is_binary(values), do: label_in({key, [values]})
-
-  def label_in({key, values}),
-    do: %K8s.Selector{
-      match_expressions: [%{"operator" => "In", "values" => values, "key" => key}]
-    }
+  def label_in(expr),
+    do: label_in(%K8s.Selector{}, expr)
 
   @spec label_in(selector_or_operation_t, {binary, binary | list(binary())}) ::
           selector_or_operation_t()
-  def label_in(%{} = selector_or_operation, label),
-    do: merge(selector_or_operation, label_in(label))
+  def label_in(%{} = selector_or_operation, {key, values}) do
+    do_add_match_expression(selector_or_operation, %{
+      "operator" => "In",
+      "values" => List.wrap(values),
+      "key" => key
+    })
+  end
 
   @doc """
   `NotIn` expression helper that creates a composable `K8s.Selector`.
@@ -269,17 +344,18 @@ defmodule K8s.Selector do
       %K8s.Selector{match_expressions: [%{"key" => "component", "operator" => "NotIn", "values" => ["redis"]}]}
   """
   @spec label_not_in({binary, binary | list(binary())}) :: t()
-  def label_not_in({key, values}) when is_binary(values), do: label_not_in({key, [values]})
-
-  def label_not_in({key, values}),
-    do: %K8s.Selector{
-      match_expressions: [%{"operator" => "NotIn", "values" => values, "key" => key}]
-    }
+  def label_not_in(expr),
+    do: label_not_in(%K8s.Selector{}, expr)
 
   @spec label_not_in(selector_or_operation_t, {binary, binary | list(binary())}) ::
           selector_or_operation_t()
-  def label_not_in(%{} = selector_or_operation, label),
-    do: merge(selector_or_operation, label_not_in(label))
+  def label_not_in(%{} = selector_or_operation, {key, values}) do
+    do_add_match_expression(selector_or_operation, %{
+      "operator" => "NotIn",
+      "values" => List.wrap(values),
+      "key" => key
+    })
+  end
 
   @doc """
   `Exists` expression helper that creates a composable `K8s.Selector`.
@@ -290,11 +366,12 @@ defmodule K8s.Selector do
   """
   @spec label_exists(binary) :: t()
   def label_exists(key),
-    do: %K8s.Selector{match_expressions: [%{"operator" => "Exists", "key" => key}]}
+    do: label_exists(%K8s.Selector{}, key)
 
   @spec label_exists(selector_or_operation_t, binary) :: selector_or_operation_t()
-  def label_exists(%{} = selector_or_operation, key),
-    do: merge(selector_or_operation, label_exists(key))
+  def label_exists(%{} = selector_or_operation, key) do
+    do_add_match_expression(selector_or_operation, %{"operator" => "Exists", "key" => key})
+  end
 
   @doc """
   `DoesNotExist` expression helper that creates a composable `K8s.Selector`.
@@ -305,28 +382,11 @@ defmodule K8s.Selector do
   """
   @spec label_does_not_exist(binary) :: t()
   def label_does_not_exist(key),
-    do: %K8s.Selector{match_expressions: [%{"operator" => "DoesNotExist", "key" => key}]}
+    do: label_does_not_exist(%K8s.Selector{}, key)
 
   @spec label_does_not_exist(selector_or_operation_t, binary) :: selector_or_operation_t()
-  def label_does_not_exist(%{} = selector_or_operation, key),
-    do: merge(selector_or_operation, label_does_not_exist(key))
-
-  @spec merge(selector_or_operation_t, t) :: selector_or_operation_t
-  defp merge(%Operation{} = op, %__MODULE__{} = next) do
-    prev = Operation.get_label_selector(op)
-    merged_selector = merge(prev, next)
-    Operation.put_label_selector(op, merged_selector)
-  end
-
-  defp merge(%__MODULE__{} = prev, %__MODULE__{} = next) do
-    labels = Map.merge(prev.match_labels, next.match_labels)
-
-    expressions =
-      prev.match_expressions
-      |> Enum.concat(next.match_expressions)
-      |> Enum.uniq()
-
-    %__MODULE__{match_labels: labels, match_expressions: expressions}
+  def label_does_not_exist(%{} = selector_or_operation, key) do
+    do_add_match_expression(selector_or_operation, %{"operator" => "DoesNotExist", "key" => key})
   end
 
   @doc """
@@ -340,8 +400,39 @@ defmodule K8s.Selector do
   """
   @spec to_s(t) :: binary()
   def to_s(%K8s.Selector{match_labels: labels, match_expressions: expr}) do
-    selectors = serialize_match_labels(labels) ++ serialize_match_expressions(expr)
+    selectors = serialize_match(labels) ++ serialize_match_expressions(expr)
     Enum.join(selectors, ",")
+  end
+
+  @doc """
+  Serializes a `K8s.Selector` to a `labelSelector` query string.
+
+  ## Examples
+
+      iex> selector = K8s.Selector.label({"component", "redis"})
+      ...> K8s.Selector.labels_to_s(selector)
+      "component=redis"
+  """
+  @spec labels_to_s(t) :: binary()
+  def labels_to_s(%K8s.Selector{match_labels: labels, match_expressions: expr}) do
+    selectors = serialize_match(labels) ++ serialize_match_expressions(expr)
+    Enum.join(selectors, ",")
+  end
+
+  @doc """
+  Serializes a `K8s.Selector` to a `fieldSelector` query string.
+
+  ## Examples
+
+      iex> selector = K8s.Selector.field({"status.phase", "Running"})
+      ...> K8s.Selector.fields_to_s(selector)
+      "status.phase=Running"
+  """
+  @spec fields_to_s(t) :: binary()
+  def fields_to_s(%K8s.Selector{match_fields: fields}) do
+    fields
+    |> serialize_match()
+    |> Enum.join(",")
   end
 
   @doc """
@@ -349,15 +440,15 @@ defmodule K8s.Selector do
 
   ## Examples
 
-    iex> selector = %{
-    ...>   "matchLabels" => %{"component" => "redis"},
-    ...>   "matchExpressions" => [
-    ...>     %{"operator" => "In", "key" => "tier", "values" => ["cache"]},
-    ...>     %{"operator" => "NotIn", "key" => "environment", "values" => ["dev"]}
-    ...>   ]
-    ...> }
-    ...> K8s.Selector.parse(selector)
-    %K8s.Selector{match_labels: %{"component" => "redis"}, match_expressions: [%{"operator" => "In", "key" => "tier", "values" => ["cache"]},%{"operator" => "NotIn", "key" => "environment", "values" => ["dev"]}]}
+      iex> selector = %{
+      ...>   "matchLabels" => %{"component" => "redis"},
+      ...>   "matchExpressions" => [
+      ...>     %{"operator" => "In", "key" => "tier", "values" => ["cache"]},
+      ...>     %{"operator" => "NotIn", "key" => "environment", "values" => ["dev"]}
+      ...>   ]
+      ...> }
+      ...> K8s.Selector.parse(selector)
+      %K8s.Selector{match_labels: %{"component" => "redis"}, match_expressions: [%{"operator" => "In", "key" => "tier", "values" => ["cache"]},%{"operator" => "NotIn", "key" => "environment", "values" => ["dev"]}]}
   """
   @spec parse(map) :: t
   def parse(%{"spec" => %{"selector" => selector}}), do: parse(selector)
@@ -376,23 +467,29 @@ defmodule K8s.Selector do
 
   def parse(_), do: %__MODULE__{}
 
+  @deprecated "Use serialize_match/1"
+  defdelegate serialize_match_labels(labels), to: __MODULE__, as: :serialize_match
+
   @doc """
-  Returns a `labelSelector` query string value for a set of label matches.
+  Returns a `fieldSelector` query string value for a set of field selectors.
 
   ## Examples
-    Builds a query string for a single label (`kubectl get pods -l environment=production`):
+    Builds a query string for a single field (`kubectl get pods --field-selector status.phase=Running`):
 
-      iex> K8s.Selector.serialize_match_labels(%{"environment" => "prod"})
-      ["environment=prod"]
+      iex> K8s.Selector.serialize_match(%{"status.phase" => {"=", "Running"}})
+      ["status.phase=Running"]
 
-    Builds a query string for multiple labels (`kubectl get pods -l environment=production,tier=frontend`):
+    Builds a query string for multiple fields (`kubectl get pods --field-selector status.phase=Running,metadata.namespace!=default`):
 
-      iex> K8s.Selector.serialize_match_labels(%{"environment" => "prod", "tier" => "frontend"})
-      ["environment=prod", "tier=frontend"]
+      iex> K8s.Selector.serialize_match(%{"metadata.namespace" => {"!=", "default"}, "status.phase" => {"=", "Running"}})
+      ["metadata.namespace!=default", "status.phase=Running"]
   """
-  @spec serialize_match_labels(map()) :: list(binary())
-  def serialize_match_labels(%{} = labels) do
-    Enum.map(labels, fn {k, v} -> "#{k}=#{v}" end)
+  @spec serialize_match(map()) :: list(binary())
+  def serialize_match(%{} = fields) do
+    Enum.map(fields, fn
+      {k, {op, v}} -> "#{k}#{op}#{v}"
+      {k, v} -> "#{k}=#{v}"
+    end)
   end
 
   @doc """
@@ -461,4 +558,48 @@ defmodule K8s.Selector do
   defp serialize_match_expression(%{"operator" => "Exists", "key" => key}), do: key
 
   defp serialize_match_expression(%{"operator" => "DoesNotExist", "key" => key}), do: "!#{key}"
+
+  @spec aggregate_selectors(t(), atom(), {binary(), binary()} | map(), binary()) :: t()
+  defp aggregate_selectors(selector, key, fields, op) do
+    for field <- fields, reduce: selector do
+      acc -> do_add_selector(acc, key, field, op)
+    end
+  end
+
+  @spec do_add_selector(K8s.Operation.t(), atom(), {binary(), binary()} | map(), binary()) ::
+          K8s.Operation.t()
+  defp do_add_selector(%K8s.Operation{} = operation, key, fields, op) do
+    selector =
+      operation
+      |> Operation.get_selector()
+      |> do_add_selector(key, fields, op)
+
+    Operation.put_selector(operation, selector)
+  end
+
+  @spec do_add_selector(t(), atom(), map(), binary()) :: t()
+  defp do_add_selector(%__MODULE__{} = selector, key, fields, op) when is_map(fields) do
+    aggregate_selectors(selector, key, fields, op)
+  end
+
+  @spec do_add_selector(t(), atom(), {binary(), binary()}, binary()) :: t()
+  defp do_add_selector(%__MODULE__{} = selector, key, {k, v}, op) do
+    current = Map.fetch!(selector, key)
+    %{selector | key => Map.put(current, k, {op, v})}
+  end
+
+  @spec do_add_match_expression(K8s.Operation.t(), map()) :: K8s.Operation.t()
+  defp do_add_match_expression(%K8s.Operation{} = operation, expression) do
+    selector =
+      operation
+      |> Operation.get_selector()
+      |> do_add_match_expression(expression)
+
+    Operation.put_selector(operation, selector)
+  end
+
+  @spec do_add_match_expression(t(), map()) :: t()
+  defp do_add_match_expression(selector, expression) do
+    %{selector | match_expressions: [expression | selector.match_expressions]}
+  end
 end

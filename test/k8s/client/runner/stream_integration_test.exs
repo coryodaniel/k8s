@@ -27,7 +27,7 @@ defmodule K8s.Client.Runner.StreamIntegrationTest do
 
     selector = K8s.Selector.label(labels)
     operation = K8s.Client.list("v1", "Pod", namespace: "default")
-    operation = K8s.Operation.put_label_selector(operation, selector)
+    operation = K8s.Operation.put_selector(operation, selector)
     assert {:ok, stream} = K8s.Client.Runner.Stream.run(conn, operation)
 
     resources =

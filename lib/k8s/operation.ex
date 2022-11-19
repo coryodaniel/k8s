@@ -6,7 +6,7 @@ defmodule K8s.Operation do
   @derive {Jason.Encoder, except: [:path_params]}
 
   @allow_http_body [:put, :patch, :post]
-  @label_selector :labelSelector
+  @selector :labelSelector
   @verb_map %{
     list_all_namespaces: :get,
     list: :get,
@@ -195,40 +195,48 @@ defmodule K8s.Operation do
           {:ok, String.t()} | {:error, Error.t()}
   def to_path(%Operation{} = operation), do: Operation.Path.build(operation)
 
+  @deprecated "Use put_selector/2"
+  @spec put_label_selector(Operation.t(), Selector.t()) :: Operation.t()
+  defdelegate put_label_selector(op, selector), to: __MODULE__, as: :put_selector
+
   @doc """
   Puts a `K8s.Selector` on the operation.
 
   ## Examples
       iex> operation = %K8s.Operation{}
       ...> selector = K8s.Selector.label({"component", "redis"})
-      ...> K8s.Operation.put_label_selector(operation, selector)
+      ...> K8s.Operation.put_selector(operation, selector)
       %K8s.Operation{
         query_params: [
           labelSelector: %K8s.Selector{
             match_expressions: [],
-            match_labels: %{"component" => "redis"}
+            match_labels: %{"component" => {"=", "redis"}}
           }
         ]
       }
   """
-  @spec put_label_selector(Operation.t(), Selector.t()) :: Operation.t()
-  def put_label_selector(%Operation{} = op, %Selector{} = selector),
-    do: put_query_param(op, @label_selector, selector)
+  @spec put_selector(Operation.t(), Selector.t()) :: Operation.t()
+  def put_selector(%Operation{} = op, %Selector{} = selector),
+    do: put_query_param(op, @selector, selector)
+
+  @deprecated "Use get_selector/1"
+  @spec get_label_selector(K8s.Operation.t()) :: K8s.Selector.t()
+  defdelegate get_label_selector(operation), to: __MODULE__, as: :get_selector
 
   @doc """
   Gets a `K8s.Selector` on the operation.
 
   ## Examples
       iex> operation = %K8s.Operation{query_params: [labelSelector: K8s.Selector.label({"component", "redis"})]}
-      ...> K8s.Operation.get_label_selector(operation)
+      ...> K8s.Operation.get_selector(operation)
       %K8s.Selector{
         match_expressions: [],
-        match_labels: %{"component" => "redis"}
+        match_labels: %{"component" => {"=", "redis"}}
       }
   """
-  @spec get_label_selector(K8s.Operation.t()) :: K8s.Selector.t()
-  def get_label_selector(%Operation{query_params: params}),
-    do: Keyword.get(params, @label_selector, %K8s.Selector{})
+  @spec get_selector(K8s.Operation.t()) :: K8s.Selector.t()
+  def get_selector(%Operation{query_params: params}),
+    do: Keyword.get(params, @selector, %K8s.Selector{})
 
   @doc """
   Add a query param to an operation
