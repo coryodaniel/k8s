@@ -45,10 +45,10 @@ defmodule K8s.Selector do
       %K8s.Selector{
         match_labels: %{"component" => {"=", "redis"}, "foo" => {"!=", "bar"}},
         match_expressions: [
-          %{"key" => "tier", "operator" => "In", "values" => ["cache"]},
-          %{"key" => "environment", "operator" => "NotIn", "values" => ["dev"]},
+          %{"key" => "bar", "operator" => "DoesNotExist"},
           %{"key" => "foo", "operator" => "Exists"},
-          %{"key" => "bar", "operator" => "DoesNotExist"}
+          %{"key" => "environment", "operator" => "NotIn", "values" => ["dev"]},
+          %{"key" => "tier", "operator" => "In", "values" => ["cache"]}
         ]
       }
 
@@ -323,17 +323,18 @@ defmodule K8s.Selector do
       %K8s.Selector{match_expressions: [%{"key" => "component", "operator" => "In", "values" => ["redis"]}]}
   """
   @spec label_in({binary, binary | list(binary())}) :: t()
-  def label_in({key, values}) when is_binary(values), do: label_in({key, [values]})
-
-  def label_in({key, values}),
-    do: %K8s.Selector{
-      match_expressions: [%{"operator" => "In", "values" => values, "key" => key}]
-    }
+  def label_in(expr),
+    do: label_in(%K8s.Selector{}, expr)
 
   @spec label_in(selector_or_operation_t, {binary, binary | list(binary())}) ::
           selector_or_operation_t()
-  def label_in(%{} = selector_or_operation, label),
-    do: merge(selector_or_operation, label_in(label), :label)
+  def label_in(%{} = selector_or_operation, {key, values}) do
+    do_add_match_expression(selector_or_operation, %{
+      "operator" => "In",
+      "values" => List.wrap(values),
+      "key" => key
+    })
+  end
 
   @doc """
   `NotIn` expression helper that creates a composable `K8s.Selector`.
@@ -343,17 +344,18 @@ defmodule K8s.Selector do
       %K8s.Selector{match_expressions: [%{"key" => "component", "operator" => "NotIn", "values" => ["redis"]}]}
   """
   @spec label_not_in({binary, binary | list(binary())}) :: t()
-  def label_not_in({key, values}) when is_binary(values), do: label_not_in({key, [values]})
-
-  def label_not_in({key, values}),
-    do: %K8s.Selector{
-      match_expressions: [%{"operator" => "NotIn", "values" => values, "key" => key}]
-    }
+  def label_not_in(expr),
+    do: label_not_in(%K8s.Selector{}, expr)
 
   @spec label_not_in(selector_or_operation_t, {binary, binary | list(binary())}) ::
           selector_or_operation_t()
-  def label_not_in(%{} = selector_or_operation, label),
-    do: merge(selector_or_operation, label_not_in(label), :label)
+  def label_not_in(%{} = selector_or_operation, {key, values}) do
+    do_add_match_expression(selector_or_operation, %{
+      "operator" => "NotIn",
+      "values" => List.wrap(values),
+      "key" => key
+    })
+  end
 
   @doc """
   `Exists` expression helper that creates a composable `K8s.Selector`.
@@ -364,11 +366,12 @@ defmodule K8s.Selector do
   """
   @spec label_exists(binary) :: t()
   def label_exists(key),
-    do: %K8s.Selector{match_expressions: [%{"operator" => "Exists", "key" => key}]}
+    do: label_exists(%K8s.Selector{}, key)
 
   @spec label_exists(selector_or_operation_t, binary) :: selector_or_operation_t()
-  def label_exists(%{} = selector_or_operation, key),
-    do: merge(selector_or_operation, label_exists(key), :label)
+  def label_exists(%{} = selector_or_operation, key) do
+    do_add_match_expression(selector_or_operation, %{"operator" => "Exists", "key" => key})
+  end
 
   @doc """
   `DoesNotExist` expression helper that creates a composable `K8s.Selector`.
@@ -379,29 +382,11 @@ defmodule K8s.Selector do
   """
   @spec label_does_not_exist(binary) :: t()
   def label_does_not_exist(key),
-    do: %K8s.Selector{match_expressions: [%{"operator" => "DoesNotExist", "key" => key}]}
+    do: label_does_not_exist(%K8s.Selector{}, key)
 
   @spec label_does_not_exist(selector_or_operation_t, binary) :: selector_or_operation_t()
-  def label_does_not_exist(%{} = selector_or_operation, key),
-    do: merge(selector_or_operation, label_does_not_exist(key), :label)
-
-  @spec merge(selector_or_operation_t, t, atom) :: selector_or_operation_t
-  defp merge(%Operation{} = op, %__MODULE__{} = next, :label) do
-    prev = Operation.get_selector(op)
-    merged_selector = merge(prev, next, :label)
-    Operation.put_selector(op, merged_selector)
-  end
-
-  defp merge(%__MODULE__{} = prev, %__MODULE__{} = next, _) do
-    labels = Map.merge(prev.match_labels, next.match_labels)
-    fields = Map.merge(prev.match_fields, next.match_fields)
-
-    expressions =
-      prev.match_expressions
-      |> Enum.concat(next.match_expressions)
-      |> Enum.uniq()
-
-    %__MODULE__{match_labels: labels, match_expressions: expressions, match_fields: fields}
+  def label_does_not_exist(%{} = selector_or_operation, key) do
+    do_add_match_expression(selector_or_operation, %{"operator" => "DoesNotExist", "key" => key})
   end
 
   @doc """
@@ -601,5 +586,20 @@ defmodule K8s.Selector do
   defp do_add_selector(%__MODULE__{} = selector, key, {k, v}, op) do
     current = Map.fetch!(selector, key)
     %{selector | key => Map.put(current, k, {op, v})}
+  end
+
+  @spec do_add_match_expression(K8s.Operation.t(), map()) :: K8s.Operation.t()
+  defp do_add_match_expression(%K8s.Operation{} = operation, expression) do
+    selector =
+      operation
+      |> Operation.get_selector()
+      |> do_add_match_expression(expression)
+
+    Operation.put_selector(operation, selector)
+  end
+
+  @spec do_add_match_expression(t(), map()) :: t()
+  defp do_add_match_expression(selector, expression) do
+    %{selector | match_expressions: [expression | selector.match_expressions]}
   end
 end
