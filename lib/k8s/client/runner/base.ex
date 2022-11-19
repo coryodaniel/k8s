@@ -123,12 +123,11 @@ defmodule K8s.Client.Runner.Base do
 
   @spec build_query_params(Operation.t()) :: keyword()
   defp build_query_params(%Operation{} = operation) do
-    label_selector = Operation.get_label_selector(operation)
-    field_selector = Operation.get_field_selector(operation)
+    selector = Operation.get_selector(operation)
 
     Keyword.merge(operation.query_params,
-      labelSelector: K8s.Selector.labels_to_s(label_selector),
-      fieldSelector: K8s.Selector.fields_to_s(field_selector)
+      labelSelector: K8s.Selector.labels_to_s(selector),
+      fieldSelector: K8s.Selector.fields_to_s(selector)
     )
   end
 end

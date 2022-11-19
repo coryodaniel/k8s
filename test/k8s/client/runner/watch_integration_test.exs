@@ -32,7 +32,7 @@ defmodule K8s.Client.Runner.WatchIntegrationTest do
   test "watches an operation", %{conn: conn, labels: labels, test_id: test_id} do
     selector = K8s.Selector.label(labels)
     operation = K8s.Client.list("v1", "Pod", namespace: "default")
-    operation = K8s.Operation.put_label_selector(operation, selector)
+    operation = K8s.Operation.put_selector(operation, selector)
 
     this = self()
     {:ok, _reference} = K8s.Client.Runner.Watch.run(conn, operation, "0", stream_to: this)
@@ -93,7 +93,7 @@ defmodule K8s.Client.Runner.WatchIntegrationTest do
     } do
       selector = K8s.Selector.label(labels)
       operation = K8s.Client.list("v1", "ConfigMap", namespace: "default")
-      operation = K8s.Operation.put_label_selector(operation, selector)
+      operation = K8s.Operation.put_selector(operation, selector)
       {:ok, event_stream} = K8s.Client.Runner.Watch.stream(conn, operation)
 
       Task.start(fn -> event_stream |> handle_stream.() |> Stream.run() end)
@@ -137,7 +137,7 @@ defmodule K8s.Client.Runner.WatchIntegrationTest do
     } do
       selector = K8s.Selector.label(labels)
       operation = K8s.Client.get("v1", "ConfigMap", namespace: "default", name: resource_name)
-      operation = K8s.Operation.put_label_selector(operation, selector)
+      operation = K8s.Operation.put_selector(operation, selector)
       {:ok, event_stream} = K8s.Client.Runner.Watch.stream(conn, operation)
 
       Task.start(fn -> event_stream |> handle_stream.() |> Stream.run() end)
@@ -181,7 +181,7 @@ defmodule K8s.Client.Runner.WatchIntegrationTest do
     } do
       selector = K8s.Selector.label(labels)
       operation = K8s.Client.list("v1", "ConfigMap", namespace: "default")
-      operation = K8s.Operation.put_label_selector(operation, selector)
+      operation = K8s.Operation.put_selector(operation, selector)
       {:ok, event_stream} = K8s.Client.Runner.Watch.stream(conn, operation)
 
       Task.start(fn -> event_stream |> handle_stream.() |> Stream.run() end)
