@@ -91,7 +91,6 @@ defmodule K8s.Client.Runner.Base do
   """
   @spec run(Conn.t(), Operation.t(), keyword()) :: result_t
   def run(%Conn{} = conn, %Operation{verb: :connect} = operation, websocket_driver_opts) do
-    Process.flag(:trap_exit, true)
     body = operation.data
     all_options = Keyword.merge(websocket_driver_opts, operation.query_params)
 

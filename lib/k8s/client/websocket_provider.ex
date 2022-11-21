@@ -2,8 +2,12 @@ defmodule K8s.Client.WebSocketProvider do
   @moduledoc """
   Websocket client for k8s API.
   """
+
   require Logger
   use WebSockex
+
+  defstruct [:monitor_ref, :stream_to]
+  @dialyzer {:nowarn_function, handle_info: 2}
 
   @doc """
   Make a connection to the K8s API and upgrade to a websocket. This is useful for streaming resources like /exec, /logs, /attach  
@@ -39,7 +43,20 @@ defmodule K8s.Client.WebSocketProvider do
         extra_headers: headers
       )
 
-    WebSockex.start_link(conn, __MODULE__, opts, async: true)
+    state = %__MODULE__{stream_to: opts[:stream_to]}
+    WebSockex.start_link(conn, __MODULE__, state, async: true)
+  end
+
+  @spec handle_connect(conn :: WebSockex.Conn.t(), state :: term) :: {:ok, term}
+  def handle_connect(_conn, %{monitor_ref: nil, stream_to: stream_to} = state) do
+    ref = Process.monitor(stream_to)
+
+    {:ok, %{state | monitor_ref: ref}}
+  end
+
+  # In case of a disconnects handle_connect/2 will be called again
+  def handle_connect(_conn, state) do
+    {:ok, state}
   end
 
   @doc false
@@ -51,13 +68,12 @@ defmodule K8s.Client.WebSocketProvider do
   end
 
   # Websocket stdout handler. The frame starts with a <<1>> and is followed by a payload.
-  def handle_frame({type, <<1, msg::binary>>}, state) do
+  def handle_frame({type, <<1, msg::binary>>}, %{stream_to: stream_to} = state) do
     Logger.debug(
       "Pod Command Received STDOUT Message - Type: #{inspect(type)} -- Message: #{inspect(msg)}"
     )
 
-    from = Keyword.get(state, :stream_to)
-    send(from, {:ok, msg})
+    send(stream_to, {:ok, msg})
     {:ok, state}
   end
 
@@ -77,21 +93,36 @@ defmodule K8s.Client.WebSocketProvider do
   end
 
   # Websocket uknown command handler. This is a binary frame we are not familiar with.
-  def handle_frame({type, <<_eot::binary-size(1), msg::binary>>}, state) do
+  def handle_frame({type, <<_eot::binary-size(1), msg::binary>>}, %{stream_to: stream_to} = state) do
     Logger.error(
       "Exec Command - Received Unknown Message - Type: #{inspect(type)} -- Message: #{msg}"
     )
 
-    from = Keyword.get(state, :stream_to)
-    send(from, {:error, msg})
+    send(stream_to, {:error, msg})
     {:ok, state}
   end
 
   # Websocket disconnect handler. This frame is received when the web socket is disconnected.
   @spec handle_disconnect(any(), state :: term) :: {:ok, term}
-  def handle_disconnect(data, state) do
-    from = Keyword.get(state, :stream_to)
-    send(from, {:exit, data.reason})
+  def handle_disconnect(data, %{stream_to: stream_to} = state) do
+    send(stream_to, {:exit, data.reason})
     {:ok, state}
+  end
+
+  # Catch when the monitored process dies
+  # Invoked to handle all other non-WebSocket messages.
+  @spec handle_info(msg :: term, state :: term) ::
+          {:close, term}
+          | {:ok, term}
+          | {:close, {integer(), binary()}, term}
+          | {:reply,
+             :ping
+             | :pong
+             | {:binary, binary()}
+             | {:ping, nil | binary()}
+             | {:pong, nil | binary()}
+             | {:text, binary()}, term}
+  def handle_info({:DOWN, ref, :process, _, _}, %{monitor_ref: ref}) do
+    {:"$EXIT", {:stop, :normal}}
   end
 end
