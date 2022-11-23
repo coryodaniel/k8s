@@ -52,4 +52,10 @@ defmodule K8s do
   def default_cacertfile do
     Application.get_env(:k8s, :cacertfile, CAStore.file_path())
   end
+
+  @doc false
+  @spec websocket_provider() :: module()
+  def websocket_provider do
+    Application.get_env(:k8s, :websocket_provider, K8s.Client.WebSocketProvider)
+  end
 end

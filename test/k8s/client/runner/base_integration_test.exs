@@ -60,6 +60,24 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
       namespace_names = Enum.map(namespaces, fn ns -> get_in(ns, ["metadata", "name"]) end)
       assert Enum.member?(namespace_names, "default")
     end
+
+    @tag integration: true
+    test "running a command in a container", %{conn: conn} do
+      connect_op =
+        K8s.Client.connect("v1", "pods/exec", namespace: "default", name: "nginx-76d6c9b8c-sq56w")
+
+      operation =
+        K8s.Operation.put_query_param(connect_op,
+          command: ["/bin/sh", "-c", "date"],
+          stdin: true,
+          stdout: true,
+          stderr: true,
+          tty: true
+        )
+
+      assert {:ok, _websocket_pid} = K8s.Client.run(conn, operation, stream_to: self())
+      assert_receive {:ok, _message}, 5_000
+    end
   end
 
   describe "namespaced scoped resources" do
@@ -220,6 +238,45 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
               }} = K8s.Client.run(conn, operation)
 
       assert length(service_accounts) == 1
+    end
+
+    @tag integration: true
+    test "when the `:command` key is not provided should returns an error", %{conn: conn} do
+      connect_op =
+        K8s.Client.connect("v1", "pods/exec", namespace: "default", name: "nginx-BAF-sq56w")
+
+      operation =
+        K8s.Operation.put_query_param(connect_op,
+          kommand: ["/bin/sh", "-c", "date"],
+          stdin: true,
+          stdout: true,
+          stderr: true,
+          tty: true
+        )
+
+      assert {:error, msg} = K8s.Client.run(conn, operation, stream_to: self())
+      assert msg == ":command is required in params"
+    end
+
+    @tag integration: true
+    test "creating a operation without correct kind `pod/exec` should return an error", %{
+      conn: conn
+    } do
+      connect_op =
+        K8s.Client.connect("v1", "not-real", namespace: "default", name: "nginx-76d6c9b8c-sq56w")
+
+      operation =
+        K8s.Operation.put_query_param(connect_op,
+          command: ["/bin/sh", "-c", "date"],
+          stdin: true,
+          stdout: true,
+          stderr: true,
+          tty: true
+        )
+
+      assert {:error,
+              %K8s.Discovery.Error{message: "Unsupported Kubernetes resource: \"not-real\""}} =
+               K8s.Client.run(conn, operation, stream_to: self())
     end
   end
 end

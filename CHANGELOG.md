@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!--------------------- Don't add new entries after this line --------------------->
 
+## [1.2.0] - 2022-11-03
+
+### Added
+
+- `K8s.Client.connect/3` - Executes a [command in a Pod](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.22/#execaction-v1-core) [#190](https://github.com/coryodaniel/k8s/pull/190)
+
 ## [1.1.10] - 2022-10-30
 
 ### Fixed

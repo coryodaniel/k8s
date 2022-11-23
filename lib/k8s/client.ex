@@ -608,8 +608,31 @@ defmodule K8s.Client do
         path_params: [namespace: "staging"]
       }
   """
+
   @spec delete_all(binary(), binary() | atom(), namespace: binary()) :: Operation.t()
   def delete_all(api_version, kind, namespace: namespace) do
     Operation.build(:deletecollection, api_version, kind, namespace: namespace)
+  end
+
+  @doc """
+  Returns a `CONNECT` operation for a pods/exec resource by version, kind/resource type, name, and optionally namespace.
+
+  [K8s Docs](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.13/):
+
+  ## Examples
+    connect to the nginx deployment in the test namespace:
+      iex> K8s.Client.connect("apps/v1", "pods/exec", namespace: "test", name: "nginx")
+      %K8s.Operation{
+        method: :post,
+        verb: :connect,
+        api_version: "apps/v1",
+        name: "pods/exec",
+        path_params: [namespace: "test", name: "nginx"]
+      }
+
+  """
+  @spec connect(binary(), binary() | atom(), namespace: binary(), name: binary()) :: Operation.t()
+  def connect(api_version, kind, namespace: namespace, name: name) do
+    Operation.build(:connect, api_version, kind, namespace: namespace, name: name)
   end
 end
