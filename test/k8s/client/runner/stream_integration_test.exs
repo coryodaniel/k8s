@@ -41,4 +41,22 @@ defmodule K8s.Client.Runner.StreamIntegrationTest do
 
     assert resources == ["stream-nginx-#{test_id}-1", "stream-nginx-#{test_id}-2"]
   end
+
+  @tag integration: true
+  test "running a command in a container", %{conn: conn} do
+    connect_op =
+      K8s.Client.connect("v1", "pods/exec", namespace: "default", name: "nginx-76d6c9b8c-sq56w")
+
+    operation =
+      K8s.Operation.put_query_param(connect_op,
+        command: ["/bin/sh", "-c", "date"],
+        stdin: true,
+        stdout: true,
+        stderr: true,
+        tty: true
+      )
+
+    assert {:ok, stream} = K8s.Client.Runner.Stream.run(conn, operation)
+    assert Enum.take(stream, 1) != []
+  end
 end

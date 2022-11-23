@@ -4,12 +4,12 @@ defmodule K8s.Client.Runner.Stream do
   """
 
   alias K8s.Client.Runner.Base
-  alias K8s.Client.Runner.Stream.ListRequest
+  alias K8s.Client.Runner.Stream.{ListRequest, ConnectRequest}
   alias K8s.Conn
   alias K8s.Operation
   alias K8s.Operation.Error
 
-  @supported_operations [:list, :list_all_namespaces]
+  @supported_operations [:list, :list_all_namespaces, :connect]
 
   @typedoc "List of items and pagination request"
   @type state_t :: {list(), ListRequest.t()}
@@ -34,14 +34,33 @@ defmodule K8s.Client.Runner.Stream do
   end
 
   @doc """
+  Resturns an elxir stream of results.
+
+  ## `list` operations
+
   Returns an elixir stream of paginated list results.
 
   Elements in stream will be HTTP bodies, or error tuples.
 
   Encountering an HTTP error mid-stream will halt the stream.
+
+  ## `connect` operation
+
+  Hijacks the the inbox of the process enumerating the stream, to receive
+  messages from the websocket connection.
   """
   @spec stream(Conn.t(), Operation.t(), keyword | nil) :: Enumerable.t()
-  def stream(%Conn{} = conn, %Operation{} = op, http_opts \\ []) do
+  def stream(conn, op, opts \\ [])
+
+  def stream(%Conn{} = conn, %Operation{verb: :connect} = op, opts) do
+    Stream.resource(
+      fn -> ConnectRequest.init(conn, op, opts) end,
+      &ConnectRequest.next/1,
+      &ConnectRequest.close_stream/1
+    )
+  end
+
+  def stream(%Conn{} = conn, %Operation{} = op, http_opts) do
     request = %ListRequest{
       operation: op,
       conn: conn,

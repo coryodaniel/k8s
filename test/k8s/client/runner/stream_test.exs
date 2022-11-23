@@ -62,7 +62,51 @@ defmodule K8s.Client.Runner.StreamTest do
     {:ok, %{conn: conn}}
   end
 
-  describe "run/3" do
+  describe "run/3 :connect" do
+    test "stream single line", %{conn: conn} do
+      connect_op = K8s.Client.connect("v1", "pods/exec", namespace: "default", name: "nginx")
+
+      operation =
+        K8s.Operation.put_query_param(connect_op,
+          command: ["/bin/sh", "-c", "date"],
+          stdin: true,
+          stdout: true,
+          stderr: true,
+          tty: true
+        )
+
+      assert {:ok, stream} = Stream.run(conn, operation, stream_to: self())
+      assert Enum.take(stream, 1) == ["Fri Apr 17 23:55:24 UTC 2020\n"]
+    end
+
+    test "multiple lines", %{conn: conn} do
+      connect_op = K8s.Client.connect("v1", "pods/exec", namespace: "default", name: "nginx")
+
+      runner = fn _, _, opts ->
+        msg =
+          "total 2\r\ndrwxr-xr-x   2 root root 4096 Nov 14 00:00 bin\r\ndrwxr-xr-x   2 root root 4096 Sep  3 12:10 boot\r\n"
+
+        IO.inspect(opts[:stream_to])
+        Process.send_after(opts[:stream_to], {:ok, msg}, 1)
+        {:ok, self()}
+      end
+
+      operation =
+        K8s.Operation.put_query_param(connect_op,
+          command: ["/bin/sh", "-c", "ls -l"],
+          stdin: true,
+          stdout: true,
+          stderr: true,
+          tty: true
+        )
+
+      {:ok, stream} = Stream.run(conn, operation, run: runner)
+      assert ["total 2" | lines] = Enum.take(stream, 3)
+      assert length(lines) == 2
+    end
+  end
+
+  describe "run/3 :list" do
     test "when the initial request has no results", %{conn: conn} do
       operation = K8s.Client.list("v1", "Service", namespace: "stream-empty-test")
       assert {:ok, stream} = Stream.run(conn, operation)

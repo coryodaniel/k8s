@@ -26,6 +26,10 @@ defmodule K8s.Client.DynamicWebSocketProvider do
     GenServer.call(__MODULE__, {:request, opts})
   end
 
+  def stop(_pid, _reason \\ :normal) do
+    :ok
+  end
+
   @spec init(atom) :: {:ok, map()}
   def init(:ok) do
     {:ok, %{}}

@@ -47,6 +47,10 @@ defmodule K8s.Client.WebSocketProvider do
     WebSockex.start_link(conn, __MODULE__, state, async: true)
   end
 
+  def stop(pid, reason \\ :normal) do
+    GenServer.stop(pid, reason)
+  end
+
   @spec handle_connect(conn :: WebSockex.Conn.t(), state :: term) :: {:ok, term}
   def handle_connect(_conn, %{monitor_ref: nil, stream_to: stream_to} = state) do
     ref = Process.monitor(stream_to)
