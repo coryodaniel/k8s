@@ -86,7 +86,6 @@ defmodule K8s.Client.Runner.StreamTest do
         msg =
           "total 2\r\ndrwxr-xr-x   2 root root 4096 Nov 14 00:00 bin\r\ndrwxr-xr-x   2 root root 4096 Sep  3 12:10 boot\r\n"
 
-        IO.inspect(opts[:stream_to])
         Process.send_after(opts[:stream_to], {:ok, msg}, 1)
         {:ok, self()}
       end
