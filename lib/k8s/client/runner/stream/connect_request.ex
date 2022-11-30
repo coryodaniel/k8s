@@ -26,6 +26,7 @@ defmodule K8s.Client.Runner.Stream.ConnectRequest do
   Creates a `ConnectRequest` and spawns a process that will own and consume
   the ws connection.
   """
+  @spec init(K8s.Conn.t(), K8s.Operation.t(), Keyword.t()) :: t()
   def init(conn, op, http_opts \\ []) do
     parent = self()
     recv_ref = make_ref()
@@ -50,6 +51,7 @@ defmodule K8s.Client.Runner.Stream.ConnectRequest do
   * Any reason such as errors are passed as is `{:error, term()}`
   * Messages from the ws connection are sent to the parent as a `{:message, ref, msg}`
   """
+  @spec next(t()) :: {:halt, t()} | {[binary()], t()}
   def next(%__MODULE__{continue: :halt} = t) do
     {:halt, t}
   end
@@ -76,12 +78,15 @@ defmodule K8s.Client.Runner.Stream.ConnectRequest do
   @doc """
   Close the monitor and ws connection.
   """
+  @spec close_stream(t()) :: boolean()
   def close_stream(%__MODULE__{monitor_pid: pid, monitor_ref: m_ref, recv_ref: ref}) do
     send(pid, {:stop, ref})
 
     Process.demonitor(m_ref, [:flush])
   end
 
+  @spec init_stream(pid(), reference(), K8s.Conn.t(), K8s.Operation.t(), Keyword.t()) ::
+          no_return()
   defp init_stream(parent, recv_ref, conn, op, opts) do
     run = opts[:run] || (&Base.run/3)
     opts = Keyword.put(opts, :stream_to, self())
@@ -97,6 +102,7 @@ defmodule K8s.Client.Runner.Stream.ConnectRequest do
     end
   end
 
+  @spec recv(tuple(), reference(), tuple()) :: no_return()
   defp recv({parent, parent_ref} = p, recv_ref, {stream_pid, stream_ref} = s) do
     receive do
       {:ok, msg} ->

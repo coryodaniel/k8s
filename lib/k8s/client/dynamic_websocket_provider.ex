@@ -26,6 +26,7 @@ defmodule K8s.Client.DynamicWebSocketProvider do
     GenServer.call(__MODULE__, {:request, opts})
   end
 
+  @spec stop(pid(), term()) :: :ok
   def stop(_pid, _reason \\ :normal) do
     :ok
   end

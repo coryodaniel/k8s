@@ -47,6 +47,7 @@ defmodule K8s.Client.WebSocketProvider do
     WebSockex.start_link(conn, __MODULE__, state, async: true)
   end
 
+  @spec stop(pid(), term()) :: :ok
   def stop(pid, reason \\ :normal) do
     GenServer.stop(pid, reason)
   end

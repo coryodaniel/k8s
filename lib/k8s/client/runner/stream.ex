@@ -4,7 +4,7 @@ defmodule K8s.Client.Runner.Stream do
   """
 
   alias K8s.Client.Runner.Base
-  alias K8s.Client.Runner.Stream.{ListRequest, ConnectRequest}
+  alias K8s.Client.Runner.Stream.{ConnectRequest, ListRequest}
   alias K8s.Conn
   alias K8s.Operation
   alias K8s.Operation.Error
