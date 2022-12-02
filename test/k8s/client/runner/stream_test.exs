@@ -9,12 +9,11 @@ defmodule K8s.Client.Runner.StreamTest do
   defmodule HTTPMock do
     @base_url "https://localhost:6443"
     @namespaced_url @base_url <> "/api/v1/namespaces"
-    import K8s.Test.HTTPHelper
     import K8s.Test.IntegrationHelper
 
     def request(:get, @namespaced_url <> "/stream-empty-test/services", _body, _headers, _opts) do
       data = build_list([])
-      render(data, 200)
+      {:ok, data}
     end
 
     def request(:get, @namespaced_url <> "/stream-failure-test/services", _, _, opts) do
@@ -25,12 +24,10 @@ defmodule K8s.Client.Runner.StreamTest do
       case params do
         [limit: 10, continue: nil, labelSelector: "", fieldSelector: ""] ->
           data = build_list(page1_items, continue_token)
-          render(data, 200, [{"Content-Type", "application/json"}])
+          {:ok, data}
 
         [limit: 10, continue: "stream-failure-test", labelSelector: "", fieldSelector: ""] ->
-          render(%{"reason" => "NotFound", "message" => "next page not found"}, 404, [
-            {"Content-Type", "application/json"}
-          ])
+          {:error, %K8s.Client.APIError{reason: "NotFound", message: "next page not found"}}
       end
     end
 
@@ -52,7 +49,7 @@ defmodule K8s.Client.Runner.StreamTest do
             build_list(page3_items)
         end
 
-      render(body, 200)
+      {:ok, body}
     end
   end
 

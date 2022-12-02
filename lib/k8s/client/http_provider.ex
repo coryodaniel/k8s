@@ -21,57 +21,66 @@ defmodule K8s.Client.HTTPProvider do
     end)
   end
 
-  @doc """
-  Handle HTTPoison responses and errors
-
-  ## Examples
-
-  Parses successful JSON responses:
-
-      iex> body = ~s({"foo": "bar"})
-      ...> K8s.Client.HTTPProvider.handle_response({:ok, %HTTPoison.Response{status_code: 200, body: body}})
-      {:ok, %{"foo" => "bar"}}
-
-  Parses successful JSON responses:
-
-      iex> body = "line 1\\nline 2\\nline 3\\n"
-      ...> K8s.Client.HTTPProvider.handle_response({:ok, %HTTPoison.Response{status_code: 200, body: body, headers: [{"Content-Type", "text/plain"}]}})
-      {:ok, "line 1\\nline 2\\nline 3\\n"}
-
-  Handles unauthorized responses:
-
-      iex> K8s.Client.HTTPProvider.handle_response({:ok, %HTTPoison.Response{status_code: 401}})
-      {:error,  %HTTPoison.Response{body: nil, headers: [], request: nil, request_url: nil, status_code: 401}}
-
-  Handles not found responses:
-
-      iex> body = ~s({"kind":"Status","apiVersion":"v1","metadata":{},"status":"Failure","message":"namespaces not found","reason":"NotFound","details":{"name":"i-dont-exist","kind":"namespaces"},"code":404})
-      ...> headers = [{"Content-Type", "application/json"}]
-      ...> K8s.Client.HTTPProvider.handle_response({:ok, %HTTPoison.Response{status_code: 404, body: body, headers: headers}})
-      {:error, %K8s.Client.APIError{message: "namespaces not found", reason: "NotFound"}}
-
-  Handles admission hook responses:
-      iex> body = ~s({"apiVersion":"v1","code":400,"kind":"Status","message":"admission webhook","metadata" :{}, "status":"Failure"})
-      ...> headers = [{"Content-Type", "application/json"}]
-      ...> K8s.Client.HTTPProvider.handle_response({:ok, %HTTPoison.Response{status_code: 404, body: body, headers: headers}})
-      {:error, %K8s.Client.APIError{message: "admission webhook", reason: "Failure"}}
-
-  Passes through HTTPoison 4xx responses:
-
-      iex> K8s.Client.HTTPProvider.handle_response({:ok, %HTTPoison.Response{status_code: 410, body: "Gone"}})
-      {:error,  %HTTPoison.Response{body: "Gone", headers: [], request: nil, request_url: nil, status_code: 410}}
-
-  Passes through HTTPoison error responses:
-
-      iex> K8s.Client.HTTPProvider.handle_response({:error, %HTTPoison.Error{reason: "Foo"}})
-      {:error, %HTTPoison.Error{reason: "Foo"}}
-
-  """
   @impl true
-  def handle_response({:error, %HTTPoison.Error{} = err}), do: {:error, err}
-  def handle_response({:ok, %HTTPoison.AsyncResponse{id: ref}}), do: {:ok, ref}
+  def stream(method, url, body, headers, http_opts) do
+    Stream.resource(
+      fn ->
+        case request(method, url, body, headers, Keyword.put(http_opts, :stream_to, self())) do
+          {:ok, resp} -> %{resp: %HTTPoison.AsyncResponse{id: resp}}
+          {:error, error} -> {:error, error}
+        end
+      end,
+      fn
+        :halt ->
+          {:halt, nil}
 
-  def handle_response({:ok, resp}) do
+        {:error, error} ->
+          {[{:error, error}], :halt}
+
+        state ->
+          receive do
+            %HTTPoison.AsyncEnd{} ->
+              {:halt, nil}
+
+            %HTTPoison.AsyncHeaders{headers: headers} ->
+              HTTPoison.stream_next(state.resp)
+              {[{:headers, headers}], state}
+
+            %HTTPoison.AsyncStatus{code: status} ->
+              HTTPoison.stream_next(state.resp)
+              {[{:status, status}], state}
+
+            %HTTPoison.AsyncChunk{chunk: chunk} ->
+              HTTPoison.stream_next(state.resp)
+              {[{:data, chunk}], state}
+
+            %HTTPoison.Error{reason: {:closed, :timeout}} ->
+              HTTPoison.stream_next(state.resp)
+              {[{:error, {:closed, :timeout}}], state}
+
+            other ->
+              IO.inspect(other)
+
+              Logger.error(
+                "HTTPoison request received unexpected message.",
+                library: :k8s,
+                message: other
+              )
+
+              # ignore other messages and continue
+              {:halt, nil}
+          end
+      end,
+      fn _state -> :ok end
+    )
+  end
+
+  defp handle_response({:error, %HTTPoison.Error{} = err}),
+    do: {:error, K8s.Client.HTTPError.new(message: err.reason, adapter_specific_error: err)}
+
+  defp handle_response({:ok, %HTTPoison.AsyncResponse{id: ref}}), do: {:ok, ref}
+
+  defp handle_response({:ok, resp}) do
     case resp do
       %HTTPoison.Response{status_code: code, body: body, headers: headers}
       when code in 200..299 ->
@@ -85,29 +94,19 @@ defmodule K8s.Client.HTTPProvider do
   end
 
   @spec handle_error(HTTPoison.Response.t()) ::
-          {:error, K8s.Client.APIError.t() | HTTPoison.Response.t()}
-  defp handle_error(%HTTPoison.Response{status_code: _, body: body, headers: headers} = resp) do
+          {:error, K8s.Client.APIError.t() | K8s.Client.HTTPError.t()}
+  defp handle_error(%HTTPoison.Response{status_code: code, body: body, headers: headers} = resp) do
     case get_content_type(headers) do
       "application/json" = content_type ->
-        body |> decode(content_type) |> handle_kubernetes_error()
+        body |> decode(content_type) |> K8s.Client.APIError.from_kubernetes_error()
 
-      _http_error ->
-        {:error, resp}
+      _other ->
+        {:error,
+         K8s.Client.HTTPError.new(
+           message: "HTTP Error #{code}",
+           adapter_specific_error: resp
+         )}
     end
-  end
-
-  # Kubernetes specific errors are typically wrapped in a JSON body
-  # see: https://github.com/kubernetes/apimachinery/blob/master/pkg/api/errors/errors.go
-  # so one must differentiate between e.g ordinary 404s and kubernetes 404
-  @spec handle_kubernetes_error(map) :: {:error, K8s.Client.APIError.t()}
-  defp handle_kubernetes_error(%{"reason" => reason, "message" => message}) do
-    err = %K8s.Client.APIError{message: message, reason: reason}
-    {:error, err}
-  end
-
-  defp handle_kubernetes_error(%{"status" => "Failure", "message" => message}) do
-    err = %K8s.Client.APIError{message: message, reason: "Failure"}
-    {:error, err}
   end
 
   @doc """
@@ -137,7 +136,6 @@ defmodule K8s.Client.HTTPProvider do
       ...> K8s.Client.HTTPProvider.headers(:get, opts)
       [{"Accept", "application/json"}, {"Content-Type", "application/json"}, {"Authorization", "Basic AF"}]
   """
-  @impl true
   @deprecated "Use headers/1 instead"
   def headers(method, %RequestOptions{} = opts) do
     defaults = [{"Accept", "application/json"}, content_type_header(method)]

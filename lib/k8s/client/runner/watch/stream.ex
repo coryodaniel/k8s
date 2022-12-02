@@ -11,7 +11,6 @@ defmodule K8s.Client.Runner.Watch.Stream do
   @log_prefix "#{__MODULE__} - " |> String.replace_leading("Elixir.", "")
 
   @type t :: %__MODULE__{
-          resp: HTTPoison.AsyncResponse.t(),
           conn: K8s.Conn.t(),
           operation: K8s.Operation.t(),
           resource_version: binary(),
@@ -19,7 +18,7 @@ defmodule K8s.Client.Runner.Watch.Stream do
           remainder: binary()
         }
 
-  defstruct [:resp, :conn, :operation, :resource_version, :http_opts, remainder: ""]
+  defstruct [:conn, :operation, :resource_version, :http_opts, remainder: ""]
 
   @doc """
   Watches resources and returns an Elixir Stream of events emmitted by kubernetes.
@@ -30,142 +29,85 @@ defmodule K8s.Client.Runner.Watch.Stream do
       ...> op = K8s.Client.list("v1", "Namespace")
       ...> K8s.Client.Runner.Watch.Stream.resource(conn, op, []) |> Stream.map(&IO.inspect/1) |> Stream.run()
   """
-  @spec resource(K8s.Conn.t(), K8s.Operation.t(), keyword()) :: Enumerable.t() | {:error, any()}
+  @spec resource(K8s.Conn.t(), K8s.Operation.t(), keyword()) ::
+          Enumerable.t() | {:error, any()}
   def resource(conn, operation, http_opts) do
-    {:ok, resource_version} = Watch.get_resource_version(conn, operation)
+    http_opts =
+      http_opts
+      |> Keyword.put_new(:params, [])
+      |> put_in([:params, :allowWatchBookmarks], true)
+      |> put_in([:params, :watch], true)
+      |> Keyword.put(:async, :once)
 
-    Stream.resource(
+    do_resource(conn, operation, http_opts, nil)
+  end
+
+  defp do_resource(conn, operation, http_opts, nil) do
+    {:ok, resource_version} = Watch.get_resource_version(conn, operation)
+    do_resource(conn, operation, http_opts, resource_version)
+  end
+
+  defp do_resource(conn, operation, http_opts, resource_version) do
+    http_opts = put_in(http_opts, [:params, :resourceVersion], resource_version)
+
+    Base.stream(conn, operation, http_opts)
+    |> Stream.reject(&(elem(&1, 0) == :headers || &1 == {:status, 200}))
+    |> Stream.transform(
       fn ->
-        {:start,
-         %__MODULE__{
-           conn: conn,
-           operation: operation,
-           http_opts: http_opts,
-           resource_version: resource_version
-         }}
+        %__MODULE__{
+          conn: conn,
+          operation: operation,
+          http_opts: http_opts,
+          resource_version: resource_version
+        }
       end,
-      &next_fun/1,
+      &reduce/2,
+      fn
+        nil ->
+          {:halt, nil}
+
+        state ->
+          {do_resource(state.conn, state.operation, state.http_opts, state.resource_version),
+           state}
+      end,
       fn _state -> :ok end
     )
   end
 
-  @docp """
-  Producing the next elements in the stream.
-  * If the accumulator is {:recv, state}, receives and processes events from the HTTPoison process
-  * If the accumulator is {:start, state}, tries to make new HTTPoison watcher request (see below)
-  """
-  @spec next_fun({:recv, t()}) :: {[map()], {:recv | :start, t()}} | {:halt, nil}
-  defp next_fun({:recv, %__MODULE__{} = state}) do
-    receive do
-      %HTTPoison.AsyncEnd{} ->
-        Logger.debug(
-          @log_prefix <> "AsyncEnd received - tryin to restart watcher",
-          library: :k8s
-        )
+  defp reduce(_, :halt), do: {:halt, nil}
 
-        {[], {:start, state}}
+  defp reduce({:status, 410}, state) do
+    Logger.warn(
+      @log_prefix <> "410 Gone received from watcher - resetting the resource version",
+      library: :k8s
+    )
 
-      %HTTPoison.AsyncHeaders{} ->
-        HTTPoison.stream_next(state.resp)
-        {[], {:recv, state}}
-
-      %HTTPoison.AsyncStatus{code: 200} ->
-        HTTPoison.stream_next(state.resp)
-        {[], {:recv, state}}
-
-      %HTTPoison.AsyncStatus{code: 410} ->
-        Logger.warn(
-          @log_prefix <> "410 Gone received from watcher - resetting the resource version",
-          library: :k8s
-        )
-
-        new_state = struct!(state, resource_version: nil)
-        {[], {:recv, new_state}}
-
-      %HTTPoison.AsyncStatus{code: _} = error ->
-        Logger.warn(
-          @log_prefix <> "Erronous async status received from watcher - aborting the watch",
-          library: :k8s,
-          error: error
-        )
-
-        {:halt, nil}
-
-      %HTTPoison.AsyncChunk{chunk: chunk} ->
-        HTTPoison.stream_next(state.resp)
-
-        {chunk, state}
-        |> transform_to_lines()
-        |> transform_to_events()
-
-      %HTTPoison.Error{reason: {:closed, :timeout}} ->
-        Logger.debug(
-          @log_prefix <> "Watch request timed out - resuming the watch",
-          library: :k8s
-        )
-
-        {[], {:start, state}}
-
-      other ->
-        Logger.debug(
-          @log_prefix <> "Wacher received unexpected message.",
-          library: :k8s,
-          message: other
-        )
-
-        # ignore other messages and continue
-        {[], {:recv, state}}
-    end
+    new_state = struct!(state, resource_version: nil)
+    {[], new_state}
   end
 
-  @docp """
-  Tries to make new HTTPoison watcher request (self-healing)
-  """
-  @spec next_fun({:start, map()}) :: {[map()], {:recv, t()}} | {:halt, nil}
-  defp next_fun({:start, state}) do
-    %{conn: conn, operation: operation, http_opts: http_opts} = state
+  defp reduce({:status, status}, _state) do
+    Logger.warn(
+      @log_prefix <> "Erronous async status #{status} received from watcher - aborting the watch",
+      library: :k8s
+    )
 
-    #  get latest resource version if it is missing in the state
-    resource_version =
-      case Map.get(state, :resource_version) do
-        nil ->
-          {:ok, resource_version} = Watch.get_resource_version(conn, operation)
-          resource_version
+    {:halt, nil}
+  end
 
-        rv ->
-          rv
-      end
+  defp reduce({:data, chunk}, state) do
+    {chunk, state}
+    |> transform_to_lines()
+    |> transform_to_events()
+  end
 
-    #  prepare http_opts
-    http_opts =
-      http_opts
-      |> Keyword.put_new(:params, [])
-      |> put_in([:params, :resourceVersion], resource_version)
-      |> put_in([:params, :allowWatchBookmarks], true)
-      |> put_in([:params, :watch], true)
-      |> Keyword.put(:stream_to, self())
-      |> Keyword.put(:async, :once)
+  defp reduce({:error, {:closed, :timeout}}, state) do
+    Logger.debug(
+      @log_prefix <> "Watch request timed out - resuming the watch",
+      library: :k8s
+    )
 
-    #  start the watcher
-    case Base.run(conn, operation, http_opts) do
-      {:ok, ref} ->
-        new_state =
-          struct!(
-            state,
-            resp: %HTTPoison.AsyncResponse{id: ref},
-            resource_version: resource_version
-          )
-
-        {[], {:recv, new_state}}
-
-      error ->
-        Logger.error(
-          @log_prefix <> "Can't restart watcher - stopping watcher stream: #{inspect(error)}",
-          library: :k8s
-        )
-
-        {:halt, nil}
-    end
+    {do_resource(state.conn, state.operation, state.http_opts, state.resource_version), :halt}
   end
 
   @docp """
@@ -201,21 +143,18 @@ defmodule K8s.Client.Runner.Watch.Stream do
     lines
     #  decode errors handled below
     |> Enum.map(&Jason.decode/1)
-    |> Enum.reduce({[], {:recv, state}}, fn
-      _, {events, {:start, state}} ->
-        {events, {:start, state}}
-
-      {:error, error}, {events, acc} ->
+    |> Enum.reduce({[], state}, fn
+      {:error, error}, {events, state} ->
         Logger.error(
           @log_prefix <> "Could not decode JSON - chunk seems to be malformed",
           library: :k8s,
           error: error
         )
 
-        {events, acc}
+        {events, state}
 
       {:ok, %{"type" => "ERROR", "object" => %{"message" => message, "code" => 410} = object}},
-      {events, {_, state}} ->
+      {events, state} ->
         Logger.debug(
           @log_prefix <> "#{message} - resetting the resource version",
           library: :k8s,
@@ -223,9 +162,9 @@ defmodule K8s.Client.Runner.Watch.Stream do
         )
 
         new_state = struct!(state, resource_version: nil)
-        {events, {:recv, new_state}}
+        {events, new_state}
 
-      {:ok, %{"object" => %{"message" => message} = object}}, {events, {_, state}} ->
+      {:ok, %{"object" => %{"message" => message} = object}}, {events, state} ->
         Logger.error(
           @log_prefix <>
             "Erronous event received from watcher: #{message} - resetting the resource version",
@@ -234,27 +173,26 @@ defmodule K8s.Client.Runner.Watch.Stream do
         )
 
         new_state = struct!(state, resource_version: nil)
-        {events, {:recv, new_state}}
+        {events, new_state}
 
-      {:ok, %{"type" => "BOOKMARK", "object" => object}}, {events, {:recv, state}} ->
+      {:ok, %{"type" => "BOOKMARK", "object" => object}}, {events, state} ->
         Logger.debug(
           @log_prefix <> "Bookmark received",
           library: :k8s,
           object: object
         )
 
-        {events,
-         {:recv, %__MODULE__{state | resource_version: object["metadata"]["resourceVersion"]}}}
+        {events, %__MODULE__{state | resource_version: object["metadata"]["resourceVersion"]}}
 
       {:ok, %{"object" => %{"metadata" => %{"resourceVersion" => new_resource_version}}}},
-      {events, {:recv, %__MODULE__{resource_version: resource_version} = state}}
+      {events, %__MODULE__{resource_version: resource_version} = state}
       when new_resource_version == resource_version ->
-        {events, {:recv, state}}
+        {events, state}
 
-      {:ok, %{"object" => object} = new_event}, {events, {:recv, state}} ->
+      {:ok, %{"object" => object} = new_event}, {events, state} ->
         # new resource_version => append new event to the stream
         {events ++ [new_event],
-         {:recv, %__MODULE__{state | resource_version: object["metadata"]["resourceVersion"]}}}
+         struct!(state, resource_version: object["metadata"]["resourceVersion"])}
     end)
   end
 end

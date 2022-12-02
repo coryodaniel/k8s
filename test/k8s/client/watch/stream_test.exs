@@ -14,299 +14,367 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
     Mocks requests. Since each test waches different resources (namespace, service, pod,...), each request block
     in this module matches up with (i.e. handles) exactly one test.
     """
-    import K8s.Test.HTTPHelper
+    alias K8s.Test.HTTPHelper
 
-    def request(:get, "https://localhost:6443/api/v1/namespaces", _body, _headers, opts) do
-      case get_in(opts, [:params, :watch]) do
-        true ->
-          assert "10" == get_in(opts, [:params, :resourceVersion])
-          pid = Keyword.fetch!(opts, :stream_to)
+    def request(
+          :get,
+          "https://localhost:6443/api/v1/namespaces",
+          _body,
+          _headers,
+          _opts
+        ) do
+      {:ok, %{"metadata" => %{"resourceVersion" => "10"}}}
+    end
 
-          send_object(pid, %{
-            "type" => "ADDED",
-            "object" => %{
-              "apiVersion" => "v1",
-              "kind" => "Namespace",
-              "metadata" => %{"resourceVersion" => "11"}
-            }
-          })
+    def request(
+          :get,
+          "https://localhost:6443/api/v1/pods",
+          _body,
+          _headers,
+          _opts
+        ) do
+      {:ok, %{"metadata" => %{"resourceVersion" => "10"}}}
+    end
 
-          # Split object chunks
-          send_chunk(pid, "{\"object\":{\"apiVersion\":\"")
-          send_chunk(pid, "v1\",\"kind\":\"Name")
-          send_chunk(pid, "space\",\"metadata\":{\"resourceVer")
-          send_chunk(pid, "sion\":\"12\"}},\"type\":\"MODIFIED\"}")
-          send_chunk(pid, "\n")
+    def request(
+          :get,
+          "https://localhost:6443/apis/apps/v1/daemonsets",
+          _body,
+          _headers,
+          _opts
+        ) do
+      {:ok, %{"metadata" => %{"resourceVersion" => "10"}}}
+    end
 
-          # 2 objects in one junk - but first one is ignored because same resourceVersion as above:
-          send_chunk(pid, """
-          {\"object\":{\"apiVersion\":\"v1\",\"kind\":\"Namespace\",\"metadata\":{\"resourceVersion\":\"12\"}},\"type\":\"MODIFIED\"}
-          {\"object\":{\"apiVersion\":\"v1\",\"kind\":\"Namespace\",\"metadata\":{\"resourceVersion\":\"13\"}},\"type\":\"DELETED\"}
-          """)
+    def request(
+          :get,
+          "https://localhost:6443/apis/apps/v1/deployments",
+          _body,
+          _headers,
+          _opts
+        ) do
+      {:ok, %{"metadata" => %{"resourceVersion" => "10"}}}
+    end
 
-          {:ok, %HTTPoison.AsyncResponse{id: make_ref()}}
+    def request(
+          :get,
+          "https://localhost:6443/apis/apps/v1/statefulsets",
+          _body,
+          _headers,
+          _opts
+        ) do
+      {:ok, %{"metadata" => %{"resourceVersion" => "10"}}}
+    end
 
-        nil ->
-          render(%{"metadata" => %{"resourceVersion" => "10"}})
+    def request(
+          :get,
+          "https://localhost:6443/api/v1/services",
+          _body,
+          _headers,
+          _opts
+        ) do
+      {:ok, %{"metadata" => %{"resourceVersion" => "10"}}}
+    end
+
+    def request(
+          :get,
+          "https://localhost:6443/apis/apps/v1/replicasets",
+          _body,
+          _headers,
+          _opts
+        ) do
+      {:ok, %{"metadata" => %{"resourceVersion" => "10"}}}
+    end
+
+    def request(
+          :get,
+          "https://localhost:6443/api/v1/configmaps",
+          _body,
+          _headers,
+          _opts
+        ) do
+      {:ok, %{"metadata" => %{"resourceVersion" => "10"}}}
+    end
+
+    def stream(
+          :get,
+          "https://localhost:6443/api/v1/namespaces",
+          _body,
+          _headers,
+          opts
+        ) do
+      assert "10" == get_in(opts, [:params, :resourceVersion])
+
+      [
+        HTTPHelper.stream_object(%{
+          "type" => "ADDED",
+          "object" => %{
+            "apiVersion" => "v1",
+            "kind" => "Namespace",
+            "metadata" => %{"resourceVersion" => "11"}
+          }
+        }),
+
+        # Split object chunks
+        {:data, ~s({"object":{"apiVersion":")},
+        {:data, ~s(v1","kind":"Name)},
+        {:data, ~s(space","metadata":{"resourceVer)},
+        {:data, ~s(sion":"12"}},"type":"MODIFIED"})},
+        {:data, "\n"},
+        # 2 objects in one junk - but first one is ignored because same resourceVersion as above:
+        {:data,
+         """
+         {"object":{"apiVersion":"v1","kind":"Namespace","metadata":{"resourceVersion":"12"}},"type":"MODIFIED"}
+         {"object":{"apiVersion":"v1","kind":"Namespace","metadata":{"resourceVersion":"13"}},"type":"DELETED"}
+         """}
+      ]
+    end
+
+    def stream(
+          :get,
+          "https://localhost:6443/api/v1/pods",
+          _body,
+          _headers,
+          opts
+        ) do
+      case get_in(opts, [:params, :resourceVersion]) do
+        "10" ->
+          [
+            HTTPHelper.stream_object(%{
+              "type" => "ADDED",
+              "object" => %{
+                "apiVersion" => "v1",
+                "kind" => "Pod",
+                "metadata" => %{"resourceVersion" => "11"}
+              }
+            }),
+            {:status, 410}
+          ]
+
+        "11" ->
+          [
+            HTTPHelper.stream_object(%{
+              "type" => "DELETED",
+              "object" => %{
+                "apiVersion" => "v1",
+                "kind" => "Pod",
+                "metadata" => %{"resourceVersion" => "12"}
+              }
+            })
+          ]
       end
     end
 
-    def request(:get, "https://localhost:6443/api/v1/pods", _body, _headers, opts) do
-      case get_in(opts, [:params, :watch]) do
-        true ->
-          assert "10" == get_in(opts, [:params, :resourceVersion])
-          pid = Keyword.fetch!(opts, :stream_to)
-          send(pid, %HTTPoison.AsyncStatus{code: 410})
-          send(pid, %HTTPoison.AsyncEnd{})
+    def stream(
+          :get,
+          "https://localhost:6443/apis/apps/v1/daemonsets",
+          _body,
+          _headers,
+          opts
+        ) do
+      assert "10" == get_in(opts, [:params, :resourceVersion])
 
-          send_object(pid, %{
-            "type" => "ADDED",
-            "object" => %{
-              "apiVersion" => "v1",
-              "kind" => "Pod",
-              "metadata" => %{"resourceVersion" => "11"}
-            }
-          })
+      [
+        {:status, 500},
+        HTTPHelper.stream_object(%{
+          "type" => "ADDED",
+          "object" => %{
+            "apiVersion" => "v1",
+            "kind" => "DaemonSet",
+            "metadata" => %{"resourceVersion" => "11"}
+          }
+        })
+      ]
+    end
 
-          {:ok, %HTTPoison.AsyncResponse{id: make_ref()}}
+    def stream(
+          :get,
+          "https://localhost:6443/apis/apps/v1/deployments",
+          _body,
+          _headers,
+          opts
+        ) do
+      rv = get_in(opts, [:params, :resourceVersion])
+      assert rv in ["10", "11"]
 
-        nil ->
-          render(%{"metadata" => %{"resourceVersion" => "10"}})
+      case rv do
+        "10" ->
+          [
+            HTTPHelper.stream_object(%{
+              "type" => "ADDED",
+              "object" => %{
+                "apiVersion" => "apps/v1",
+                "kind" => "Deployment",
+                "metadata" => %{"resourceVersion" => "11"}
+              }
+            }),
+            {:error, {:closed, :timeout}}
+          ]
+
+        "11" ->
+          [
+            HTTPHelper.stream_object(%{
+              "type" => "DELETED",
+              "object" => %{
+                "apiVersion" => "apps/v1",
+                "kind" => "Deployment",
+                "metadata" => %{"resourceVersion" => "12"}
+              }
+            })
+          ]
       end
     end
 
-    def request(:get, "https://localhost:6443/apis/apps/v1/daemonsets", _body, _headers, opts) do
-      case get_in(opts, [:params, :watch]) do
-        true ->
-          assert "10" == get_in(opts, [:params, :resourceVersion])
-          pid = Keyword.fetch!(opts, :stream_to)
-          send(pid, %HTTPoison.AsyncStatus{code: 500})
+    def stream(
+          :get,
+          "https://localhost:6443/apis/apps/v1/statefulsets",
+          _body,
+          _headers,
+          opts
+        ) do
+      assert "10" == get_in(opts, [:params, :resourceVersion])
 
-          send_object(pid, %{
-            "type" => "ADDED",
-            "object" => %{
-              "apiVersion" => "apps/v1",
-              "kind" => "DaemonSet",
-              "metadata" => %{"resourceVersion" => "11"}
-            }
-          })
+      [
+        HTTPHelper.stream_object(%{
+          "type" => "ADDED",
+          "object" => %{
+            "apiVersion" => "apps/v1",
+            "kind" => "StatefulSet",
+            "metadata" => %{"resourceVersion" => "11"}
+          }
+        }),
+        {:data, "this-is-not-json\n"},
+        HTTPHelper.stream_object(%{
+          "type" => "DELETED",
+          "object" => %{
+            "apiVersion" => "apps/v1",
+            "kind" => "StatefulSet",
+            "metadata" => %{"resourceVersion" => "12"}
+          }
+        })
+      ]
+    end
 
-          {:ok, %HTTPoison.AsyncResponse{id: make_ref()}}
+    def stream(
+          :get,
+          "https://localhost:6443/apis/apps/v1/replicasets",
+          _body,
+          _headers,
+          opts
+        ) do
+      assert get_in(opts, [:params, :resourceVersion]) in ["10", "12"]
 
-        nil ->
-          render(%{"metadata" => %{"resourceVersion" => "10"}})
+      [
+        HTTPHelper.stream_object(%{
+          "type" => "ADDED",
+          "object" => %{
+            "apiVersion" => "apps/v1",
+            "kind" => "ReplicaSet",
+            "metadata" => %{"resourceVersion" => "11"}
+          }
+        }),
+        HTTPHelper.stream_object(%{
+          "type" => "ERROR",
+          "object" => %{
+            "message" => "Some error"
+          }
+        }),
+        HTTPHelper.stream_object(%{
+          "type" => "DELETED",
+          "object" => %{
+            "apiVersion" => "apps/v1",
+            "kind" => "ReplicaSet",
+            "metadata" => %{"resourceVersion" => "12"}
+          }
+        })
+      ]
+    end
+
+    def stream(
+          :get,
+          "https://localhost:6443/api/v1/services",
+          _body,
+          _headers,
+          opts
+        ) do
+      case get_in(opts, [:params, :resourceVersion]) do
+        "10" ->
+          [
+            {:status, 200},
+            HTTPHelper.stream_object(%{
+              "type" => "BOOKMARK",
+              "object" => %{
+                "apiVersion" => "v1",
+                "kind" => "Service",
+                "metadata" => %{"resourceVersion" => "11"}
+              }
+            })
+          ]
+
+        "11" ->
+          [
+            {:status, 200},
+            HTTPHelper.stream_object(%{
+              "type" => "ADDED",
+              "object" => %{
+                "apiVersion" => "v1",
+                "kind" => "Service",
+                "metadata" => %{"resourceVersion" => "12"}
+              }
+            })
+          ]
       end
     end
 
-    def request(:get, "https://localhost:6443/apis/apps/v1/deployments", _body, _headers, opts) do
-      case get_in(opts, [:params, :watch]) do
-        true ->
-          rv = get_in(opts, [:params, :resourceVersion])
-          assert rv in ["10", "11"]
-          pid = Keyword.fetch!(opts, :stream_to)
+    def stream(
+          :get,
+          "https://localhost:6443/api/v1/configmaps",
+          _body,
+          _headers,
+          opts
+        ) do
+      case get_in(opts, [:params, :resourceVersion]) do
+        "10" ->
+          [
+            {:status, 200},
+            HTTPHelper.stream_object(%{
+              "type" => "ADDED",
+              "object" => %{
+                "apiVersion" => "v1",
+                "kind" => "Pod",
+                "metadata" => %{"resourceVersion" => "11"}
+              }
+            }),
+            HTTPHelper.stream_object(%{
+              "type" => "ADDED",
+              "object" => %{
+                "apiVersion" => "v1",
+                "kind" => "Pod",
+                "metadata" => %{"resourceVersion" => "12"}
+              }
+            })
+          ]
 
-          case rv do
-            "10" ->
-              send_object(pid, %{
-                "type" => "ADDED",
-                "object" => %{
-                  "apiVersion" => "apps/v1",
-                  "kind" => "Deployment",
-                  "metadata" => %{"resourceVersion" => "11"}
-                }
-              })
-
-              send(pid, %HTTPoison.Error{reason: {:closed, :timeout}})
-
-            "11" ->
-              send_object(pid, %{
-                "type" => "DELETED",
-                "object" => %{
-                  "apiVersion" => "apps/v1",
-                  "kind" => "Deployment",
-                  "metadata" => %{"resourceVersion" => "12"}
-                }
-              })
-          end
-
-          {:ok, %HTTPoison.AsyncResponse{id: make_ref()}}
-
-        nil ->
-          render(%{"metadata" => %{"resourceVersion" => "10"}})
+        "12" ->
+          [
+            {:status, 200},
+            HTTPHelper.stream_object(%{
+              "type" => "ERROR",
+              "object" => %{
+                "apiVersion" => "v1",
+                "code" => 410,
+                "kind" => "Status",
+                "message" => "too old resource version: 11 (12)",
+                "metadata" => %{},
+                "reason" => "Expired",
+                "status" => "Failure"
+              }
+            })
+          ]
       end
     end
 
-    def request(:get, "https://localhost:6443/apis/apps/v1/statefulsets", _body, _headers, opts) do
-      case get_in(opts, [:params, :watch]) do
-        true ->
-          assert "10" == get_in(opts, [:params, :resourceVersion])
-          pid = Keyword.fetch!(opts, :stream_to)
-
-          send_object(pid, %{
-            "type" => "ADDED",
-            "object" => %{
-              "apiVersion" => "apps/v1",
-              "kind" => "StatefulSet",
-              "metadata" => %{"resourceVersion" => "11"}
-            }
-          })
-
-          send_chunk(pid, "this-is-not-json\n")
-
-          send_object(pid, %{
-            "type" => "DELETED",
-            "object" => %{
-              "apiVersion" => "apps/v1",
-              "kind" => "StatefulSet",
-              "metadata" => %{"resourceVersion" => "12"}
-            }
-          })
-
-          {:ok, %HTTPoison.AsyncResponse{id: make_ref()}}
-
-        nil ->
-          render(%{"metadata" => %{"resourceVersion" => "10"}})
-      end
-    end
-
-    def request(:get, "https://localhost:6443/apis/apps/v1/replicasets", _body, _headers, opts) do
-      case get_in(opts, [:params, :watch]) do
-        true ->
-          assert "10" == get_in(opts, [:params, :resourceVersion])
-          pid = Keyword.fetch!(opts, :stream_to)
-
-          send_object(pid, %{
-            "type" => "ADDED",
-            "object" => %{
-              "apiVersion" => "apps/v1",
-              "kind" => "ReplicaSet",
-              "metadata" => %{"resourceVersion" => "11"}
-            }
-          })
-
-          send_object(pid, %{
-            "type" => "ERROR",
-            "object" => %{
-              "message" => "Some error"
-            }
-          })
-
-          send(pid, %HTTPoison.AsyncEnd{})
-
-          send_object(pid, %{
-            "type" => "DELETED",
-            "object" => %{
-              "apiVersion" => "apps/v1",
-              "kind" => "ReplicaSet",
-              "metadata" => %{"resourceVersion" => "12"}
-            }
-          })
-
-          {:ok, %HTTPoison.AsyncResponse{id: make_ref()}}
-
-        nil ->
-          render(%{"metadata" => %{"resourceVersion" => "10"}})
-      end
-    end
-
-    def request(:get, "https://localhost:6443/api/v1/services", _body, _headers, opts) do
-      case get_in(opts, [:params, :watch]) do
-        true ->
-          case get_in(opts, [:params, :resourceVersion]) do
-            "10" ->
-              pid = Keyword.fetch!(opts, :stream_to)
-              send(pid, %HTTPoison.AsyncStatus{code: 200})
-
-              send_object(pid, %{
-                "type" => "BOOKMARK",
-                "object" => %{
-                  "apiVersion" => "v1",
-                  "kind" => "Service",
-                  "metadata" => %{"resourceVersion" => "11"}
-                }
-              })
-
-              send(pid, %HTTPoison.AsyncEnd{})
-
-              {:ok, %HTTPoison.AsyncResponse{id: make_ref()}}
-
-            "11" ->
-              pid = Keyword.fetch!(opts, :stream_to)
-              send(pid, %HTTPoison.AsyncStatus{code: 200})
-
-              send_object(pid, %{
-                "type" => "ADDED",
-                "object" => %{
-                  "apiVersion" => "v1",
-                  "kind" => "Service",
-                  "metadata" => %{"resourceVersion" => "12"}
-                }
-              })
-
-              {:ok, %HTTPoison.AsyncResponse{id: make_ref()}}
-          end
-
-        nil ->
-          render(%{"metadata" => %{"resourceVersion" => "10"}})
-      end
-    end
-
-    def request(:get, "https://localhost:6443/api/v1/configmaps", _body, _headers, opts) do
-      case get_in(opts, [:params, :watch]) do
-        true ->
-          pid = Keyword.fetch!(opts, :stream_to)
-
-          case get_in(opts, [:params, :resourceVersion]) do
-            "10" ->
-              send(pid, %HTTPoison.AsyncStatus{code: 200})
-
-              send_object(pid, %{
-                "type" => "ADDED",
-                "object" => %{
-                  "apiVersion" => "v1",
-                  "kind" => "Pod",
-                  "metadata" => %{"resourceVersion" => "11"}
-                }
-              })
-
-              send_object(pid, %{
-                "type" => "ADDED",
-                "object" => %{
-                  "apiVersion" => "v1",
-                  "kind" => "Pod",
-                  "metadata" => %{"resourceVersion" => "12"}
-                }
-              })
-
-              send(pid, %HTTPoison.AsyncEnd{})
-
-            "12" ->
-              send(pid, %HTTPoison.AsyncStatus{code: 200})
-
-              send_object(pid, %{
-                "type" => "ERROR",
-                "object" => %{
-                  "apiVersion" => "v1",
-                  "code" => 410,
-                  "kind" => "Status",
-                  "message" => "too old resource version: 11 (12)",
-                  "metadata" => %{},
-                  "reason" => "Expired",
-                  "status" => "Failure"
-                }
-              })
-
-              send(pid, %HTTPoison.AsyncEnd{})
-          end
-
-          {:ok, %HTTPoison.AsyncResponse{id: make_ref()}}
-
-        nil ->
-          render(%{"metadata" => %{"resourceVersion" => "10"}})
-      end
-    end
-
-    def request(_method, _url, _body, _headers, _opts) do
+    def stream(_method, _url, _body, _headers, _opts, _stream_to_pid) do
       Logger.error("Call to #{__MODULE__}.request/5 not handled: #{inspect(binding())}")
       {:error, %HTTPoison.Error{reason: "request not mocked"}}
     end
@@ -397,7 +465,7 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
         assert [] == events
       end
 
-      assert capture_log(test) =~ "Erronous async status received"
+      assert capture_log(test) =~ "Erronous async status 500 received"
     end
 
     @tag timeout: 1_000

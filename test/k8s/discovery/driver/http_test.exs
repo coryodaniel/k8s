@@ -5,10 +5,9 @@ defmodule K8s.Discovery.Driver.HTTPTest do
 
   defmodule HTTPMock do
     @base_url "https://localhost:6443"
-    import K8s.Test.HTTPHelper
 
     def request(:get, @base_url <> "/api", _, _, _) do
-      render(%{"versions" => ["v1"]})
+      {:ok, %{"versions" => ["v1"]}}
     end
 
     def request(:get, @base_url <> "/apis", _, _, _) do
@@ -21,7 +20,7 @@ defmodule K8s.Discovery.Driver.HTTPTest do
         }
       ]
 
-      render(%{"apiVersion" => "v1", "groups" => groups})
+      {:ok, %{"apiVersion" => "v1", "groups" => groups}}
     end
 
     def request(:get, @base_url <> "/apis/apps/v1", _, _, _) do
@@ -45,7 +44,7 @@ defmodule K8s.Discovery.Driver.HTTPTest do
         ]
       }
 
-      render(resource_list)
+      {:ok, resource_list}
     end
   end
 

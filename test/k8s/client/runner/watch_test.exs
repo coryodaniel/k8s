@@ -8,19 +8,18 @@ defmodule K8s.Client.Runner.WatchTest do
   defmodule HTTPMock do
     @base_url "https://localhost:6443"
     @namespaced_url @base_url <> "/api/v1/namespaces"
-    import K8s.Test.HTTPHelper
 
     def request(:get, @namespaced_url, _body, _headers, opts) do
       case opts[:stream_to] do
         nil ->
-          render(nil)
+          {:ok, nil}
 
         pid ->
           send(pid, %HTTPoison.AsyncStatus{code: 200})
           send(pid, %HTTPoison.AsyncHeaders{})
           send(pid, %HTTPoison.AsyncChunk{chunk: "Namespace Watcher"})
           send(pid, %HTTPoison.AsyncEnd{})
-          render(nil)
+          {:ok, nil}
       end
     end
 

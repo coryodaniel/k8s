@@ -115,13 +115,30 @@ defmodule K8s.Client.Runner.Base do
   end
 
   # Run an operation and pass `http_opts` to `K8s.Client.HTTPProvider`
+  @spec run(Conn.t(), Operation.t(), keyword()) :: result_t()
   def run(%Conn{} = conn, %Operation{} = operation, http_opts) do
-    body = operation.data
-
     with {:ok, url} <- K8s.Discovery.url_for(conn, operation),
-         req <- new_request(conn, url, operation, body, http_opts),
+         req <- new_request(conn, url, operation, operation.data, http_opts),
          {:ok, req} <- K8s.Middleware.run(req, conn.middleware.request) do
       conn.http_provider.request(req.method, req.url, req.body, req.headers, req.opts)
+    end
+  end
+
+  @doc """
+  Runs a `K8s.Operation` and streams chunks to `stream_to_pid`.
+  """
+  @spec stream(Conn.t(), Operation.t(), keyword()) :: Stream.t()
+  def stream(%Conn{} = conn, %Operation{} = operation, http_opts) do
+    with {:ok, url} <- K8s.Discovery.url_for(conn, operation),
+         req <- new_request(conn, url, operation, operation.data, http_opts),
+         {:ok, req} <- K8s.Middleware.run(req, conn.middleware.request) do
+      conn.http_provider.stream(
+        req.method,
+        req.url,
+        req.body,
+        req.headers,
+        req.opts
+      )
     end
   end
 
