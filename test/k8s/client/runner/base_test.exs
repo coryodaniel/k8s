@@ -76,7 +76,7 @@ defmodule K8s.Client.Runner.BaseTest do
           _headers,
           _opts
         ) do
-      render(nil)
+      {:ok, nil}
     end
   end
 

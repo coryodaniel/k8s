@@ -14,7 +14,7 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
     Mocks requests. Since each test waches different resources (namespace, service, pod,...), each request block
     in this module matches up with (i.e. handles) exactly one test.
     """
-    alias K8s.Test.HTTPHelper
+    alias K8s.Client.HTTPTestHelper
 
     def request(
           :get,
@@ -106,7 +106,7 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
       assert "10" == get_in(opts, [:params, :resourceVersion])
 
       [
-        HTTPHelper.stream_object(%{
+        HTTPTestHelper.stream_object(%{
           "type" => "ADDED",
           "object" => %{
             "apiVersion" => "v1",
@@ -140,7 +140,7 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
       case get_in(opts, [:params, :resourceVersion]) do
         "10" ->
           [
-            HTTPHelper.stream_object(%{
+            HTTPTestHelper.stream_object(%{
               "type" => "ADDED",
               "object" => %{
                 "apiVersion" => "v1",
@@ -153,7 +153,7 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
 
         "11" ->
           [
-            HTTPHelper.stream_object(%{
+            HTTPTestHelper.stream_object(%{
               "type" => "DELETED",
               "object" => %{
                 "apiVersion" => "v1",
@@ -176,7 +176,7 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
 
       [
         {:status, 500},
-        HTTPHelper.stream_object(%{
+        HTTPTestHelper.stream_object(%{
           "type" => "ADDED",
           "object" => %{
             "apiVersion" => "v1",
@@ -200,7 +200,7 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
       case rv do
         "10" ->
           [
-            HTTPHelper.stream_object(%{
+            HTTPTestHelper.stream_object(%{
               "type" => "ADDED",
               "object" => %{
                 "apiVersion" => "apps/v1",
@@ -213,7 +213,7 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
 
         "11" ->
           [
-            HTTPHelper.stream_object(%{
+            HTTPTestHelper.stream_object(%{
               "type" => "DELETED",
               "object" => %{
                 "apiVersion" => "apps/v1",
@@ -235,7 +235,7 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
       assert "10" == get_in(opts, [:params, :resourceVersion])
 
       [
-        HTTPHelper.stream_object(%{
+        HTTPTestHelper.stream_object(%{
           "type" => "ADDED",
           "object" => %{
             "apiVersion" => "apps/v1",
@@ -244,7 +244,7 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
           }
         }),
         {:data, "this-is-not-json\n"},
-        HTTPHelper.stream_object(%{
+        HTTPTestHelper.stream_object(%{
           "type" => "DELETED",
           "object" => %{
             "apiVersion" => "apps/v1",
@@ -265,7 +265,7 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
       assert get_in(opts, [:params, :resourceVersion]) in ["10", "12"]
 
       [
-        HTTPHelper.stream_object(%{
+        HTTPTestHelper.stream_object(%{
           "type" => "ADDED",
           "object" => %{
             "apiVersion" => "apps/v1",
@@ -273,13 +273,13 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
             "metadata" => %{"resourceVersion" => "11"}
           }
         }),
-        HTTPHelper.stream_object(%{
+        HTTPTestHelper.stream_object(%{
           "type" => "ERROR",
           "object" => %{
             "message" => "Some error"
           }
         }),
-        HTTPHelper.stream_object(%{
+        HTTPTestHelper.stream_object(%{
           "type" => "DELETED",
           "object" => %{
             "apiVersion" => "apps/v1",
@@ -301,7 +301,7 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
         "10" ->
           [
             {:status, 200},
-            HTTPHelper.stream_object(%{
+            HTTPTestHelper.stream_object(%{
               "type" => "BOOKMARK",
               "object" => %{
                 "apiVersion" => "v1",
@@ -314,7 +314,7 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
         "11" ->
           [
             {:status, 200},
-            HTTPHelper.stream_object(%{
+            HTTPTestHelper.stream_object(%{
               "type" => "ADDED",
               "object" => %{
                 "apiVersion" => "v1",
@@ -337,7 +337,7 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
         "10" ->
           [
             {:status, 200},
-            HTTPHelper.stream_object(%{
+            HTTPTestHelper.stream_object(%{
               "type" => "ADDED",
               "object" => %{
                 "apiVersion" => "v1",
@@ -345,7 +345,7 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
                 "metadata" => %{"resourceVersion" => "11"}
               }
             }),
-            HTTPHelper.stream_object(%{
+            HTTPTestHelper.stream_object(%{
               "type" => "ADDED",
               "object" => %{
                 "apiVersion" => "v1",
@@ -358,7 +358,7 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
         "12" ->
           [
             {:status, 200},
-            HTTPHelper.stream_object(%{
+            HTTPTestHelper.stream_object(%{
               "type" => "ERROR",
               "object" => %{
                 "apiVersion" => "v1",
