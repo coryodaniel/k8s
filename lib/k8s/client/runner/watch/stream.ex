@@ -51,7 +51,8 @@ defmodule K8s.Client.Runner.Watch.Stream do
     http_opts = put_in(http_opts, [:params, :resourceVersion], resource_version)
 
     Base.stream(conn, operation, http_opts)
-    |> Stream.reject(&(elem(&1, 0) == :headers || &1 == {:status, 200}))
+    |> Stream.reject(&(&1 == {:status, 200}))
+    |> Stream.filter(&(elem(&1, 0) in [:status, :data, :error]))
     |> Stream.transform(
       fn ->
         %__MODULE__{
@@ -110,15 +111,13 @@ defmodule K8s.Client.Runner.Watch.Stream do
     {do_resource(state.conn, state.operation, state.http_opts, state.resource_version), :halt}
   end
 
-  @docp """
-  Transforms chunks to lines iteratively.
+  # Transforms chunks to lines iteratively.
 
-  Code is taken from https://elixirforum.com/t/streaming-lines-from-an-enum-of-chunks/21244/3
+  # Code is taken from https://elixirforum.com/t/streaming-lines-from-an-enum-of-chunks/21244/3
 
-  * Append new chunk to the remainder inside state
-  * Split resulting string by newlines (there can be multiple newlines in the new chunk)
-  * pop the last element from the resulting list returns the remainder and the list of whole lines
-  """
+  # * Append new chunk to the remainder inside state
+  # * Split resulting string by newlines (there can be multiple newlines in the new chunk)
+  # * pop the last element from the resulting list returns the remainder and the list of whole lines
   @spec transform_to_lines({binary(), t()}) :: {[binary()], t()}
   defp transform_to_lines({chunk, state}) do
     {remainder, whole_lines} =
@@ -129,15 +128,12 @@ defmodule K8s.Client.Runner.Watch.Stream do
     {whole_lines, %{state | remainder: remainder}}
   end
 
-  @docp """
-  Transform lines to events
-
-  * decode JSON events
-  * Reduce lines into events and next state
-    * If the resource_version changes, append the event to the stream and update the state
-    * Otherwise, dont change anything
-    * send :start upon errors
-  """
+  # Transform lines to events
+  # * decode JSON events
+  # * Reduce lines into events and next state
+  #   * If the resource_version changes, append the event to the stream and update the state
+  #   * Otherwise, dont change anything
+  #   * send :start upon errors
   @spec transform_to_events({[binary()], t()}) :: {[map()], {:recv | :start, t()}}
   defp transform_to_events({lines, state}) do
     lines

@@ -9,7 +9,7 @@ defmodule K8s do
   @doc "Returns the default HTTP Provider"
   @spec default_http_provider() :: module()
   def default_http_provider do
-    Application.get_env(:k8s, :http_provider, K8s.Client.HTTPProvider)
+    Application.get_env(:k8s, :http_provider, K8s.Client.MintHTTPProvider)
   end
 
   @doc """
