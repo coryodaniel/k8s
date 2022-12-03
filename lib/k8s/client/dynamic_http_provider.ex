@@ -7,10 +7,6 @@ defmodule K8s.Client.DynamicHTTPProvider do
   use GenServer
   @behaviour K8s.Client.Provider
 
-  @impl true
-  @doc "See `K8s.Client.HTTPProvider.headers/1`"
-  defdelegate headers(request_options), to: K8s.Client.HTTPProvider
-
   @doc "Starts this provider."
   @spec start_link(any) :: GenServer.on_start()
   def start_link(_) do
