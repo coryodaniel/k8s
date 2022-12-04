@@ -1,9 +1,9 @@
 name: Elixir Compatibility Matrix
 on:
   push:
-    branches: [develop]
+    branches: [1.x]
   pull_request:
-    branches: [develop]
+    branches: [1.x]
 
 jobs:
   test:
