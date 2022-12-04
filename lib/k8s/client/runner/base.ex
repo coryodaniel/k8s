@@ -126,7 +126,7 @@ defmodule K8s.Client.Runner.Base do
   @doc """
   Runs a `K8s.Operation` and streams chunks to `stream_to_pid`.
   """
-  @spec stream(Conn.t(), Operation.t(), keyword()) :: Stream.t()
+  @spec stream(Conn.t(), Operation.t(), keyword()) :: K8s.Client.Provider.stream_response_t()
   def stream(%Conn{} = conn, %Operation{} = operation, http_opts) do
     with {:ok, url} <- K8s.Discovery.url_for(conn, operation),
          req <- new_request(conn, url, operation, operation.data, http_opts),

@@ -30,7 +30,7 @@ defmodule K8s.Client.Runner.Watch.Stream do
       ...> K8s.Client.Runner.Watch.Stream.resource(conn, op, []) |> Stream.map(&IO.inspect/1) |> Stream.run()
   """
   @spec resource(K8s.Conn.t(), K8s.Operation.t(), keyword()) ::
-          Enumerable.t() | {:error, any()}
+          K8s.Client.Provider.stream_response_t()
   def resource(conn, operation, http_opts) do
     http_opts =
       http_opts
@@ -43,36 +43,43 @@ defmodule K8s.Client.Runner.Watch.Stream do
   end
 
   defp do_resource(conn, operation, http_opts, nil) do
-    {:ok, resource_version} = Watch.get_resource_version(conn, operation)
-    do_resource(conn, operation, http_opts, resource_version)
+    with {:ok, resource_version} <- Watch.get_resource_version(conn, operation) do
+      do_resource(conn, operation, http_opts, resource_version)
+    end
   end
 
   defp do_resource(conn, operation, http_opts, resource_version) do
-    http_opts = put_in(http_opts, [:params, :resourceVersion], resource_version)
+    with http_opts <- put_in(http_opts, [:params, :resourceVersion], resource_version),
+         {:ok, stream} <- Base.stream(conn, operation, http_opts) do
+      stream =
+        stream
+        |> Stream.reject(&(&1 == {:status, 200}))
+        |> Stream.filter(&(elem(&1, 0) in [:status, :data, :error]))
+        |> Stream.transform(
+          fn ->
+            %__MODULE__{
+              conn: conn,
+              operation: operation,
+              http_opts: http_opts,
+              resource_version: resource_version
+            }
+          end,
+          &reduce/2,
+          fn
+            nil ->
+              {:halt, nil}
 
-    Base.stream(conn, operation, http_opts)
-    |> Stream.reject(&(&1 == {:status, 200}))
-    |> Stream.filter(&(elem(&1, 0) in [:status, :data, :error]))
-    |> Stream.transform(
-      fn ->
-        %__MODULE__{
-          conn: conn,
-          operation: operation,
-          http_opts: http_opts,
-          resource_version: resource_version
-        }
-      end,
-      &reduce/2,
-      fn
-        nil ->
-          {:halt, nil}
+            state ->
+              {:ok, stream} =
+                do_resource(state.conn, state.operation, state.http_opts, state.resource_version)
 
-        state ->
-          {do_resource(state.conn, state.operation, state.http_opts, state.resource_version),
-           state}
-      end,
-      fn _state -> :ok end
-    )
+              {stream, state}
+          end,
+          fn _state -> :ok end
+        )
+
+      {:ok, stream}
+    end
   end
 
   defp reduce(_, :halt), do: {:halt, nil}
@@ -108,7 +115,12 @@ defmodule K8s.Client.Runner.Watch.Stream do
       library: :k8s
     )
 
-    {do_resource(state.conn, state.operation, state.http_opts, state.resource_version), :halt}
+    {:ok, stream} =
+      do_resource(state.conn, state.operation, state.http_opts, state.resource_version)
+
+    dbg(stream)
+
+    {stream, :halt}
   end
 
   # Transforms chunks to lines iteratively.

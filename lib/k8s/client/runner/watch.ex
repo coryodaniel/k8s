@@ -104,7 +104,7 @@ defmodule K8s.Client.Runner.Watch do
   K8s.Client.Runner.Watch.stream(conn, op) |> Stream.map(&IO.inspect/1) |> Stream.run()
   ```
   """
-  @spec stream(Conn.t(), Operation.t(), keyword()) :: {:ok, Enumerable.t()} | {:error, Error.t()}
+  @spec stream(Conn.t(), Operation.t(), keyword()) :: K8s.Client.Provider.stream_response_t()
   def stream(conn, operation, http_opts \\ [])
 
   def stream(conn, %Operation{method: :get, verb: :get} = operation, http_opts) do
@@ -118,11 +118,11 @@ defmodule K8s.Client.Runner.Watch do
         &Keyword.merge(&1, field_selector_params)
       )
 
-    {:ok, Stream.resource(conn, list_op, http_opts)}
+    Stream.resource(conn, list_op, http_opts)
   end
 
   def stream(conn, %Operation{method: :get} = operation, http_opts) do
-    {:ok, Stream.resource(conn, operation, http_opts)}
+    Stream.resource(conn, operation, http_opts)
   end
 
   def stream(op, _, _) do

@@ -2,18 +2,26 @@ defmodule K8s.Client.Provider do
   @moduledoc "HTTP Request / Response provider behaviour"
   alias K8s.Conn.RequestOptions
 
+  @type headers :: [{header_name :: String.t(), header_value :: String.t()}]
+  @type response ::
+          {:data | binary}
+          | {:status, integer()}
+          | {:headers, headers()}
+          | {:error, K8s.Client.HTTPError.t()}
   @type success_t :: {:ok, list(map()) | map() | reference() | binary() | list(binary())}
+  @type stream_success_t :: {:ok, Enumerable.t(response())}
 
   @type error_t ::
           {:error, K8s.Client.APIError.t() | K8s.Client.HTTPError.t()}
 
   @type response_t :: success_t() | error_t()
+  @type stream_response_t :: stream_success_t() | error_t()
 
   @doc "Perform HTTP Requests"
   @callback request(atom, binary, binary, keyword, keyword) :: response_t()
 
   @doc "Perform HTTP Requests and stream response"
-  @callback stream(atom, binary, binary, keyword, keyword) :: Stream.t()
+  @callback stream(atom, binary, binary, keyword, keyword) :: stream_response_t()
 
   @doc """
   Generates HTTP headers from `K8s.Conn.RequestOptions`

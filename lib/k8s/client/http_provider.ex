@@ -22,6 +22,10 @@ defmodule K8s.Client.HTTPProvider do
 
   @impl true
   def stream(method, url, body, headers, http_opts) do
+    {:ok, create_stream(method, url, body, headers, http_opts)}
+  end
+
+  defp create_stream(method, url, body, headers, http_opts) do
     Stream.resource(
       fn ->
         case request(method, url, body, headers, Keyword.put(http_opts, :stream_to, self())) do
@@ -58,8 +62,6 @@ defmodule K8s.Client.HTTPProvider do
               {[{:error, {:closed, :timeout}}], state}
 
             other ->
-              IO.inspect(other)
-
               Logger.error(
                 "HTTPoison request received unexpected message.",
                 library: :k8s,
