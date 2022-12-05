@@ -8,19 +8,32 @@ defmodule K8s.Client.MintHTTPProvider do
 
   alias K8s.Client.HTTPError
 
+  @type t :: %__MODULE__{
+          conn: Mint.HTTP.t(),
+          request_ref: Mint.Types.request_ref() | nil
+        }
+
+  @typep request_response_t :: %{
+           status: integer(),
+           chunks: list(binary()),
+           headers: list()
+         }
+
   defstruct [:conn, :request_ref]
 
   @impl true
   def request(method, url, body, headers, http_opts) do
     with {:ok, stream} <- stream(method, url, body, headers, http_opts) do
-      Enum.reduce_while(stream, %{chunks: [], status: nil, headers: []}, fn
-        {:data, responses}, acc -> {:cont, Map.update!(acc, :chunks, &[responses | &1])}
-        {:status, code}, acc -> {:cont, Map.put(acc, :status, code)}
-        {:headers, headers}, acc -> {:cont, Map.update!(acc, :headers, &(&1 ++ headers))}
-        {:error, error}, _acc -> {:halt, {:error, error}}
-        _other, acc -> {:cont, acc}
-      end)
-      |> process_response()
+      response =
+        Enum.reduce_while(stream, %{chunks: [], status: nil, headers: []}, fn
+          {:data, responses}, acc -> {:cont, Map.update!(acc, :chunks, &[responses | &1])}
+          {:status, code}, acc -> {:cont, Map.put(acc, :status, code)}
+          {:headers, headers}, acc -> {:cont, Map.update!(acc, :headers, &(&1 ++ headers))}
+          {:error, error}, _acc -> {:halt, {:error, error}}
+          _other, acc -> {:cont, acc}
+        end)
+
+      process_response(response)
     end
   end
 
@@ -34,6 +47,7 @@ defmodule K8s.Client.MintHTTPProvider do
     end
   end
 
+  @spec connect(URI.t(), Keyword.t()) :: {:error, HTTPError.t()} | {:ok, Mint.HTTP.t()}
   defp connect(server, http_opts) do
     transport_opts = Keyword.fetch!(http_opts, :ssl)
 
@@ -53,6 +67,8 @@ defmodule K8s.Client.MintHTTPProvider do
     end
   end
 
+  @spec create_stream(Mint.HTTP.t(), atom(), URI.t(), binary(), list(), keyword()) ::
+          Enumerable.t(K8s.Client.Provider.stream_chunk_t())
   defp create_stream(conn, method, server, body, headers, http_opts) do
     method = String.upcase("#{method}")
     query = http_opts |> Keyword.get(:params, []) |> URI.encode_query()
@@ -66,6 +82,8 @@ defmodule K8s.Client.MintHTTPProvider do
     )
   end
 
+  @spec start_request(Mint.HTTP.t(), binary(), binary(), binary(), list()) ::
+          t() | {:error, t(), HTTPError.t()}
   defp start_request(conn, method, path, body, headers) do
     case Mint.HTTP.request(conn, method, path, headers, body) do
       {:ok, conn, request_ref} ->
@@ -78,18 +96,21 @@ defmodule K8s.Client.MintHTTPProvider do
     end
   end
 
+  @spec next_fun({:error, t(), HTTPError.t()}) :: {[HTTPError.t()], {:halt, t()}}
   defp next_fun({:error, state, error}), do: {[error], {:halt, state}}
 
+  @spec next_fun({:halt, t()}) :: {:halt, t()}
   defp next_fun({:halt, state}), do: {:halt, state}
 
+  @spec next_fun(t()) :: {[K8s.Client.Provider.stream_chunk_t()], t() | {:halt, t()}}
   defp next_fun(%{request_ref: request_ref} = state) do
     receive do
       message when Mint.HTTP.is_connection_message(state.conn, message) ->
         {:ok, conn, responses} = Mint.HTTP.stream(state.conn, message)
 
         case Enum.reverse(responses) do
-          [{:done, ^request_ref} | other_responses] ->
-            {Enum.map(other_responses, &map_responses/1), {:halt, state}}
+          [{:done, ^request_ref} | _] ->
+            {Enum.map(responses, &map_responses/1), {:halt, state}}
 
           _ ->
             {Enum.map(responses, &map_responses/1), struct!(state, conn: conn)}
@@ -100,11 +121,17 @@ defmodule K8s.Client.MintHTTPProvider do
     end
   end
 
+  @spec map_responses(
+          {atom(), Mint.Types.request_ref()}
+          | {atom(), Mint.Types.request_ref(), term()}
+        ) :: atom() | {atom(), term()}
   defp map_responses({type, _ref}), do: type
 
   defp map_responses({type, _ref, data}), do: {type, data}
 
-  defp process_response({:error, error}), do: K8s.Client.HTTPError.new(message: error)
+  @spec process_response(request_response_t() | {:error, Mint.Types.error()}) ::
+          HTTPError.t() | {:ok, binary()}
+  defp process_response({:error, error}), do: HTTPError.new(message: error)
 
   defp process_response(%{status: status} = response) when status in 400..599 do
     %{chunks: chunks, headers: headers, status: status_code} = response

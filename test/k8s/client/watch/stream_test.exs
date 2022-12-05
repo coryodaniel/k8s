@@ -105,7 +105,7 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
         ) do
       assert "10" == get_in(opts, [:params, :resourceVersion])
 
-      [
+      stream = [
         HTTPTestHelper.stream_object(%{
           "type" => "ADDED",
           "object" => %{
@@ -128,6 +128,8 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
          {"object":{"apiVersion":"v1","kind":"Namespace","metadata":{"resourceVersion":"13"}},"type":"DELETED"}
          """}
       ]
+
+      {:ok, stream}
     end
 
     def stream(
@@ -137,32 +139,35 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
           _headers,
           opts
         ) do
-      case get_in(opts, [:params, :resourceVersion]) do
-        "10" ->
-          [
-            HTTPTestHelper.stream_object(%{
-              "type" => "ADDED",
-              "object" => %{
-                "apiVersion" => "v1",
-                "kind" => "Pod",
-                "metadata" => %{"resourceVersion" => "11"}
-              }
-            }),
-            {:status, 410}
-          ]
+      stream =
+        case get_in(opts, [:params, :resourceVersion]) do
+          "10" ->
+            [
+              HTTPTestHelper.stream_object(%{
+                "type" => "ADDED",
+                "object" => %{
+                  "apiVersion" => "v1",
+                  "kind" => "Pod",
+                  "metadata" => %{"resourceVersion" => "11"}
+                }
+              }),
+              {:status, 410}
+            ]
 
-        "11" ->
-          [
-            HTTPTestHelper.stream_object(%{
-              "type" => "DELETED",
-              "object" => %{
-                "apiVersion" => "v1",
-                "kind" => "Pod",
-                "metadata" => %{"resourceVersion" => "12"}
-              }
-            })
-          ]
-      end
+          "11" ->
+            [
+              HTTPTestHelper.stream_object(%{
+                "type" => "DELETED",
+                "object" => %{
+                  "apiVersion" => "v1",
+                  "kind" => "Pod",
+                  "metadata" => %{"resourceVersion" => "12"}
+                }
+              })
+            ]
+        end
+
+      {:ok, stream}
     end
 
     def stream(
@@ -174,7 +179,7 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
         ) do
       assert "10" == get_in(opts, [:params, :resourceVersion])
 
-      [
+      stream = [
         {:status, 500},
         HTTPTestHelper.stream_object(%{
           "type" => "ADDED",
@@ -185,6 +190,8 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
           }
         })
       ]
+
+      {:ok, stream}
     end
 
     def stream(
@@ -197,32 +204,35 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
       rv = get_in(opts, [:params, :resourceVersion])
       assert rv in ["10", "11"]
 
-      case rv do
-        "10" ->
-          [
-            HTTPTestHelper.stream_object(%{
-              "type" => "ADDED",
-              "object" => %{
-                "apiVersion" => "apps/v1",
-                "kind" => "Deployment",
-                "metadata" => %{"resourceVersion" => "11"}
-              }
-            }),
-            {:error, {:closed, :timeout}}
-          ]
+      stream =
+        case rv do
+          "10" ->
+            [
+              HTTPTestHelper.stream_object(%{
+                "type" => "ADDED",
+                "object" => %{
+                  "apiVersion" => "apps/v1",
+                  "kind" => "Deployment",
+                  "metadata" => %{"resourceVersion" => "11"}
+                }
+              }),
+              {:error, {:closed, :timeout}}
+            ]
 
-        "11" ->
-          [
-            HTTPTestHelper.stream_object(%{
-              "type" => "DELETED",
-              "object" => %{
-                "apiVersion" => "apps/v1",
-                "kind" => "Deployment",
-                "metadata" => %{"resourceVersion" => "12"}
-              }
-            })
-          ]
-      end
+          "11" ->
+            [
+              HTTPTestHelper.stream_object(%{
+                "type" => "DELETED",
+                "object" => %{
+                  "apiVersion" => "apps/v1",
+                  "kind" => "Deployment",
+                  "metadata" => %{"resourceVersion" => "12"}
+                }
+              })
+            ]
+        end
+
+      {:ok, stream}
     end
 
     def stream(
@@ -234,7 +244,7 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
         ) do
       assert "10" == get_in(opts, [:params, :resourceVersion])
 
-      [
+      stream = [
         HTTPTestHelper.stream_object(%{
           "type" => "ADDED",
           "object" => %{
@@ -253,6 +263,8 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
           }
         })
       ]
+
+      {:ok, stream}
     end
 
     def stream(
@@ -264,7 +276,7 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
         ) do
       assert get_in(opts, [:params, :resourceVersion]) in ["10", "12"]
 
-      [
+      stream = [
         HTTPTestHelper.stream_object(%{
           "type" => "ADDED",
           "object" => %{
@@ -288,6 +300,8 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
           }
         })
       ]
+
+      {:ok, stream}
     end
 
     def stream(
@@ -297,33 +311,36 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
           _headers,
           opts
         ) do
-      case get_in(opts, [:params, :resourceVersion]) do
-        "10" ->
-          [
-            {:status, 200},
-            HTTPTestHelper.stream_object(%{
-              "type" => "BOOKMARK",
-              "object" => %{
-                "apiVersion" => "v1",
-                "kind" => "Service",
-                "metadata" => %{"resourceVersion" => "11"}
-              }
-            })
-          ]
+      stream =
+        case get_in(opts, [:params, :resourceVersion]) do
+          "10" ->
+            [
+              {:status, 200},
+              HTTPTestHelper.stream_object(%{
+                "type" => "BOOKMARK",
+                "object" => %{
+                  "apiVersion" => "v1",
+                  "kind" => "Service",
+                  "metadata" => %{"resourceVersion" => "11"}
+                }
+              })
+            ]
 
-        "11" ->
-          [
-            {:status, 200},
-            HTTPTestHelper.stream_object(%{
-              "type" => "ADDED",
-              "object" => %{
-                "apiVersion" => "v1",
-                "kind" => "Service",
-                "metadata" => %{"resourceVersion" => "12"}
-              }
-            })
-          ]
-      end
+          "11" ->
+            [
+              {:status, 200},
+              HTTPTestHelper.stream_object(%{
+                "type" => "ADDED",
+                "object" => %{
+                  "apiVersion" => "v1",
+                  "kind" => "Service",
+                  "metadata" => %{"resourceVersion" => "12"}
+                }
+              })
+            ]
+        end
+
+      {:ok, stream}
     end
 
     def stream(
@@ -333,50 +350,53 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
           _headers,
           opts
         ) do
-      case get_in(opts, [:params, :resourceVersion]) do
-        "10" ->
-          [
-            {:status, 200},
-            HTTPTestHelper.stream_object(%{
-              "type" => "ADDED",
-              "object" => %{
-                "apiVersion" => "v1",
-                "kind" => "Pod",
-                "metadata" => %{"resourceVersion" => "11"}
-              }
-            }),
-            HTTPTestHelper.stream_object(%{
-              "type" => "ADDED",
-              "object" => %{
-                "apiVersion" => "v1",
-                "kind" => "Pod",
-                "metadata" => %{"resourceVersion" => "12"}
-              }
-            })
-          ]
+      stream =
+        case get_in(opts, [:params, :resourceVersion]) do
+          "10" ->
+            [
+              {:status, 200},
+              HTTPTestHelper.stream_object(%{
+                "type" => "ADDED",
+                "object" => %{
+                  "apiVersion" => "v1",
+                  "kind" => "Pod",
+                  "metadata" => %{"resourceVersion" => "11"}
+                }
+              }),
+              HTTPTestHelper.stream_object(%{
+                "type" => "ADDED",
+                "object" => %{
+                  "apiVersion" => "v1",
+                  "kind" => "Pod",
+                  "metadata" => %{"resourceVersion" => "12"}
+                }
+              })
+            ]
 
-        "12" ->
-          [
-            {:status, 200},
-            HTTPTestHelper.stream_object(%{
-              "type" => "ERROR",
-              "object" => %{
-                "apiVersion" => "v1",
-                "code" => 410,
-                "kind" => "Status",
-                "message" => "too old resource version: 11 (12)",
-                "metadata" => %{},
-                "reason" => "Expired",
-                "status" => "Failure"
-              }
-            })
-          ]
-      end
+          "12" ->
+            [
+              {:status, 200},
+              HTTPTestHelper.stream_object(%{
+                "type" => "ERROR",
+                "object" => %{
+                  "apiVersion" => "v1",
+                  "code" => 410,
+                  "kind" => "Status",
+                  "message" => "too old resource version: 11 (12)",
+                  "metadata" => %{},
+                  "reason" => "Expired",
+                  "status" => "Failure"
+                }
+              })
+            ]
+        end
+
+      {:ok, stream}
     end
 
     def stream(_method, _url, _body, _headers, _opts, _stream_to_pid) do
       Logger.error("Call to #{__MODULE__}.request/5 not handled: #{inspect(binding())}")
-      {:error, %HTTPoison.Error{reason: "request not mocked"}}
+      {:error, %K8s.Client.HTTPError{message: "request not mocked"}}
     end
   end
 
@@ -391,8 +411,10 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
     test "Watches a list operation and returns the correct stream", %{conn: conn} do
       operation = K8s.Client.list("v1", "Namespace")
 
+      {:ok, stream} = MUT.resource(conn, operation, [])
+
       events =
-        MUT.resource(conn, operation, [])
+        stream
         |> Enum.take(3)
         |> Enum.to_list()
 
@@ -404,8 +426,10 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
       test = fn ->
         operation = K8s.Client.list("v1", "Pod")
 
+        {:ok, stream} = MUT.resource(conn, operation, [])
+
         events =
-          MUT.resource(conn, operation, [])
+          stream
           |> Stream.take(4)
           |> Enum.to_list()
 
@@ -421,8 +445,10 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
       test = fn ->
         operation = K8s.Client.list("v1", "ConfigMap")
 
+        {:ok, stream} = MUT.resource(conn, operation, [])
+
         events =
-          MUT.resource(conn, operation, [])
+          stream
           |> Stream.take(4)
           |> Enum.to_list()
 
@@ -441,8 +467,10 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
       test = fn ->
         operation = K8s.Client.list("v1", "Service")
 
+        {:ok, stream} = MUT.resource(conn, operation, [])
+
         events =
-          MUT.resource(conn, operation, [])
+          stream
           |> Stream.take(1)
           |> Enum.to_list()
 
@@ -458,9 +486,8 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
       test = fn ->
         operation = K8s.Client.list("apps/v1", "DaemonSet")
 
-        events =
-          MUT.resource(conn, operation, [])
-          |> Enum.to_list()
+        {:ok, stream} = MUT.resource(conn, operation, [])
+        events = Enum.to_list(stream)
 
         assert [] == events
       end
@@ -473,8 +500,10 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
       test = fn ->
         operation = K8s.Client.list("apps/v1", "Deployment")
 
+        {:ok, stream} = MUT.resource(conn, operation, [])
+
         [event1 | [event2 | _]] =
-          MUT.resource(conn, operation, [])
+          stream
           |> Stream.take(2)
           |> Enum.to_list()
 
@@ -490,8 +519,10 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
       test = fn ->
         operation = K8s.Client.list("apps/v1", "StatefulSet")
 
+        {:ok, stream} = MUT.resource(conn, operation, [])
+
         [event1 | [event2 | _]] =
-          MUT.resource(conn, operation, [])
+          stream
           |> Stream.take(2)
           |> Enum.to_list()
 
@@ -507,8 +538,10 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
       test = fn ->
         operation = K8s.Client.list("apps/v1", "ReplicaSet")
 
+        {:ok, stream} = MUT.resource(conn, operation, [])
+
         events =
-          MUT.resource(conn, operation, [])
+          stream
           |> Stream.take(4)
           |> Enum.to_list()
 

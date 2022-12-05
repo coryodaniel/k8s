@@ -3,13 +3,14 @@ defmodule K8s.Client.Provider do
   alias K8s.Conn.RequestOptions
 
   @type headers :: [{header_name :: String.t(), header_value :: String.t()}]
-  @type response ::
+  @type stream_chunk_t ::
           {:data | binary}
           | {:status, integer()}
           | {:headers, headers()}
           | {:error, K8s.Client.HTTPError.t()}
+          | :done
   @type success_t :: {:ok, list(map()) | map() | reference() | binary() | list(binary())}
-  @type stream_success_t :: {:ok, Enumerable.t(response())}
+  @type stream_success_t :: {:ok, Enumerable.t(stream_chunk_t())}
 
   @type error_t ::
           {:error, K8s.Client.APIError.t() | K8s.Client.HTTPError.t()}
@@ -34,6 +35,7 @@ defmodule K8s.Client.Provider do
       ...> K8s.Client.HTTPProvider.headers(opts)
       [Accept: "application/json", Authorization: "Basic AF"]
   """
+  @spec headers(K8s.Conn.RequestOptions.t()) :: keyword()
   def headers(%RequestOptions{} = opts),
     do: Keyword.put_new(opts.headers, :Accept, "application/json")
 end

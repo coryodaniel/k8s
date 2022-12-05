@@ -30,7 +30,7 @@ defmodule K8s.Client.Runner.Watch.Stream do
       ...> K8s.Client.Runner.Watch.Stream.resource(conn, op, []) |> Stream.map(&IO.inspect/1) |> Stream.run()
   """
   @spec resource(K8s.Conn.t(), K8s.Operation.t(), keyword()) ::
-          K8s.Client.Provider.stream_response_t()
+          {:ok, Enumerable.t()} | K8s.Client.Provider.error_t()
   def resource(conn, operation, http_opts) do
     http_opts =
       http_opts
@@ -42,6 +42,8 @@ defmodule K8s.Client.Runner.Watch.Stream do
     do_resource(conn, operation, http_opts, nil)
   end
 
+  @spec do_resource(K8s.Conn.t(), K8s.Operation.t(), keyword(), nil | binary()) ::
+          {:ok, Enumerable.t()} | K8s.Client.Provider.error_t()
   defp do_resource(conn, operation, http_opts, nil) do
     with {:ok, resource_version} <- Watch.get_resource_version(conn, operation) do
       do_resource(conn, operation, http_opts, resource_version)
@@ -82,6 +84,8 @@ defmodule K8s.Client.Runner.Watch.Stream do
     end
   end
 
+  @spec reduce(K8s.Client.Provider.stream_chunk_t(), t() | :halt) ::
+          {:halt, nil} | {Enumerable.t(), t()}
   defp reduce(_, :halt), do: {:halt, nil}
 
   defp reduce({:status, 410}, state) do
@@ -117,8 +121,6 @@ defmodule K8s.Client.Runner.Watch.Stream do
 
     {:ok, stream} =
       do_resource(state.conn, state.operation, state.http_opts, state.resource_version)
-
-    dbg(stream)
 
     {stream, :halt}
   end
