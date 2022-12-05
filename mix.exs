@@ -9,7 +9,7 @@ defmodule K8s.MixProject do
       app: :k8s,
       description: "Kubernetes API Client for Elixir",
       version: @version,
-      elixir: "~> 1.9",
+      elixir: "~> 1.14",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       test_coverage: [tool: ExCoveralls],
