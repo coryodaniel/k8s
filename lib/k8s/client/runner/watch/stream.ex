@@ -113,18 +113,6 @@ defmodule K8s.Client.Runner.Watch.Stream do
     |> transform_to_events()
   end
 
-  defp reduce({:error, {:closed, :timeout}}, state) do
-    Logger.debug(
-      @log_prefix <> "Watch request timed out - resuming the watch",
-      library: :k8s
-    )
-
-    {:ok, stream} =
-      do_resource(state.conn, state.operation, state.http_opts, state.resource_version)
-
-    {stream, :halt}
-  end
-
   # Transforms chunks to lines iteratively.
 
   # Code is taken from https://elixirforum.com/t/streaming-lines-from-an-enum-of-chunks/21244/3

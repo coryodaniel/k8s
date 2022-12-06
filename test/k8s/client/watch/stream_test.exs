@@ -496,25 +496,6 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
     end
 
     @tag timeout: 1_000
-    test "Resumes the stream when request times out", %{conn: conn} do
-      test = fn ->
-        operation = K8s.Client.list("apps/v1", "Deployment")
-
-        {:ok, stream} = MUT.resource(conn, operation, [])
-
-        [event1 | [event2 | _]] =
-          stream
-          |> Stream.take(2)
-          |> Enum.to_list()
-
-        assert "ADDED" == event1["type"]
-        assert "DELETED" == event2["type"]
-      end
-
-      assert capture_log(test) =~ "resuming the watch"
-    end
-
-    @tag timeout: 1_000
     test "Skips malformed JSON events", %{conn: conn} do
       test = fn ->
         operation = K8s.Client.list("apps/v1", "StatefulSet")
