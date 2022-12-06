@@ -15,7 +15,7 @@ defmodule K8s.Client.MintHTTPProvider do
 
   @typep request_response_t :: %{
            status: integer(),
-           chunks: list(binary()),
+           chunks: list(),
            headers: list()
          }
 
@@ -33,7 +33,9 @@ defmodule K8s.Client.MintHTTPProvider do
           _other, acc -> {:cont, acc}
         end)
 
-      process_response(response)
+      response
+      |> Map.update!(:chunks, &Enum.reverse(&1))
+      |> process_response()
     end
   end
 
@@ -129,10 +131,7 @@ defmodule K8s.Client.MintHTTPProvider do
 
   defp map_responses({type, _ref, data}), do: {type, data}
 
-  @spec process_response(request_response_t() | {:error, Mint.Types.error()}) ::
-          HTTPError.t() | {:ok, binary()}
-  defp process_response({:error, error}), do: HTTPError.new(message: error)
-
+  @spec process_response(request_response_t()) :: K8s.Client.Provider.response_t()
   defp process_response(%{status: status} = response) when status in 400..599 do
     %{chunks: chunks, headers: headers, status: status_code} = response
 
