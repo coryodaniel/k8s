@@ -126,7 +126,8 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
          """
          {"object":{"apiVersion":"v1","kind":"Namespace","metadata":{"resourceVersion":"12"}},"type":"MODIFIED"}
          {"object":{"apiVersion":"v1","kind":"Namespace","metadata":{"resourceVersion":"13"}},"type":"DELETED"}
-         """}
+         """},
+        :done
       ]
 
       {:ok, stream}
@@ -151,7 +152,8 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
                   "metadata" => %{"resourceVersion" => "11"}
                 }
               }),
-              {:status, 410}
+              {:status, 410},
+              :done
             ]
 
           "11" ->
@@ -163,7 +165,8 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
                   "kind" => "Pod",
                   "metadata" => %{"resourceVersion" => "12"}
                 }
-              })
+              }),
+              :done
             ]
         end
 
@@ -188,7 +191,8 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
             "kind" => "DaemonSet",
             "metadata" => %{"resourceVersion" => "11"}
           }
-        })
+        }),
+        :done
       ]
 
       {:ok, stream}
@@ -216,7 +220,8 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
                   "metadata" => %{"resourceVersion" => "11"}
                 }
               }),
-              {:error, {:closed, :timeout}}
+              {:error, {:closed, :timeout}},
+              :done
             ]
 
           "11" ->
@@ -228,7 +233,8 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
                   "kind" => "Deployment",
                   "metadata" => %{"resourceVersion" => "12"}
                 }
-              })
+              }),
+              :done
             ]
         end
 
@@ -261,7 +267,8 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
             "kind" => "StatefulSet",
             "metadata" => %{"resourceVersion" => "12"}
           }
-        })
+        }),
+        :done
       ]
 
       {:ok, stream}
@@ -298,7 +305,8 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
             "kind" => "ReplicaSet",
             "metadata" => %{"resourceVersion" => "12"}
           }
-        })
+        }),
+        :done
       ]
 
       {:ok, stream}
@@ -323,7 +331,8 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
                   "kind" => "Service",
                   "metadata" => %{"resourceVersion" => "11"}
                 }
-              })
+              }),
+              :done
             ]
 
           "11" ->
@@ -336,7 +345,8 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
                   "kind" => "Service",
                   "metadata" => %{"resourceVersion" => "12"}
                 }
-              })
+              }),
+              :done
             ]
         end
 
@@ -370,7 +380,8 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
                   "kind" => "Pod",
                   "metadata" => %{"resourceVersion" => "12"}
                 }
-              })
+              }),
+              :done
             ]
 
           "12" ->
@@ -387,7 +398,8 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
                   "reason" => "Expired",
                   "status" => "Failure"
                 }
-              })
+              }),
+              :done
             ]
         end
 

@@ -55,29 +55,18 @@ defmodule K8s.Client.Runner.Watch.Stream do
          {:ok, stream} <- Base.stream(conn, operation, http_opts) do
       stream =
         stream
+        |> K8s.Client.HTTPStream.transform_to_lines()
+        |> K8s.Client.HTTPStream.decode_json_objects()
         |> Stream.reject(&(&1 == {:status, 200}))
-        |> Stream.filter(&(elem(&1, 0) in [:status, :data, :error]))
+        |> Stream.filter(&(&1 == :done || elem(&1, 0) in [:status, :object, :error]))
         |> Stream.transform(
-          fn ->
-            %__MODULE__{
-              conn: conn,
-              operation: operation,
-              http_opts: http_opts,
-              resource_version: resource_version
-            }
-          end,
-          &reduce/2,
-          fn
-            nil ->
-              {:halt, nil}
-
-            state ->
-              {:ok, stream} =
-                do_resource(state.conn, state.operation, state.http_opts, state.resource_version)
-
-              {stream, state}
-          end,
-          fn _state -> :ok end
+          %__MODULE__{
+            conn: conn,
+            operation: operation,
+            http_opts: http_opts,
+            resource_version: resource_version
+          },
+          &reduce/2
         )
 
       {:ok, stream}
@@ -88,14 +77,22 @@ defmodule K8s.Client.Runner.Watch.Stream do
           {:halt, nil} | {Enumerable.t(), t()}
   defp reduce(_, :halt), do: {:halt, nil}
 
+  defp reduce(:done, state) do
+    {:ok, stream} =
+      do_resource(state.conn, state.operation, state.http_opts, state.resource_version)
+
+    {stream, state}
+  end
+
   defp reduce({:status, 410}, state) do
     Logger.warn(
       @log_prefix <> "410 Gone received from watcher - resetting the resource version",
       library: :k8s
     )
 
-    new_state = struct!(state, resource_version: nil)
-    {[], new_state}
+    {:ok, stream} = do_resource(state.conn, state.operation, state.http_opts, nil)
+
+    {stream, :halt}
   end
 
   defp reduce({:status, status}, _state) do
@@ -107,90 +104,57 @@ defmodule K8s.Client.Runner.Watch.Stream do
     {:halt, nil}
   end
 
-  defp reduce({:data, chunk}, state) do
-    {chunk, state}
-    |> transform_to_lines()
-    |> transform_to_events()
+  defp reduce({:object, object}, state) do
+    process_object(object, state)
   end
 
-  # Transforms chunks to lines iteratively.
+  @spec process_object(map(), t()) :: {Enumerable.t(), t()}
+  defp process_object(
+         %{"type" => "ERROR", "object" => %{"message" => message, "code" => 410} = object},
+         state
+       ) do
+    Logger.debug(
+      @log_prefix <> "#{message} - resetting the resource version",
+      library: :k8s,
+      object: object
+    )
 
-  # Code is taken from https://elixirforum.com/t/streaming-lines-from-an-enum-of-chunks/21244/3
-
-  # * Append new chunk to the remainder inside state
-  # * Split resulting string by newlines (there can be multiple newlines in the new chunk)
-  # * pop the last element from the resulting list returns the remainder and the list of whole lines
-  @spec transform_to_lines({binary(), t()}) :: {[binary()], t()}
-  defp transform_to_lines({chunk, state}) do
-    {remainder, whole_lines} =
-      (state.remainder <> chunk)
-      |> String.split("\n")
-      |> List.pop_at(-1)
-
-    {whole_lines, %{state | remainder: remainder}}
+    new_state = struct!(state, resource_version: nil)
+    {[], new_state}
   end
 
-  # Transform lines to events
-  # * decode JSON events
-  # * Reduce lines into events and next state
-  #   * If the resource_version changes, append the event to the stream and update the state
-  #   * Otherwise, dont change anything
-  #   * send :start upon errors
-  @spec transform_to_events({[binary()], t()}) :: {[map()], {:recv | :start, t()}}
-  defp transform_to_events({lines, state}) do
-    lines
-    #  decode errors handled below
-    |> Enum.map(&Jason.decode/1)
-    |> Enum.reduce({[], state}, fn
-      {:error, error}, {events, state} ->
-        Logger.error(
-          @log_prefix <> "Could not decode JSON - chunk seems to be malformed",
-          library: :k8s,
-          error: error
-        )
+  defp process_object(%{"object" => %{"message" => message} = object}, state) do
+    Logger.error(
+      @log_prefix <>
+        "Erronous event received from watcher: #{message} - resetting the resource version",
+      library: :k8s,
+      object: object
+    )
 
-        {events, state}
+    new_state = struct!(state, resource_version: nil)
+    {[], new_state}
+  end
 
-      {:ok, %{"type" => "ERROR", "object" => %{"message" => message, "code" => 410} = object}},
-      {events, state} ->
-        Logger.debug(
-          @log_prefix <> "#{message} - resetting the resource version",
-          library: :k8s,
-          object: object
-        )
+  defp process_object(%{"type" => "BOOKMARK", "object" => object}, state) do
+    Logger.debug(
+      @log_prefix <> "Bookmark received",
+      library: :k8s,
+      object: object
+    )
 
-        new_state = struct!(state, resource_version: nil)
-        {events, new_state}
+    {[], struct!(state, resource_version: object["metadata"]["resourceVersion"])}
+  end
 
-      {:ok, %{"object" => %{"message" => message} = object}}, {events, state} ->
-        Logger.error(
-          @log_prefix <>
-            "Erronous event received from watcher: #{message} - resetting the resource version",
-          library: :k8s,
-          object: object
-        )
+  defp process_object(
+         %{"object" => %{"metadata" => %{"resourceVersion" => resource_version}}},
+         state
+       )
+       when resource_version == state.resource_version do
+    {[], state}
+  end
 
-        new_state = struct!(state, resource_version: nil)
-        {events, new_state}
-
-      {:ok, %{"type" => "BOOKMARK", "object" => object}}, {events, state} ->
-        Logger.debug(
-          @log_prefix <> "Bookmark received",
-          library: :k8s,
-          object: object
-        )
-
-        {events, %__MODULE__{state | resource_version: object["metadata"]["resourceVersion"]}}
-
-      {:ok, %{"object" => %{"metadata" => %{"resourceVersion" => new_resource_version}}}},
-      {events, %__MODULE__{resource_version: resource_version} = state}
-      when new_resource_version == resource_version ->
-        {events, state}
-
-      {:ok, %{"object" => object} = new_event}, {events, state} ->
-        # new resource_version => append new event to the stream
-        {events ++ [new_event],
-         struct!(state, resource_version: object["metadata"]["resourceVersion"])}
-    end)
+  defp process_object(%{"object" => object} = new_event, state) do
+    new_state = struct!(state, resource_version: object["metadata"]["resourceVersion"])
+    {[new_event], new_state}
   end
 end
