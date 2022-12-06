@@ -14,6 +14,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `K8s.Selector.label_not/N`, `K8s.Selector.field/N` and `K8s.Selector.field_not/N` - Support for field selectors ([#117](https://github.com/coryodaniel/k8s/pull/117))
+- `K8s.Client.Provider.stream/5` callback was added to the behaviour
+- `K8s.Client.Runner.Base.stream/3`
+- `K8s.Client.MintHTTPProvider` - The mint client implementation
+- `K8s.Client.HTTPTestHelper` - to be used in tests (resides in `lib/` so it can be used by dependents)
+
+### Changed
+
+- `K8s.Client.Provider` behaviour was adapted to the new internal architecture
+
+### Removed
+
+- `K8s.Client.HTTPProvider` was removed in favor of `K8s.Client.MintHTTPProvider`
+- `K8s.Client.watch/N` was removed in favor of `K8s.Client.watch_and_stream/N`
+- The `:stream_to` in `http_opts` is not supported anymore.
+
+### Breaking changes
+
+- Tests using the `DynamicHTTPProvider` which work with `watch_and_stream` are going to need to be changed. The HTTP mocks now need to implement the `stream/5` callback. (See `K8s.Client.Runner.Watch.StreamTest` on this branch for examples)
+- The `:stream_to` in `http_opts` is not supported anymore
+- Errors are encapsulated in `K8s.Client.HTTPError`
+- `headers/1` callback was removed from `K8s.Client.Provider` behaviour
+- `K8s.Client.HTTPProvider` (HTTPoison implementation) was removed.
+- `K8s.Client.watch/N` was removed
 
 <!--------------------- Don't add new entries after this line --------------------->
 
