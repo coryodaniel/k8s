@@ -167,8 +167,16 @@ defmodule K8s.Client.MintHTTPProvider do
 
   defp decode(body, "application/json") do
     case Jason.decode(body) do
-      {:ok, data} -> data
-      {:error, _} -> nil
+      {:ok, data} ->
+        data
+
+      {:error, error} ->
+        Logger.error("The response body is supposed to be JSON but could not be decoded.",
+          library: :k8s,
+          error: error
+        )
+
+        nil
     end
   end
 end
