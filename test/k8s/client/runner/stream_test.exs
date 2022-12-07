@@ -108,5 +108,13 @@ defmodule K8s.Client.Runner.StreamTest do
                }
              ]
     end
+
+    test "returns an error if operation not supported", %{conn: conn} do
+      op = K8s.Client.delete_all("v1", "pods")
+      assert {:error, error} = K8s.Client.stream(conn, op)
+
+      assert error.message =~
+               "Only [:list, :list_all_namespaces, :watch, :watch_all_namespaces] operations can be streamed."
+    end
   end
 end

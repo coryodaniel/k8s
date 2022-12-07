@@ -106,6 +106,53 @@ defmodule K8s.Client.Runner.WatchIntegrationTest do
     end
 
     @tag integration: true
+    test "watches and streams resources in all namespaces", %{
+      conn: conn,
+      labels: labels,
+      handle_stream: handle_stream,
+      resource_name: resource_name,
+      timeout: timeout
+    } do
+      selector = K8s.Selector.label(labels)
+      operation = K8s.Client.watch("v1", "ConfigMap", namespace: :all)
+      operation = K8s.Operation.put_selector(operation, selector)
+
+      Task.start(fn ->
+        {:ok, event_stream} = K8s.Client.stream(conn, operation)
+        event_stream |> handle_stream.() |> Stream.run()
+      end)
+
+      Process.sleep(500)
+
+      pid = self()
+      ref = make_ref()
+
+      data = %{
+        "pid" => pid |> :erlang.pid_to_list() |> List.to_string(),
+        "ref" => ref |> :erlang.ref_to_list() |> List.to_string()
+      }
+
+      cm = build_configmap(resource_name, data, labels: labels)
+
+      op = K8s.Client.create(cm)
+      {:ok, _} = K8s.Client.run(conn, op)
+      assert_receive({^ref, "ADDED", ^resource_name}, timeout)
+
+      op =
+        cm
+        |> put_in(["metadata", Access.key("annotations", %{}), "some"], "value")
+        |> Map.delete("spec")
+        |> K8s.Client.patch()
+
+      {:ok, _} = K8s.Client.run(conn, op)
+      assert_receive({^ref, "MODIFIED", ^resource_name}, timeout)
+
+      op = K8s.Client.delete(cm)
+      {:ok, _} = K8s.Client.run(conn, op)
+      assert_receive({^ref, "DELETED", ^resource_name}, timeout)
+    end
+
+    @tag integration: true
     test "watches and streams a signle resource", %{
       conn: conn,
       labels: labels,
