@@ -28,7 +28,7 @@ defmodule K8s.Client do
   }
 
   alias K8s.Operation
-  alias K8s.Client.Runner.{Async, Base, Stream, Wait, Watch}
+  alias K8s.Client.Runner.{Async, Base, Stream, Wait}
 
   @doc "alias of `K8s.Client.Runner.Base.run/2`"
   defdelegate run(conn, operation), to: Base

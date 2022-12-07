@@ -4,7 +4,6 @@ defmodule K8s.Client.Runner.Stream.Watch do
   """
 
   alias K8s.Client.Runner.Base
-  alias K8s.Client.Runner.Watch
 
   require Logger
 

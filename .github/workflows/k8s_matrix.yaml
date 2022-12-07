@@ -40,4 +40,5 @@ jobs:
       - run: mix local.rebar --force
       - run: mix local.hex --force
       - run: mix deps.get
+      - run: mix compile --warnings-as-errors
       - run: TEST_KUBECONFIG=$KUBECONFIG TEST_WAIT_TIMEOUT=110 mix test --timeout 120000 --only integration --max-failures 1
