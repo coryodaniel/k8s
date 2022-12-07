@@ -9,12 +9,11 @@ defmodule K8s.Client.Runner.StreamTest do
   defmodule HTTPMock do
     @base_url "https://localhost:6443"
     @namespaced_url @base_url <> "/api/v1/namespaces"
-    import K8s.Test.HTTPHelper
     import K8s.Test.IntegrationHelper
 
     def request(:get, @namespaced_url <> "/stream-empty-test/services", _body, _headers, _opts) do
       data = build_list([])
-      render(data, 200)
+      {:ok, data}
     end
 
     def request(:get, @namespaced_url <> "/stream-failure-test/services", _, _, opts) do
@@ -23,14 +22,12 @@ defmodule K8s.Client.Runner.StreamTest do
       continue_token = "stream-failure-test"
 
       case params do
-        [limit: 10, continue: nil, labelSelector: "", fieldSelector: ""] ->
+        [labelSelector: "", fieldSelector: "", limit: 10, continue: nil] ->
           data = build_list(page1_items, continue_token)
-          render(data, 200, [{"Content-Type", "application/json"}])
+          {:ok, data}
 
-        [limit: 10, continue: "stream-failure-test", labelSelector: "", fieldSelector: ""] ->
-          render(%{"reason" => "NotFound", "message" => "next page not found"}, 404, [
-            {"Content-Type", "application/json"}
-          ])
+        [labelSelector: "", fieldSelector: "", limit: 10, continue: "stream-failure-test"] ->
+          {:error, %K8s.Client.APIError{reason: "NotFound", message: "next page not found"}}
       end
     end
 
@@ -42,17 +39,17 @@ defmodule K8s.Client.Runner.StreamTest do
 
       body =
         case params do
-          [limit: 10, continue: nil, labelSelector: "", fieldSelector: ""] ->
+          [labelSelector: "", fieldSelector: "", limit: 10, continue: nil] ->
             build_list(page1_items, "start")
 
-          [limit: 10, continue: "start", labelSelector: "", fieldSelector: ""] ->
+          [labelSelector: "", fieldSelector: "", limit: 10, continue: "start"] ->
             build_list(page2_items, "end")
 
-          [limit: 10, continue: "end", labelSelector: "", fieldSelector: ""] ->
+          [labelSelector: "", fieldSelector: "", limit: 10, continue: "end"] ->
             build_list(page3_items)
         end
 
-      render(body, 200)
+      {:ok, body}
     end
   end
 
@@ -110,6 +107,14 @@ defmodule K8s.Client.Runner.StreamTest do
                  "metadata" => %{"name" => "qux", "namespace" => "stream-runner-test"}
                }
              ]
+    end
+
+    test "returns an error if operation not supported", %{conn: conn} do
+      op = K8s.Client.delete_all("v1", "pods")
+      assert {:error, error} = K8s.Client.stream(conn, op)
+
+      assert error.message =~
+               "Only [:list, :list_all_namespaces, :watch, :watch_all_namespaces] operations can be streamed."
     end
   end
 end

@@ -63,10 +63,10 @@ spec:
         app: <%= name %>
     spec:
       containers:
-      - name: <%= name %>
-        image: <%= image %>
-        ports:
-        - containerPort: 80
+        - name: <%= name %>
+          image: <%= image %>
+          ports:
+            - containerPort: 80
 ```
 
 ```elixir
@@ -96,7 +96,7 @@ operation = K8s.Client.list("apps/v1", "Deployment", namespace: :all)
 {:ok, deployments} = K8s.Client.run(conn, operation)
 ```
 
-*Note:* `K8s.Client.list` will return a `map`. The list of resources will be under `"items"`.
+_Note:_ `K8s.Client.list` will return a `map`. The list of resources will be under `"items"`.
 
 ## Using `labelSelector` with List Operations
 
@@ -105,7 +105,7 @@ operation = K8s.Client.list("apps/v1", "Deployment", namespace: :all)
 ```elixir
 {:ok, conn} = K8s.Conn.from_file("path/to/kubeconfig.yaml")
 
-operation = 
+operation =
   K8s.Client.list("apps/v1", :deployments)
   |> K8s.Selector.label({"app", "nginx"})
   |> K8s.Selector.label_in({"environment", ["qa", "prod"]})
@@ -128,17 +128,9 @@ Watch operations use the Kubernetes Watch API to stream `added`, `modified`, and
 To get a stream of events:
 
 ```elixir
-operation = K8s.Client.list("apps/v1", :deployment, namespace: :all)
+operation = K8s.Client.watch("apps/v1", :deployment, namespace: :all)
 {:ok, conn} = K8s.Conn.from_file("path/to/kubeconfig.yaml")
-{:ok, event_stream} = K8s.Client.watch_and_stream(conn, operation)
-```
-
-To get messages sent to your process: 
-
-```elixir
-operation = K8s.Client.list("apps/v1", :deployment, namespace: :all)
-{:ok, conn} = K8s.Conn.from_file("path/to/kubeconfig.yaml")
-{:ok, reference} = K8s.Client.watch(conn, operation, stream_to: self())
+{:ok, event_stream} = K8s.Client.stream(conn, operation)
 ```
 
 ## Wait on a Resource (`K8s.Client.Runner.Wait`)
@@ -146,7 +138,6 @@ operation = K8s.Client.list("apps/v1", :deployment, namespace: :all)
 The wait runner permits read operations to be made and block until a certain state is met in Kubernetes.
 
 This follow example will wait 60 seconds for the field `status.succeeded` to equal `1`.
-
 
 ```elixir
 operation = K8s.Client.get("batch/v1", :job, namespace: "default", name: "database-migrator")

@@ -1,4 +1,5 @@
 defmodule K8s.Client.Runner.StreamIntegrationTest do
+  alias K8s.Client.Runner.Stream, as: MUT
   use ExUnit.Case, async: true
   import K8s.Test.IntegrationHelper
 
@@ -28,12 +29,12 @@ defmodule K8s.Client.Runner.StreamIntegrationTest do
     selector = K8s.Selector.label(labels)
     operation = K8s.Client.list("v1", "Pod", namespace: "default")
     operation = K8s.Operation.put_selector(operation, selector)
-    assert {:ok, stream} = K8s.Client.Runner.Stream.run(conn, operation)
+    assert {:ok, stream} = MUT.run(conn, operation)
 
     resources =
       stream
-      |> Enum.take(2)
-      |> Enum.reduce([], fn resource, agg -> [K8s.Resource.name(resource) | agg] end)
+      |> Stream.take(2)
+      |> Stream.map(&K8s.Resource.name/1)
       |> Enum.sort()
 
     K8s.Client.run(conn, K8s.Client.delete(to_delete_1))

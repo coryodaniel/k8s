@@ -7,29 +7,28 @@ defmodule K8s.Client.DynamicHTTPProvider do
   use GenServer
   @behaviour K8s.Client.Provider
 
-  @impl true
-  @doc "See `K8s.Client.HTTPProvider.headers/1`"
-  defdelegate headers(request_options), to: K8s.Client.HTTPProvider
-
-  @impl true
-  @deprecated "Use headers/1 insead."
-  @doc "See `K8s.Client.HTTPProvider.headers/2`"
-  defdelegate headers(method, request_options), to: K8s.Client.HTTPProvider
-
-  @impl true
-  @doc "See `K8s.Client.HTTPProvider.handle_response/1`"
-  defdelegate handle_response(resp), to: K8s.Client.HTTPProvider
-
   @doc "Starts this provider."
   @spec start_link(any) :: GenServer.on_start()
   def start_link(_) do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
-  @doc "Locate the handler module for this process"
+  @doc "Locate the handler module for this process or any ancestor"
   @spec locate(pid) :: module() | function() | nil
-  def locate(this_pid) do
-    GenServer.call(__MODULE__, {:locate, this_pid})
+  def locate(nil), do: nil
+
+  def locate(pid) do
+    case GenServer.call(__MODULE__, {:locate, pid}) do
+      nil ->
+        pid
+        |> Process.info(:links)
+        |> elem(1)
+        |> List.first()
+        |> locate()
+
+      handler ->
+        handler
+    end
   end
 
   @doc "List all registered handlers"
@@ -43,39 +42,32 @@ defmodule K8s.Client.DynamicHTTPProvider do
   end
 
   @doc """
-  Dispatch `request/5` to the module registered in the current process.
-
-  If the current process is not register, check its parent. This is useful when requests are made from child processes e.g.: (`Task.async/1`)
+  Dispatch `request/5` to the module registered in the current process or any ancestor.
   """
   @impl true
   def request(method, url, body, headers, opts) do
-    module = locate(self())
+    locate_and_apply(:request, [method, url, body, headers, opts])
+  end
 
-    case module do
+  @doc """
+  Dispatch `stream_to/6` to the module registered in the current process or any ancestor.
+  """
+  @impl true
+  def stream(method, url, body, headers, opts) do
+    locate_and_apply(:stream, [method, url, body, headers, opts])
+  end
+
+  @spec locate_and_apply(atom(), list()) :: K8s.Client.Provider.response_t()
+  defp locate_and_apply(func, args) do
+    case locate(self()) do
       nil ->
-        parent =
-          self()
-          |> Process.info(:links)
-          |> elem(1)
-          |> List.first()
-          |> locate()
-
-        case parent do
-          nil ->
-            raise "No handler module registered for process #{inspect(self())} or parent."
-
-          parent ->
-            response = parent.request(method, url, body, headers, opts)
-            handle_response(response)
-        end
+        raise "No handler module registered for process #{inspect(self())} or parent."
 
       module when is_atom(module) ->
-        response = module.request(method, url, body, headers, opts)
-        handle_response(response)
+        apply(module, func, args)
 
-      func when is_function(func) ->
-        response = func.(method, url, body, headers, opts)
-        handle_response(response)
+      callback when is_function(callback) ->
+        apply(callback, args)
     end
   end
 

@@ -10,7 +10,7 @@ defmodule K8s.Client.WebSocketProvider do
   @dialyzer {:nowarn_function, handle_info: 2}
 
   @doc """
-  Make a connection to the K8s API and upgrade to a websocket. This is useful for streaming resources like /exec, /logs, /attach  
+  Make a connection to the K8s API and upgrade to a websocket. This is useful for streaming resources like /exec, /logs, /attach
 
   ## Example
 
@@ -86,7 +86,8 @@ defmodule K8s.Client.WebSocketProvider do
   # Websocket stderr handler. The frame starts with a 2 and is followed by a message.
   def handle_frame({type, <<2, msg::binary>>}, state) do
     Logger.debug(
-      "Pod Command Received STDERR Message  - Type: #{inspect(type)} -- Message: #{inspect(msg)}"
+      "Pod Command Received STDERR Message  - Type: #{inspect(type)} -- Message: #{inspect(msg)}",
+      library: :k8s
     )
 
     {:ok, state}
@@ -95,7 +96,8 @@ defmodule K8s.Client.WebSocketProvider do
   # Websocket uknown command handler. This is a binary frame we are not familiar with.
   def handle_frame({type, <<_eot::binary-size(1), msg::binary>>}, %{stream_to: stream_to} = state) do
     Logger.error(
-      "Exec Command - Received Unknown Message - Type: #{inspect(type)} -- Message: #{msg}"
+      "Exec Command - Received Unknown Message - Type: #{inspect(type)} -- Message: #{msg}",
+      library: :k8s
     )
 
     send(stream_to, {:error, msg})

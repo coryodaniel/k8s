@@ -90,6 +90,12 @@ defmodule K8s.Client.Runner.Base do
   See `run/3`
   """
   @spec run(Conn.t(), Operation.t(), keyword()) :: result_t
+  def run(_conn, %Operation{verb: :watch}, _) do
+    msg = "Watch operations have to be streamed. Use K8s.Client.stream/N"
+
+    {:error, %K8s.Operation.Error{message: msg}}
+  end
+
   def run(%Conn{} = conn, %Operation{verb: :connect} = operation, websocket_driver_opts) do
     body = operation.data
     all_options = Keyword.merge(websocket_driver_opts, operation.query_params)
@@ -116,12 +122,28 @@ defmodule K8s.Client.Runner.Base do
 
   # Run an operation and pass `http_opts` to `K8s.Client.HTTPProvider`
   def run(%Conn{} = conn, %Operation{} = operation, http_opts) do
-    body = operation.data
-
     with {:ok, url} <- K8s.Discovery.url_for(conn, operation),
-         req <- new_request(conn, url, operation, body, http_opts),
+         req <- new_request(conn, url, operation, operation.data, http_opts),
          {:ok, req} <- K8s.Middleware.run(req, conn.middleware.request) do
       conn.http_provider.request(req.method, req.url, req.body, req.headers, req.opts)
+    end
+  end
+
+  @doc """
+  Runs a `K8s.Operation` and streams chunks to `stream_to_pid`.
+  """
+  @spec stream(Conn.t(), Operation.t(), keyword()) :: K8s.Client.Provider.stream_response_t()
+  def stream(%Conn{} = conn, %Operation{} = operation, http_opts) do
+    with {:ok, url} <- K8s.Discovery.url_for(conn, operation),
+         req <- new_request(conn, url, operation, operation.data, http_opts),
+         {:ok, req} <- K8s.Middleware.run(req, conn.middleware.request) do
+      conn.http_provider.stream(
+        req.method,
+        req.url,
+        req.body,
+        req.headers,
+        req.opts
+      )
     end
   end
 

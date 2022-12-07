@@ -9,7 +9,7 @@ defmodule K8s.MixProject do
       app: :k8s,
       description: "Kubernetes API Client for Elixir",
       version: @version,
-      elixir: "~> 1.9",
+      elixir: "~> 1.14",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       test_coverage: [tool: ExCoveralls],
@@ -37,8 +37,8 @@ defmodule K8s.MixProject do
     [
       {:castore, "~> 0.1"},
       {:yaml_elixir, "~> 2.8"},
-      {:httpoison, "~> 1.7"},
       {:jason, "~> 1.0"},
+      {:mint, "~> 1.4"},
       {:telemetry, "~> 1.0"},
 
       # dev/test deps (e.g. code coverage)

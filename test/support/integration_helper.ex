@@ -8,13 +8,12 @@ defmodule K8s.Test.IntegrationHelper do
       |> System.get_env("./integration.yaml")
       |> K8s.Conn.from_file()
 
-    # Override the defaults for testing
-    %K8s.Conn{
-      conn
-      | discovery_driver: K8s.Discovery.Driver.HTTP,
-        discovery_opts: [],
-        http_provider: K8s.Client.HTTPProvider
-    }
+    struct!(conn,
+      insecure_skip_tls_verify: true,
+      discovery_driver: K8s.Discovery.Driver.HTTP,
+      discovery_opts: [],
+      http_provider: K8s.Client.MintHTTPProvider
+    )
   end
 
   @spec build_pod(String.t(), map()) :: map()

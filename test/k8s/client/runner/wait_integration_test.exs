@@ -2,33 +2,41 @@ defmodule K8s.Client.Runner.WaitIntegrationTest do
   use ExUnit.Case, async: true
   import K8s.Test.IntegrationHelper
 
-  setup do
-    timeout =
-      "TEST_WAIT_TIMEOUT"
-      |> System.get_env("5")
-      |> String.to_integer()
-
-    test_id = :rand.uniform(10_000)
+  setup_all do
     conn = conn()
 
     on_exit(fn ->
       delete_job =
-        "wait-job-#{test_id}"
-        |> job()
-        |> K8s.Client.delete()
+        K8s.Client.delete_all("batch/v1", "Job", namespace: "default")
+        |> K8s.Selector.label({"test", "wait-integration-test"})
 
       K8s.Client.run(conn, delete_job)
     end)
 
-    {:ok, %{conn: conn, test_id: test_id, timeout: timeout}}
+    [conn: conn]
   end
 
-  @spec job(binary) :: K8s.Operation.t()
-  defp job(name) do
+  setup do
+    timeout =
+      "TEST_WAIT_TIMEOUT"
+      |> System.get_env("10")
+      |> String.to_integer()
+
+    test_id = :rand.uniform(10_000)
+
+    [test_id: test_id, timeout: timeout]
+  end
+
+  @spec job(binary, keyword) :: K8s.Operation.t()
+  defp job(name, opts) do
     %{
       "apiVersion" => "batch/v1",
       "kind" => "Job",
-      "metadata" => %{"name" => name, "namespace" => "default"},
+      "metadata" => %{
+        "name" => name,
+        "namespace" => "default",
+        "labels" => Keyword.get(opts, :labels, %{})
+      },
       "spec" => %{
         "backoffLimit" => 1,
         "template" => %{
@@ -53,7 +61,11 @@ defmodule K8s.Client.Runner.WaitIntegrationTest do
     test_id: test_id,
     timeout: timeout
   } do
-    create_job = "wait-job-#{test_id}" |> job() |> K8s.Client.create()
+    create_job =
+      "wait-job-#{test_id}"
+      |> job(labels: %{"test" => "wait-integration-test"})
+      |> K8s.Client.create()
+
     {:ok, _} = K8s.Client.run(conn, create_job)
 
     op = K8s.Client.get("batch/v1", :job, namespace: "default", name: "wait-job-#{test_id}")
@@ -69,7 +81,11 @@ defmodule K8s.Client.Runner.WaitIntegrationTest do
     test_id: test_id,
     timeout: timeout
   } do
-    create_job = "wait-job-#{test_id}" |> job() |> K8s.Client.create()
+    create_job =
+      "wait-job-#{test_id}"
+      |> job(labels: %{"test" => "wait-integration-test"})
+      |> K8s.Client.create()
+
     {:ok, _} = K8s.Client.run(conn, create_job)
 
     op = K8s.Client.get("batch/v1", :job, namespace: "default", name: "wait-job-#{test_id}")
