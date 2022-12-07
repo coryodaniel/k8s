@@ -22,11 +22,11 @@ defmodule K8s.Client.Runner.StreamTest do
       continue_token = "stream-failure-test"
 
       case params do
-        [limit: 10, continue: nil, labelSelector: "", fieldSelector: ""] ->
+        [labelSelector: "", fieldSelector: "", limit: 10, continue: nil] ->
           data = build_list(page1_items, continue_token)
           {:ok, data}
 
-        [limit: 10, continue: "stream-failure-test", labelSelector: "", fieldSelector: ""] ->
+        [labelSelector: "", fieldSelector: "", limit: 10, continue: "stream-failure-test"] ->
           {:error, %K8s.Client.APIError{reason: "NotFound", message: "next page not found"}}
       end
     end
@@ -39,13 +39,13 @@ defmodule K8s.Client.Runner.StreamTest do
 
       body =
         case params do
-          [limit: 10, continue: nil, labelSelector: "", fieldSelector: ""] ->
+          [labelSelector: "", fieldSelector: "", limit: 10, continue: nil] ->
             build_list(page1_items, "start")
 
-          [limit: 10, continue: "start", labelSelector: "", fieldSelector: ""] ->
+          [labelSelector: "", fieldSelector: "", limit: 10, continue: "start"] ->
             build_list(page2_items, "end")
 
-          [limit: 10, continue: "end", labelSelector: "", fieldSelector: ""] ->
+          [labelSelector: "", fieldSelector: "", limit: 10, continue: "end"] ->
             build_list(page3_items)
         end
 
