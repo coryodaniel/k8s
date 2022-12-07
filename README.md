@@ -14,26 +14,25 @@
 
 [K8s](https://hexdocs.pm/k8s/usage.html) - Kubernetes API Client for Elixir
 
-
 ## Features
 
-* A client API for humans 👩🏼🧑👩🏻👩🏽👩🏾🧑🏻🧑🏽🧑🧑🏾👨🏼👨🏾👨🏿
-* 🔮 Kubernetes resources, groups, and CRDs are autodiscovered at boot time. No swagger file to include or override.
-* Client supports standard HTTP calls, async batches, wait on status ⏲️, and watchers 👀
-* ⚙️ HTTP Request middleware
-* Multiple clusters ⚓ ⚓ ⚓
-* 🔐 Multiple authentication credentials
-  * 🤖 serviceaccount
-  * token
-  * 📜 certificate
-  * auth-provider
-  * Pluggable auth providers!
-* 🆗 Tested against Kubernetes versions 1.10+ and master
-* 🛠️ CRD support
-* 📈 Integrated with `:telemetry`
-* ℹ️ Kubernetes resource and version helper functions
-* 🧰 Kube config file parsing
-* 🏎️ Macro free; fast compile & fast startup
+- A client API for humans 👩🏼🧑👩🏻👩🏽👩🏾🧑🏻🧑🏽🧑🧑🏾👨🏼👨🏾👨🏿
+- 🔮 Kubernetes resources, groups, and CRDs are autodiscovered at boot time. No swagger file to include or override.
+- Client supports standard HTTP calls, async batches, wait on status ⏲️, and watchers 👀
+- ⚙️ HTTP Request middleware
+- Multiple clusters ⚓ ⚓ ⚓
+- 🔐 Multiple authentication credentials
+  - 🤖 serviceaccount
+  - token
+  - 📜 certificate
+  - auth-provider
+  - Pluggable auth providers!
+- 🆗 Tested against Kubernetes versions 1.10+ and master
+- 🛠️ CRD support
+- 📈 Integrated with `:telemetry`
+- ℹ️ Kubernetes resource and version helper functions
+- 🧰 Kube config file parsing
+- 🏎️ Macro free; fast compile & fast startup
 
 ## Installation
 
@@ -53,10 +52,10 @@ Check out the [Usage Guide](https://hexdocs.pm/k8s/usage.html) for in-depth exam
 
 Most functions are also written using doctests.
 
-* [K8s.Client doctests](https://hexdocs.pm/k8s/K8s.Client.html)
-* [K8s.Conn doctests](https://hexdocs.pm/k8s/K8s.Conn.html)
-* [K8s.Resource doctests](https://hexdocs.pm/k8s/K8s.Resource.html)
-* [K8s.Version doctests](https://hexdocs.pm/k8s/K8s.Version.html)
+- [K8s.Client doctests](https://hexdocs.pm/k8s/K8s.Client.html)
+- [K8s.Conn doctests](https://hexdocs.pm/k8s/K8s.Conn.html)
+- [K8s.Resource doctests](https://hexdocs.pm/k8s/K8s.Resource.html)
+- [K8s.Version doctests](https://hexdocs.pm/k8s/K8s.Version.html)
 
 If you are interested in building Kubernetes Operators or Schedulers, check out [Bonny](https://github.com/coryodaniel/bonny).
 
@@ -64,7 +63,7 @@ If you are interested in building Kubernetes Operators or Schedulers, check out 
 
 ### Configure a cluster connection
 
-Cluster connections can be created using the `K8s.Conn` module. 
+Cluster connections can be created using the `K8s.Conn` module.
 
 `K8s.Conn.from_file/1` will use the current context in your kubeconfig.
 
