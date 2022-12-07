@@ -22,11 +22,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - `K8s.Client.Provider` behaviour was adapted to the new internal architecture
+- `K8s.Client.watch/N` now returns a `:watch` or `:watch_all_namespaces` operation to be passed to `K8s.Client.stream/N`
 
 ### Removed
 
 - `K8s.Client.HTTPProvider` was removed in favor of `K8s.Client.MintHTTPProvider`
-- `K8s.Client.watch/N` was removed in favor of `K8s.Client.watch_and_stream/N`
 - The `:stream_to` in `http_opts` is not supported anymore.
 
 ### Breaking changes

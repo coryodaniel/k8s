@@ -96,6 +96,13 @@ defmodule K8s.Client.Runner.BaseTest do
       assert {:ok, _} = Base.run(conn, operation)
     end
 
+    test "returns an error for watch operations", %{conn: conn} do
+      operation = Client.watch("v1", :pods)
+
+      assert {:error, error} = Base.run(conn, operation)
+      assert error.message =~ "Use K8s.Client.stream/N"
+    end
+
     test "running an operation with a field K8s.Selector set", %{conn: conn} do
       operation =
         Client.list("v1", :pods)

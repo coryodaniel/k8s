@@ -1,8 +1,8 @@
-defmodule K8s.Client.Runner.Watch.StreamTest do
+defmodule K8s.Client.Runner.Stream.WatchTest do
   # credo:disable-for-this-file
   use ExUnit.Case, async: true
 
-  alias K8s.Client.Runner.Watch.Stream, as: MUT
+  alias K8s.Client.Runner.Stream.Watch, as: MUT
   alias K8s.Client.DynamicHTTPProvider
 
   import ExUnit.CaptureLog
@@ -423,7 +423,7 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
     test "Watches a list operation and returns the correct stream", %{conn: conn} do
       operation = K8s.Client.list("v1", "Namespace")
 
-      {:ok, stream} = MUT.resource(conn, operation, [])
+      {:ok, stream} = MUT.stream(conn, operation, [])
 
       events =
         stream
@@ -438,7 +438,7 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
       test = fn ->
         operation = K8s.Client.list("v1", "Pod")
 
-        {:ok, stream} = MUT.resource(conn, operation, [])
+        {:ok, stream} = MUT.stream(conn, operation, [])
 
         events =
           stream
@@ -457,7 +457,7 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
       test = fn ->
         operation = K8s.Client.list("v1", "ConfigMap")
 
-        {:ok, stream} = MUT.resource(conn, operation, [])
+        {:ok, stream} = MUT.stream(conn, operation, [])
 
         events =
           stream
@@ -479,7 +479,7 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
       test = fn ->
         operation = K8s.Client.list("v1", "Service")
 
-        {:ok, stream} = MUT.resource(conn, operation, [])
+        {:ok, stream} = MUT.stream(conn, operation, [])
 
         events =
           stream
@@ -498,7 +498,7 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
       test = fn ->
         operation = K8s.Client.list("apps/v1", "DaemonSet")
 
-        {:ok, stream} = MUT.resource(conn, operation, [])
+        {:ok, stream} = MUT.stream(conn, operation, [])
         events = Enum.to_list(stream)
 
         assert [] == events
@@ -512,7 +512,7 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
       test = fn ->
         operation = K8s.Client.list("apps/v1", "StatefulSet")
 
-        {:ok, stream} = MUT.resource(conn, operation, [])
+        {:ok, stream} = MUT.stream(conn, operation, [])
 
         [event1 | [event2 | _]] =
           stream
@@ -531,7 +531,7 @@ defmodule K8s.Client.Runner.Watch.StreamTest do
       test = fn ->
         operation = K8s.Client.list("apps/v1", "ReplicaSet")
 
-        {:ok, stream} = MUT.resource(conn, operation, [])
+        {:ok, stream} = MUT.stream(conn, operation, [])
 
         events =
           stream

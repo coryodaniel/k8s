@@ -67,11 +67,11 @@ defmodule K8s.Client.Runner.WatchIntegrationTest do
       timeout: timeout
     } do
       selector = K8s.Selector.label(labels)
-      operation = K8s.Client.list("v1", "ConfigMap", namespace: "default")
+      operation = K8s.Client.watch("v1", "ConfigMap", namespace: "default")
       operation = K8s.Operation.put_selector(operation, selector)
 
       Task.start(fn ->
-        {:ok, event_stream} = K8s.Client.Runner.Watch.stream(conn, operation)
+        {:ok, event_stream} = K8s.Client.stream(conn, operation)
         event_stream |> handle_stream.() |> Stream.run()
       end)
 
@@ -114,11 +114,11 @@ defmodule K8s.Client.Runner.WatchIntegrationTest do
       timeout: timeout
     } do
       selector = K8s.Selector.label(labels)
-      operation = K8s.Client.get("v1", "ConfigMap", namespace: "default", name: resource_name)
+      operation = K8s.Client.watch("v1", "ConfigMap", namespace: "default", name: resource_name)
       operation = K8s.Operation.put_selector(operation, selector)
 
       Task.start(fn ->
-        {:ok, event_stream} = K8s.Client.Runner.Watch.stream(conn, operation)
+        {:ok, event_stream} = K8s.Client.stream(conn, operation)
         event_stream |> handle_stream.() |> Stream.run()
       end)
 
@@ -161,11 +161,11 @@ defmodule K8s.Client.Runner.WatchIntegrationTest do
       timeout: timeout
     } do
       selector = K8s.Selector.label(labels)
-      operation = K8s.Client.list("v1", "ConfigMap", namespace: "default")
+      operation = K8s.Client.watch("v1", "ConfigMap", namespace: "default")
       operation = K8s.Operation.put_selector(operation, selector)
 
       Task.start(fn ->
-        {:ok, event_stream} = K8s.Client.Runner.Watch.stream(conn, operation)
+        {:ok, event_stream} = K8s.Client.stream(conn, operation)
         event_stream |> handle_stream.() |> Stream.run()
       end)
 

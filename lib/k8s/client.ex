@@ -48,12 +48,6 @@ defmodule K8s.Client do
   @doc "alias of `K8s.Client.Runner.Wait.run/3`"
   defdelegate wait_until(conn, operation, wait_opts), to: Wait, as: :run
 
-  @doc "alias of `K8s.Client.Runner.Watch.stream/2`"
-  defdelegate watch_and_stream(conn, operation), to: Watch, as: :stream
-
-  @doc "alias of `K8s.Client.Runner.Watch.stream/3`"
-  defdelegate watch_and_stream(conn, operation, http_opts), to: Watch, as: :stream
-
   @doc "alias of `K8s.Client.Runner.Stream.run/2`"
   defdelegate stream(conn, operation), to: Stream, as: :run
 
@@ -248,6 +242,46 @@ defmodule K8s.Client do
 
   def list(api_version, kind, path_params),
     do: Operation.build(:list, api_version, kind, path_params)
+
+  @doc """
+  Returns a `GET` operation to list all resources by version, kind, and namespace.
+
+  Given the namespace `:all` as an atom, will perform a list across all namespaces.
+
+  [K8s Docs](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.13/):
+
+  > List will retrieve all resource objects of a specific type within a namespace, and the results can be restricted to resources matching a selector query.
+  > List All Namespaces: Like List but retrieves resources across all namespaces.
+
+  ## Examples
+
+      iex> K8s.Client.list("v1", "Pod", namespace: "default")
+      %K8s.Operation{
+        method: :get,
+        verb: :list,
+        api_version: "v1",
+        name: "Pod",
+        path_params: [namespace: "default"]
+      }
+
+      iex> K8s.Client.list("apps/v1", "Deployment", namespace: :all)
+      %K8s.Operation{
+        method: :get,
+        verb: :list_all_namespaces,
+        api_version: "apps/v1",
+        name: "Deployment",
+        path_params: []
+      }
+
+  """
+  @spec watch(binary, Operation.name_t(), path_params | nil) :: Operation.t()
+  def watch(api_version, kind, path_params \\ [])
+
+  def watch(api_version, kind, namespace: :all),
+    do: Operation.build(:watch_all_namespaces, api_version, kind, [])
+
+  def watch(api_version, kind, path_params),
+    do: Operation.build(:watch, api_version, kind, path_params)
 
   @doc """
   Returns a `POST` `K8s.Operation` to create the given resource.

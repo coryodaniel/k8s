@@ -9,7 +9,9 @@ defmodule K8s.Operation do
   @selector :labelSelector
   @verb_map %{
     list_all_namespaces: :get,
+    watch_all_namespaces: :get,
     list: :get,
+    watch: :get,
     deletecollection: :delete,
     create: :post,
     connect: :post,

@@ -1,4 +1,4 @@
-defmodule K8s.Client.Runner.Watch.Stream do
+defmodule K8s.Client.Runner.Stream.Watch do
   @moduledoc """
   Watches a `K8s.Client.list/3` operation and returns an Elixir [`Stream`](https://hexdocs.pm/elixir/Stream.html) of events.
   """
@@ -27,11 +27,11 @@ defmodule K8s.Client.Runner.Watch.Stream do
 
       iex> {:ok,conn} = K8s.Conn.from_file("~/.kube/config", [context: "docker-desktop"])
       ...> op = K8s.Client.list("v1", "Namespace")
-      ...> K8s.Client.Runner.Watch.Stream.resource(conn, op, []) |> Stream.map(&IO.inspect/1) |> Stream.run()
+      ...> K8s.Client.Runner.Watch.Stream.stream(conn, op, []) |> Stream.map(&IO.inspect/1) |> Stream.run()
   """
-  @spec resource(K8s.Conn.t(), K8s.Operation.t(), keyword()) ::
+  @spec stream(K8s.Conn.t(), K8s.Operation.t(), keyword()) ::
           {:ok, Enumerable.t()} | K8s.Client.Provider.error_t()
-  def resource(conn, operation, http_opts) do
+  def stream(conn, operation, http_opts) do
     http_opts =
       http_opts
       |> Keyword.put_new(:params, [])
@@ -39,13 +39,13 @@ defmodule K8s.Client.Runner.Watch.Stream do
       |> put_in([:params, :watch], true)
       |> Keyword.put(:async, :once)
 
-    do_resource(conn, operation, http_opts, nil)
+    do_resource(conn, struct!(operation, verb: :list), http_opts, nil)
   end
 
   @spec do_resource(K8s.Conn.t(), K8s.Operation.t(), keyword(), nil | binary()) ::
           {:ok, Enumerable.t()} | K8s.Client.Provider.error_t()
   defp do_resource(conn, operation, http_opts, nil) do
-    with {:ok, resource_version} <- Watch.get_resource_version(conn, operation) do
+    with {:ok, resource_version} <- get_resource_version(conn, operation) do
       do_resource(conn, operation, http_opts, resource_version)
     end
   end
@@ -157,4 +157,19 @@ defmodule K8s.Client.Runner.Watch.Stream do
     new_state = struct!(state, resource_version: object["metadata"]["resourceVersion"])
     {[new_event], new_state}
   end
+
+  @spec get_resource_version(K8s.Conn.t(), K8s.Operation.t()) :: {:ok, binary} | Base.error_t()
+  defp get_resource_version(%K8s.Conn{} = conn, %K8s.Operation{} = operation) do
+    with {:ok, payload} <- Base.run(conn, operation) do
+      rv = parse_resource_version(payload)
+      {:ok, rv}
+    end
+  end
+
+  @resource_version_json_path ~w(metadata resourceVersion)
+  @spec parse_resource_version(any) :: binary
+  defp parse_resource_version(%{} = payload),
+    do: get_in(payload, @resource_version_json_path) || "0"
+
+  defp parse_resource_version(_), do: "0"
 end

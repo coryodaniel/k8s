@@ -90,6 +90,12 @@ defmodule K8s.Client.Runner.Base do
   See `run/3`
   """
   @spec run(Conn.t(), Operation.t(), keyword()) :: result_t
+  def run(_conn, %Operation{verb: :watch}, _) do
+    msg = "Watch operations have to be streamed. Use K8s.Client.stream/N"
+
+    {:error, %K8s.Operation.Error{message: msg}}
+  end
+
   def run(%Conn{} = conn, %Operation{verb: :connect} = operation, websocket_driver_opts) do
     body = operation.data
     all_options = Keyword.merge(websocket_driver_opts, operation.query_params)
