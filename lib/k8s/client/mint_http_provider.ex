@@ -10,7 +10,8 @@ defmodule K8s.Client.MintHTTPProvider do
 
   @type t :: %__MODULE__{
           conn: Mint.HTTP.t(),
-          request_ref: Mint.Types.request_ref() | nil
+          request_ref: Mint.Types.request_ref() | nil,
+          websocket: Mint.WebSocket.t() | nil
         }
 
   @typep request_response_t :: %{
@@ -19,7 +20,7 @@ defmodule K8s.Client.MintHTTPProvider do
            headers: list()
          }
 
-  defstruct [:conn, :request_ref]
+  defstruct [:conn, :request_ref, :websocket]
 
   @impl true
   def request(method, uri, body, headers, http_opts) do
@@ -55,21 +56,48 @@ defmodule K8s.Client.MintHTTPProvider do
     with {:ok, conn} <- connect(uri, transport_opts: transport_opts) do
       start_fn = fn -> start_request(conn, method, path, body, headers) end
 
-      stream = create_stream(start_fn)
+      stream = create_stream(start_fn) |> Stream.map(&map_responses/1)
       {:ok, stream}
     end
   end
 
-  # @impl true
-  # def websocket_stream(method, url, body, headers, http_opts) do
-  #   server = URI.parse(url)
-  #   transport_opts = Keyword.fetch!(http_opts, :ssl)
+  @impl true
+  def websocket_stream(uri, headers, http_opts) do
+    transport_opts = Keyword.fetch!(http_opts, :ssl)
 
-  #   with {:ok, conn} <- connect(server, transport_opts: transport_opts, protocols: [:http1]) do
-  #     stream = create_stream(conn, method, server, body, headers, http_opts)
-  #     {:ok, stream}
-  #   end
-  # end
+    path =
+      IO.iodata_to_binary([
+        uri.path,
+        if(uri.query, do: ["?" | uri.query], else: [])
+      ])
+
+    headers = Enum.map(headers, fn {header, value} -> {"#{header}", "#{value}"} end)
+
+    with {:ok, conn} <-
+           connect(uri, transport_opts: transport_opts, protocols: [:http1]),
+         {:ok, {conn, ref}} <- upgrade_request(conn, path, headers),
+         {:ok, conn, [{:status, ^ref, status}, {:headers, ^ref, resp_headers} | _]} <-
+           receive(do: (msg -> Mint.WebSocket.stream(conn, msg))),
+         {:ok, websocket, state} <- create_websocket(conn, ref, status, resp_headers) do
+      stream =
+        create_stream(fn -> state end)
+        |> Stream.transform(
+          fn -> websocket end,
+          fn
+            {:data, _ref, data}, websocket ->
+              {:ok, websocket, frames} = Mint.WebSocket.decode(websocket, data)
+              {frames, websocket}
+
+            other, websocket ->
+              {[other], websocket}
+          end,
+          fn _websocket -> nil end
+        )
+        |> Stream.map(&map_responses/1)
+
+      {:ok, stream}
+    end
+  end
 
   @spec connect(URI.t(), Keyword.t()) :: {:error, HTTPError.t()} | {:ok, Mint.HTTP.t()}
   defp connect(uri, opts) do
@@ -89,16 +117,6 @@ defmodule K8s.Client.MintHTTPProvider do
     end
   end
 
-  @spec create_stream(fun()) ::
-          Enumerable.t(K8s.Client.Provider.stream_chunk_t())
-  defp create_stream(start_fn) do
-    Stream.resource(
-      start_fn,
-      &next_fun/1,
-      fn state -> Mint.HTTP.close(state.conn) end
-    )
-  end
-
   @spec start_request(Mint.HTTP.t(), binary(), binary(), binary(), list()) ::
           t() | {:error, t(), HTTPError.t()}
   defp start_request(conn, method, path, body, headers) do
@@ -113,24 +131,67 @@ defmodule K8s.Client.MintHTTPProvider do
     end
   end
 
+  @spec upgrade_request(Mint.HTTP.t(), binary(), list()) ::
+          {:ok, {Mint.HTTP.t(), Mint.Types.request_ref()}} | {:error, t(), HTTPError.t()}
+  defp upgrade_request(conn, path, headers) do
+    case Mint.WebSocket.upgrade(:wss, conn, path, headers) do
+      {:ok, conn, ref} ->
+        # {:ok, conn, [{:status, ^ref, status}, {:headers, ^ref, resp_headers} | _rest]} =
+        #   receive(do: (msg -> Mint.WebSocket.stream(conn, msg)))
+
+        # {:ok, conn, websocket} = Mint.WebSocket.new(conn, ref, status, resp_headers)
+        {:ok, {conn, ref}}
+
+      {:error, conn, error}
+      when is_exception(error, Mint.HTTPError) or is_exception(error, Mint.TransportError) ->
+        {:error, struct!(__MODULE__, conn: conn),
+         HTTPError.new(message: error.reason, adapter_specific_error: error)}
+    end
+  end
+
+  defp create_websocket(conn, ref, status, resp_headers) do
+    case Mint.WebSocket.new(conn, ref, status, resp_headers) do
+      {:ok, conn, websocket} ->
+        {:ok, websocket, struct!(__MODULE__, conn: conn, request_ref: ref)}
+
+      {:error, conn, error}
+      when is_exception(error, Mint.HTTPError) or is_exception(error, Mint.TransportError) ->
+        {:error, struct!(__MODULE__, conn: conn),
+         HTTPError.new(message: error.reason, adapter_specific_error: error)}
+    end
+  end
+
+  @spec create_stream(fun()) ::
+          Enumerable.t(K8s.Client.Provider.stream_chunk_t())
+  defp create_stream(start_fn) do
+    Stream.resource(
+      start_fn,
+      &next_fun/1,
+      fn state -> Mint.HTTP.close(state.conn) end
+    )
+  end
+
   @spec next_fun({:error, t(), HTTPError.t()}) :: {[HTTPError.t()], {:halt, t()}}
   defp next_fun({:error, state, error}), do: {[error], {:halt, state}}
 
   @spec next_fun({:halt, t()}) :: {:halt, t()}
   defp next_fun({:halt, state}), do: {:halt, state}
 
-  @spec next_fun(t()) :: {[K8s.Client.Provider.stream_chunk_t()], t() | {:halt, t()}}
   defp next_fun(%{request_ref: request_ref} = state) do
     receive do
       message when Mint.HTTP.is_connection_message(state.conn, message) ->
-        {:ok, conn, responses} = Mint.WebSocket.stream(state.conn, message)
+        case Mint.WebSocket.stream(state.conn, message) do
+          {:error, conn, %Mint.TransportError{reason: :closed}, responses} ->
+            {responses, {:halt, struct!(state, conn: conn)}}
 
-        case Enum.reverse(responses) do
-          [{:done, ^request_ref} | _] ->
-            {Enum.map(responses, &map_responses/1), {:halt, state}}
+          {:ok, conn, responses} ->
+            case Enum.reverse(responses) do
+              [{:done, ^request_ref} | _] ->
+                {responses, {:halt, struct!(state, conn: conn)}}
 
-          _ ->
-            {Enum.map(responses, &map_responses/1), struct!(state, conn: conn)}
+              _ ->
+                {responses, struct!(state, conn: conn)}
+            end
         end
 
       _other ->
@@ -142,6 +203,11 @@ defmodule K8s.Client.MintHTTPProvider do
           {atom(), Mint.Types.request_ref()}
           | {atom(), Mint.Types.request_ref(), term()}
         ) :: atom() | {atom(), term()}
+  defp map_responses({:close, 1000, ""}), do: :close
+  defp map_responses({:binary, <<1, msg::binary>>}), do: {:stdout, msg}
+  defp map_responses({:binary, <<2, msg::binary>>}), do: {:stderr, msg}
+  defp map_responses({:binary, <<3, msg::binary>>}), do: {:error, msg}
+  defp map_responses({:binary, <<type::binary-size(1), msg::binary>>}), do: {:binary, type, msg}
   defp map_responses({type, _ref}), do: type
 
   defp map_responses({type, _ref, data}), do: {type, data}

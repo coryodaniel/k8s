@@ -96,30 +96,6 @@ defmodule K8s.Client.Runner.Base do
     {:error, %K8s.Operation.Error{message: msg}}
   end
 
-  def run(%Conn{} = conn, %Operation{verb: :connect} = operation, websocket_driver_opts) do
-    body = operation.data
-    all_options = Keyword.merge(websocket_driver_opts, operation.query_params)
-
-    with {:ok, url} <- K8s.Discovery.url_for(conn, operation),
-         {:ok, opts} <- process_opts(all_options),
-         req <- new_request(conn, url, operation, body, []),
-         {:ok, req} <- K8s.Middleware.run(req, conn.middleware.request) do
-      # update headers
-      headers = Keyword.merge(req.headers, Accept: "*/*")
-      ssl = Keyword.get(req.opts, :ssl)
-      cacerts = Keyword.get(ssl, :cacerts)
-
-      K8s.websocket_provider().request(
-        req.uri,
-        false,
-        ssl,
-        cacerts,
-        headers,
-        opts
-      )
-    end
-  end
-
   # Run an operation and pass `http_opts` to `K8s.Client.HTTPProvider`
   def run(%Conn{} = conn, %Operation{} = operation, http_opts) do
     with {:ok, url} <- K8s.Discovery.url_for(conn, operation),
@@ -130,8 +106,20 @@ defmodule K8s.Client.Runner.Base do
   end
 
   @doc """
-  Runs a `K8s.Operation` and streams chunks to `stream_to_pid`.
+  Runs a `K8s.Operation` and streams the response.
   """
+  def stream(%Conn{} = conn, %Operation{verb: :connect} = operation, http_opts) do
+    with {:ok, url} <- K8s.Discovery.url_for(conn, operation),
+         req <- new_request(conn, url, operation, operation.data, http_opts),
+         {:ok, req} <- K8s.Middleware.run(req, conn.middleware.request) do
+      conn.http_provider.websocket_stream(
+        req.uri,
+        Keyword.merge(req.headers, Accept: "*/*"),
+        req.opts
+      )
+    end
+  end
+
   @spec stream(Conn.t(), Operation.t(), keyword()) :: K8s.Client.Provider.stream_response_t()
   def stream(%Conn{} = conn, %Operation{} = operation, http_opts) do
     with {:ok, url} <- K8s.Discovery.url_for(conn, operation),
@@ -188,27 +176,5 @@ defmodule K8s.Client.Runner.Base do
     |> Keyword.delete(:labelSelector)
     |> Keyword.merge(selectors)
     |> Keyword.merge(commands)
-  end
-
-  @doc false
-  # k8s api can take multiple commands params per request
-  @spec command_builder(list, list) :: list
-  defp command_builder([], acc), do: Enum.reverse(acc)
-
-  defp command_builder([h | t], acc) do
-    params = URI.encode_query(%{"command" => h})
-    command_builder(t, ["#{params}" | acc])
-  end
-
-  # Pod connect - fail if missing command
-  @spec process_opts(list) :: {:ok, term()} | {:error, String.t()}
-  defp process_opts(opts) do
-    default = [stream_to: self(), stdin: true, stdout: true, stderr: true, tty: true]
-    processed = Keyword.merge(default, opts)
-    # check for command
-    case Keyword.get(processed, :command) do
-      nil -> {:error, ":command is required in params"}
-      _ -> {:ok, processed}
-    end
   end
 end

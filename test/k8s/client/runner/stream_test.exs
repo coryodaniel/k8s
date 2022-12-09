@@ -119,7 +119,7 @@ defmodule K8s.Client.Runner.StreamTest do
       assert {:error, error} = K8s.Client.stream(conn, op)
 
       assert error.message =~
-               "Only [:list, :list_all_namespaces, :watch, :watch_all_namespaces] operations can be streamed."
+               "Only [:list, :list_all_namespaces, :watch, :watch_all_namespaces, :connect] operations can be streamed."
     end
   end
 end

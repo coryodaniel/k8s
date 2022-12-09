@@ -178,6 +178,12 @@ defmodule K8s.Operation do
             force: Keyword.get(opts, :force, true)
           ]
 
+        :connect ->
+          [stdin: true, stdout: true, stderr: true, tty: false]
+          |> Keyword.merge(
+            Keyword.take(opts, [:stdin, :stdout, :stderr, :tty, :command, :container])
+          )
+
         _ ->
           []
       end

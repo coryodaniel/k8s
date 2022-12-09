@@ -18,7 +18,7 @@ defmodule K8s.Client.Provider do
   @type response_t :: success_t() | error_t()
   @type stream_response_t :: stream_success_t() | error_t()
 
-  @doc "Perform HTTP Requests"
+  @doc "Perform HTTP requests"
   @callback request(
               method :: atom(),
               uri :: URI.t(),
@@ -27,11 +27,18 @@ defmodule K8s.Client.Provider do
               http_opts :: keyword()
             ) :: response_t()
 
-  @doc "Perform HTTP Requests and stream response"
+  @doc "Perform HTTP requests and stream response"
   @callback stream(
               method :: atom(),
               uri :: URI.t(),
               body :: binary,
+              headers :: list(),
+              http_opts :: keyword()
+            ) :: stream_response_t()
+
+  @doc "Perform Websocket requests and stream response"
+  @callback websocket_stream(
+              uri :: URI.t(),
               headers :: list(),
               http_opts :: keyword()
             ) :: stream_response_t()
