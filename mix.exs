@@ -39,6 +39,7 @@ defmodule K8s.MixProject do
       {:yaml_elixir, "~> 2.8"},
       {:jason, "~> 1.0"},
       {:mint, "~> 1.4"},
+      {:mint_web_socket, "~> 1.0"},
       {:telemetry, "~> 1.0"},
 
       # dev/test deps (e.g. code coverage)

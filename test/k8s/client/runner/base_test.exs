@@ -9,27 +9,26 @@ defmodule K8s.Client.Runner.BaseTest do
   import K8s.Test.IntegrationHelper
 
   defmodule HTTPMock do
-    @base_url "https://localhost:6443"
-    @namespaced_url @base_url <> "/api/v1/namespaces"
+    @namespaced_path "/api/v1/namespaces"
 
-    def request(:get, @namespaced_url, _, _, _), do: {:ok, nil}
+    def request(:get, %URI{path: @namespaced_path}, _, _, _), do: {:ok, nil}
 
-    def request(:post, @namespaced_url, body, _, _) do
+    def request(:post, %URI{path: @namespaced_path}, body, _, _) do
       {:ok, body}
     end
 
-    def request(:get, @namespaced_url <> "/test", _body, _headers, _opts) do
+    def request(:get, %URI{path: @namespaced_path <> "/test"}, _body, _headers, _opts) do
       {:ok, nil}
     end
 
-    def request(:get, @namespaced_url <> "/test-query-params", _body, _headers, opts) do
+    def request(:get, %URI{path: @namespaced_path <> "/test-query-params"}, _body, _headers, opts) do
       params = Keyword.get(opts, :params)
       {:ok, params}
     end
 
     def request(
           :get,
-          @base_url <> "/apis/apps/v1/namespaces/default/deployments/nginx/status",
+          %URI{path: "/apis/apps/v1/namespaces/default/deployments/nginx/status"},
           _body,
           _headers,
           _opts
@@ -39,29 +38,27 @@ defmodule K8s.Client.Runner.BaseTest do
 
     def request(
           :get,
-          @base_url <> "/api/v1/pods",
+          %URI{path: "/api/v1/pods", query: "labelSelector=app%3Dnginx"},
           _body,
           _headers,
-          ssl: _ssl,
-          params: [labelSelector: "app=nginx", fieldSelector: ""]
+          ssl: _ssl
         ) do
       {:ok, nil}
     end
 
     def request(
           :get,
-          @base_url <> "/api/v1/pods",
+          %URI{path: "/api/v1/pods", query: "fieldSelector=status.phase%3DRunning"},
           _body,
           _headers,
-          ssl: _ssl,
-          params: [labelSelector: "", fieldSelector: "status.phase=Running"]
+          ssl: _ssl
         ) do
       {:ok, nil}
     end
 
     def request(
           :post,
-          @base_url <> "/api/v1/namespaces/default/pods/nginx/eviction",
+          %URI{path: "/api/v1/namespaces/default/pods/nginx/eviction"},
           body,
           _headers,
           _opts
@@ -71,7 +68,7 @@ defmodule K8s.Client.Runner.BaseTest do
 
     def request(
           :post,
-          @base_url <> "/api/v1/namespaces/default/pods/nginx/exec",
+          %URI{path: "/api/v1/namespaces/default/pods/nginx/exec"},
           _body,
           _headers,
           _opts

@@ -19,10 +19,22 @@ defmodule K8s.Client.Provider do
   @type stream_response_t :: stream_success_t() | error_t()
 
   @doc "Perform HTTP Requests"
-  @callback request(atom, binary, binary, keyword, keyword) :: response_t()
+  @callback request(
+              method :: atom(),
+              uri :: URI.t(),
+              body :: binary,
+              headers :: list(),
+              http_opts :: keyword()
+            ) :: response_t()
 
   @doc "Perform HTTP Requests and stream response"
-  @callback stream(atom, binary, binary, keyword, keyword) :: stream_response_t()
+  @callback stream(
+              method :: atom(),
+              uri :: URI.t(),
+              body :: binary,
+              headers :: list(),
+              http_opts :: keyword()
+            ) :: stream_response_t()
 
   @doc """
   Generates HTTP headers from `K8s.Conn.RequestOptions`

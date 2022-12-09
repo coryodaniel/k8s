@@ -18,7 +18,7 @@ defmodule K8s.Client.Runner.Stream.WatchTest do
 
     def request(
           :get,
-          "https://localhost:6443/api/v1/namespaces",
+          %URI{path: "/api/v1/namespaces"},
           _body,
           _headers,
           _opts
@@ -28,7 +28,7 @@ defmodule K8s.Client.Runner.Stream.WatchTest do
 
     def request(
           :get,
-          "https://localhost:6443/api/v1/pods",
+          %URI{path: "/api/v1/pods"},
           _body,
           _headers,
           _opts
@@ -38,7 +38,7 @@ defmodule K8s.Client.Runner.Stream.WatchTest do
 
     def request(
           :get,
-          "https://localhost:6443/apis/apps/v1/daemonsets",
+          %URI{path: "/apis/apps/v1/daemonsets"},
           _body,
           _headers,
           _opts
@@ -48,7 +48,7 @@ defmodule K8s.Client.Runner.Stream.WatchTest do
 
     def request(
           :get,
-          "https://localhost:6443/apis/apps/v1/deployments",
+          %URI{path: "/apis/apps/v1/deployments"},
           _body,
           _headers,
           _opts
@@ -58,7 +58,7 @@ defmodule K8s.Client.Runner.Stream.WatchTest do
 
     def request(
           :get,
-          "https://localhost:6443/apis/apps/v1/statefulsets",
+          %URI{path: "/apis/apps/v1/statefulsets"},
           _body,
           _headers,
           _opts
@@ -68,7 +68,7 @@ defmodule K8s.Client.Runner.Stream.WatchTest do
 
     def request(
           :get,
-          "https://localhost:6443/api/v1/services",
+          %URI{path: "/api/v1/services"},
           _body,
           _headers,
           _opts
@@ -78,7 +78,7 @@ defmodule K8s.Client.Runner.Stream.WatchTest do
 
     def request(
           :get,
-          "https://localhost:6443/apis/apps/v1/replicasets",
+          %URI{path: "/apis/apps/v1/replicasets"},
           _body,
           _headers,
           _opts
@@ -88,7 +88,7 @@ defmodule K8s.Client.Runner.Stream.WatchTest do
 
     def request(
           :get,
-          "https://localhost:6443/api/v1/configmaps",
+          %URI{path: "/api/v1/configmaps"},
           _body,
           _headers,
           _opts
@@ -98,7 +98,7 @@ defmodule K8s.Client.Runner.Stream.WatchTest do
 
     def stream(
           :get,
-          "https://localhost:6443/api/v1/namespaces",
+          %URI{path: "/api/v1/namespaces"},
           _body,
           _headers,
           opts
@@ -135,7 +135,7 @@ defmodule K8s.Client.Runner.Stream.WatchTest do
 
     def stream(
           :get,
-          "https://localhost:6443/api/v1/pods",
+          %URI{path: "/api/v1/pods"},
           _body,
           _headers,
           opts
@@ -175,7 +175,7 @@ defmodule K8s.Client.Runner.Stream.WatchTest do
 
     def stream(
           :get,
-          "https://localhost:6443/apis/apps/v1/daemonsets",
+          %URI{path: "/apis/apps/v1/daemonsets"},
           _body,
           _headers,
           opts
@@ -200,7 +200,7 @@ defmodule K8s.Client.Runner.Stream.WatchTest do
 
     def stream(
           :get,
-          "https://localhost:6443/apis/apps/v1/deployments",
+          %URI{path: "/apis/apps/v1/deployments"},
           _body,
           _headers,
           opts
@@ -243,7 +243,7 @@ defmodule K8s.Client.Runner.Stream.WatchTest do
 
     def stream(
           :get,
-          "https://localhost:6443/apis/apps/v1/statefulsets",
+          %URI{path: "/apis/apps/v1/statefulsets"},
           _body,
           _headers,
           opts
@@ -276,7 +276,7 @@ defmodule K8s.Client.Runner.Stream.WatchTest do
 
     def stream(
           :get,
-          "https://localhost:6443/apis/apps/v1/replicasets",
+          %URI{path: "/apis/apps/v1/replicasets"},
           _body,
           _headers,
           opts
@@ -314,7 +314,7 @@ defmodule K8s.Client.Runner.Stream.WatchTest do
 
     def stream(
           :get,
-          "https://localhost:6443/api/v1/services",
+          %URI{path: "/api/v1/services"},
           _body,
           _headers,
           opts
@@ -355,7 +355,7 @@ defmodule K8s.Client.Runner.Stream.WatchTest do
 
     def stream(
           :get,
-          "https://localhost:6443/api/v1/configmaps",
+          %URI{path: "/api/v1/configmaps"},
           _body,
           _headers,
           opts

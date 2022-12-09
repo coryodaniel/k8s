@@ -22,8 +22,8 @@ defmodule K8s.Client.MintHTTPProvider do
   defstruct [:conn, :request_ref]
 
   @impl true
-  def request(method, url, body, headers, http_opts) do
-    with {:ok, stream} <- stream(method, url, body, headers, http_opts) do
+  def request(method, uri, body, headers, http_opts) do
+    with {:ok, stream} <- stream(method, uri, body, headers, http_opts) do
       response =
         Enum.reduce_while(stream, %{chunks: [], status: nil, headers: []}, fn
           {:data, responses}, acc -> {:cont, Map.update!(acc, :chunks, &[responses | &1])}
@@ -40,24 +40,44 @@ defmodule K8s.Client.MintHTTPProvider do
   end
 
   @impl true
-  def stream(method, url, body, headers, http_opts) do
-    server = URI.parse(url)
+  def stream(method, uri, body, headers, http_opts) do
+    transport_opts = Keyword.fetch!(http_opts, :ssl)
+    method = String.upcase("#{method}")
 
-    with {:ok, conn} <- connect(server, http_opts) do
-      stream = create_stream(conn, method, server, body, headers, http_opts)
+    path =
+      IO.iodata_to_binary([
+        uri.path,
+        if(uri.query, do: ["?" | uri.query], else: [])
+      ])
+
+    headers = Enum.map(headers, fn {header, value} -> {"#{header}", "#{value}"} end)
+
+    with {:ok, conn} <- connect(uri, transport_opts: transport_opts) do
+      start_fn = fn -> start_request(conn, method, path, body, headers) end
+
+      stream = create_stream(start_fn)
       {:ok, stream}
     end
   end
 
-  @spec connect(URI.t(), Keyword.t()) :: {:error, HTTPError.t()} | {:ok, Mint.HTTP.t()}
-  defp connect(server, http_opts) do
-    transport_opts = Keyword.fetch!(http_opts, :ssl)
+  # @impl true
+  # def websocket_stream(method, url, body, headers, http_opts) do
+  #   server = URI.parse(url)
+  #   transport_opts = Keyword.fetch!(http_opts, :ssl)
 
+  #   with {:ok, conn} <- connect(server, transport_opts: transport_opts, protocols: [:http1]) do
+  #     stream = create_stream(conn, method, server, body, headers, http_opts)
+  #     {:ok, stream}
+  #   end
+  # end
+
+  @spec connect(URI.t(), Keyword.t()) :: {:error, HTTPError.t()} | {:ok, Mint.HTTP.t()}
+  defp connect(uri, opts) do
     case Mint.HTTP.connect(
-           String.to_atom(server.scheme),
-           server.host,
-           server.port,
-           transport_opts: transport_opts
+           String.to_atom(uri.scheme),
+           uri.host,
+           uri.port,
+           opts
          ) do
       {:error, error}
       when is_exception(error, Mint.HTTPError) or
@@ -69,16 +89,11 @@ defmodule K8s.Client.MintHTTPProvider do
     end
   end
 
-  @spec create_stream(Mint.HTTP.t(), atom(), URI.t(), binary(), list(), keyword()) ::
+  @spec create_stream(fun()) ::
           Enumerable.t(K8s.Client.Provider.stream_chunk_t())
-  defp create_stream(conn, method, server, body, headers, http_opts) do
-    method = String.upcase("#{method}")
-    query = http_opts |> Keyword.get(:params, []) |> URI.encode_query()
-    path = String.trim(server.path <> "?" <> query, "?")
-    headers = Enum.map(headers, fn {header, value} -> {"#{header}", "#{value}"} end)
-
+  defp create_stream(start_fn) do
     Stream.resource(
-      fn -> start_request(conn, method, path, body, headers) end,
+      start_fn,
       &next_fun/1,
       fn state -> Mint.HTTP.close(state.conn) end
     )
@@ -108,7 +123,7 @@ defmodule K8s.Client.MintHTTPProvider do
   defp next_fun(%{request_ref: request_ref} = state) do
     receive do
       message when Mint.HTTP.is_connection_message(state.conn, message) ->
-        {:ok, conn, responses} = Mint.HTTP.stream(state.conn, message)
+        {:ok, conn, responses} = Mint.WebSocket.stream(state.conn, message)
 
         case Enum.reverse(responses) do
           [{:done, ^request_ref} | _] ->

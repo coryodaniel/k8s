@@ -4,13 +4,11 @@ defmodule K8s.Discovery.Driver.HTTPTest do
   alias K8s.Client.DynamicHTTPProvider
 
   defmodule HTTPMock do
-    @base_url "https://localhost:6443"
-
-    def request(:get, @base_url <> "/api", _, _, _) do
+    def request(:get, %URI{path: "/api"}, _, _, _) do
       {:ok, %{"versions" => ["v1"]}}
     end
 
-    def request(:get, @base_url <> "/apis", _, _, _) do
+    def request(:get, %URI{path: "/apis"}, _, _, _) do
       groups = [
         %{
           "versions" => [
@@ -23,7 +21,7 @@ defmodule K8s.Discovery.Driver.HTTPTest do
       {:ok, %{"apiVersion" => "v1", "groups" => groups}}
     end
 
-    def request(:get, @base_url <> "/apis/apps/v1", _, _, _) do
+    def request(:get, %URI{path: "/apis/apps/v1"}, _, _, _) do
       resource_list = %{
         "apiVersion" => "v1",
         "groupVersion" => "apps/v1",

@@ -110,7 +110,7 @@ defmodule K8s.Client.Runner.Base do
       cacerts = Keyword.get(ssl, :cacerts)
 
       K8s.websocket_provider().request(
-        req.url,
+        req.uri,
         false,
         ssl,
         cacerts,
@@ -125,7 +125,7 @@ defmodule K8s.Client.Runner.Base do
     with {:ok, url} <- K8s.Discovery.url_for(conn, operation),
          req <- new_request(conn, url, operation, operation.data, http_opts),
          {:ok, req} <- K8s.Middleware.run(req, conn.middleware.request) do
-      conn.http_provider.request(req.method, req.url, req.body, req.headers, req.opts)
+      conn.http_provider.request(req.method, req.uri, req.body, req.headers, req.opts)
     end
   end
 
@@ -139,7 +139,7 @@ defmodule K8s.Client.Runner.Base do
          {:ok, req} <- K8s.Middleware.run(req, conn.middleware.request) do
       conn.http_provider.stream(
         req.method,
-        req.url,
+        req.uri,
         req.body,
         req.headers,
         req.opts
@@ -147,27 +147,8 @@ defmodule K8s.Client.Runner.Base do
     end
   end
 
-  @spec new_request(Conn.t(), String.t(), Operation.t(), body_t, Keyword.t()) ::
-          Request.t()
-  defp new_request(%Conn{} = conn, url, %Operation{verb: :connect} = operation, body, http_opts) do
-    req = %Request{conn: conn, method: operation.method, body: body, url: url}
-
-    headers = ["Content-Type": "application/json"]
-
-    operation_query_params = build_query_params(operation)
-    # websockex needs a populated url with query params
-    updated_url = URI.append_query(URI.new!(url), operation_query_params)
-
-    http_opts_params = Keyword.get(http_opts, :params, [])
-    merged_params = http_opts_params
-    http_opts_w_merged_params = Keyword.put(http_opts, :params, merged_params)
-    updated_http_opts = Keyword.merge(req.opts, http_opts_w_merged_params)
-
-    %Request{req | url: updated_url, opts: updated_http_opts, headers: headers}
-  end
-
   defp new_request(%Conn{} = conn, url, %Operation{} = operation, body, http_opts) do
-    req = %Request{conn: conn, method: operation.method, body: body, url: url}
+    req = %Request{conn: conn, method: operation.method, body: body}
 
     headers =
       case operation.verb do
@@ -179,37 +160,34 @@ defmodule K8s.Client.Runner.Base do
     operation_query_params = build_query_params(operation)
     http_opts_params = Keyword.get(http_opts, :params, [])
     merged_params = Keyword.merge(operation_query_params, http_opts_params)
-    http_opts_w_merged_params = Keyword.put(http_opts, :params, merged_params)
-    updated_http_opts = Keyword.merge(req.opts, http_opts_w_merged_params)
 
-    %Request{req | opts: updated_http_opts, headers: headers}
+    uri = url |> URI.parse() |> URI.append_query(URI.encode_query(merged_params))
+
+    %Request{req | opts: http_opts, headers: headers, uri: uri}
   end
 
   @spec build_query_params(Operation.t()) :: String.t() | keyword()
-  defp build_query_params(%Operation{verb: :connect} = operation) do
-    Enum.map_join(operation.query_params, "&", fn {k, v} ->
-      case k do
-        :command when is_list(v) ->
-          res = command_builder(v, [])
-          Enum.join(res, "&")
+  defp build_query_params(operation) do
+    {commands, query_params} = Keyword.pop_values(operation.query_params, :command)
 
-        :command ->
-          res = command_builder([v], [])
-          Enum.join(res, "&")
+    commands =
+      commands
+      |> List.flatten()
+      |> Enum.map(&{:command, &1})
 
-        _ ->
-          "#{URI.encode_query(%{k => v})}"
-      end
-    end)
-  end
-
-  defp build_query_params(%Operation{} = operation) do
     selector = Operation.get_selector(operation)
 
-    Keyword.merge(operation.query_params,
-      labelSelector: K8s.Selector.labels_to_s(selector),
-      fieldSelector: K8s.Selector.fields_to_s(selector)
-    )
+    selectors =
+      [
+        labelSelector: K8s.Selector.labels_to_s(selector),
+        fieldSelector: K8s.Selector.fields_to_s(selector)
+      ]
+      |> Keyword.reject(&(elem(&1, 1) == ""))
+
+    query_params
+    |> Keyword.delete(:labelSelector)
+    |> Keyword.merge(selectors)
+    |> Keyword.merge(commands)
   end
 
   @doc false
