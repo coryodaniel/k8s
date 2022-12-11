@@ -38,8 +38,11 @@ defmodule K8s.MixProject do
       {:castore, "~> 0.1"},
       {:yaml_elixir, "~> 2.8"},
       {:jason, "~> 1.0"},
-      {:mint, "~> 1.4"},
-      {:mint_web_socket, "~> 1.0"},
+      {
+        :mint_web_socket,
+        # TODO: once a new release is out, use it.
+        git: "https://github.com/elixir-mint/mint_web_socket.git", branch: "main"
+      },
       {:telemetry, "~> 1.0"},
 
       # dev/test deps (e.g. code coverage)
