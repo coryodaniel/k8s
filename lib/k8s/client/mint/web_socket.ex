@@ -1,6 +1,11 @@
 defmodule K8s.Client.Mint.WebSocket do
-  alias K8s.Client.Provider
+  @moduledoc """
+  Websocket implementation of Mint based `K8s.Client.Provider`
+  """
+
   alias K8s.Client.HTTPError
+  alias K8s.Client.Provider
+
   require Mint.HTTP
 
   @type t :: %__MODULE__{
@@ -10,6 +15,29 @@ defmodule K8s.Client.Mint.WebSocket do
         }
 
   defstruct [:conn, :ref, :websocket]
+
+  @spec request(
+          uri :: URI.t(),
+          headers :: list(),
+          http_opts :: keyword()
+        ) :: Provider.websocket_response_t()
+  def request(uri, headers, http_opts) do
+    with {:ok, stream} <- stream(uri, headers, http_opts) do
+      response =
+        stream
+        |> Enum.reduce(%{stdout: [], stderr: [], error: []}, fn
+          {:stdout, responses}, acc -> Map.update!(acc, :stdout, &[responses | &1])
+          {:stderr, responses}, acc -> Map.update!(acc, :stderr, &[responses | &1])
+          {:error, responses}, acc -> Map.update!(acc, :error, &[responses | &1])
+          _other, acc -> acc
+        end)
+        |> Map.update!(:stdout, &Enum.reverse(&1))
+        |> Map.update!(:stderr, &Enum.reverse(&1))
+        |> Map.update!(:error, &Enum.reverse(&1))
+
+      {:ok, response}
+    end
+  end
 
   @spec stream(
           uri :: URI.t(),
@@ -29,42 +57,39 @@ defmodule K8s.Client.Mint.WebSocket do
 
     with {:ok, conn} <-
            K8s.Client.Mint.HTTP.connect(uri, transport_opts: transport_opts, protocols: [:http1]),
-         {:ok, {conn, ref}} <- upgrade_request(conn, path, headers),
-         {:ok, conn, [{:status, ^ref, status}, {:headers, ^ref, resp_headers} | _]} <-
-           receive(do: (msg -> Mint.WebSocket.stream(conn, msg))),
-         {:ok, state} <- create_websocket(conn, ref, status, resp_headers) do
+         {:ok, state} <- upgrade_to_websocket(conn, path, headers) do
       stream =
         [:open]
         |> Stream.concat(create_stream(fn -> state end))
         |> Stream.map(&map_responses/1)
 
       {:ok, stream}
+    else
+      {:error, conn, error} ->
+        Mint.HTTP.close(conn)
+        {:error, error}
+
+      error ->
+        error
     end
   end
 
-  @spec upgrade_request(Mint.HTTP.t(), binary(), list()) ::
-          {:ok, {Mint.HTTP.t(), Mint.Types.request_ref()}} | {:error, t(), HTTPError.t()}
-  defp upgrade_request(conn, path, headers) do
-    case Mint.WebSocket.upgrade(:wss, conn, path, headers) do
-      {:ok, conn, ref} ->
-        {:ok, {conn, ref}}
-
+  @spec upgrade_to_websocket(Mint.HTTP.t(), binary(), list()) ::
+          {:ok, {Mint.HTTP.t(), Mint.Types.request_ref()}}
+          | {:error, Mint.HTTP.t(), HTTPError.t()}
+  defp upgrade_to_websocket(conn, path, headers) do
+    with {:ok, conn, ref} <- Mint.WebSocket.upgrade(:wss, conn, path, headers),
+         [{:status, ^ref, status}, {:headers, ^ref, resp_headers} | _] <-
+           create_stream(fn -> struct!(__MODULE__, conn: conn, ref: ref) end) |> Enum.to_list(),
+         {:ok, conn, websocket} <- Mint.WebSocket.new(conn, ref, status, resp_headers) do
+      {:ok, struct!(__MODULE__, conn: conn, ref: ref, websocket: websocket)}
+    else
       {:error, conn, error}
-      when is_exception(error, Mint.HTTPError) or is_exception(error, Mint.TransportError) ->
-        {:error, struct!(__MODULE__, conn: conn),
-         HTTPError.new(message: error.reason, adapter_specific_error: error)}
-    end
-  end
-
-  defp create_websocket(conn, ref, status, resp_headers) do
-    case Mint.WebSocket.new(conn, ref, status, resp_headers) do
-      {:ok, conn, websocket} ->
-        {:ok, struct!(__MODULE__, conn: conn, ref: ref, websocket: websocket)}
-
-      {:error, conn, error}
-      when is_exception(error, Mint.HTTPError) or is_exception(error, Mint.TransportError) ->
-        {:error, struct!(__MODULE__, conn: conn),
-         HTTPError.new(message: error.reason, adapter_specific_error: error)}
+      when is_exception(error, Mint.HTTPError) or is_exception(error, Mint.TransportError) or
+             is_exception(error, Mint.WebSocketError) or
+             is_exception(error, Mint.WebSocket.UpgradeFailureError) ->
+        {:error, conn,
+         HTTPError.new(message: Exception.message(error), adapter_specific_error: error)}
     end
   end
 
@@ -74,9 +99,13 @@ defmodule K8s.Client.Mint.WebSocket do
     Stream.resource(
       start_fn,
       &next_fun/1,
-      fn state ->
-        # TODO
-        Mint.HTTP.close(state.conn)
+      fn
+        %{websocket: nil} ->
+          nil
+
+        %{conn: conn} ->
+          # TODO
+          Mint.HTTP.close(conn)
       end
     )
   end
@@ -87,11 +116,30 @@ defmodule K8s.Client.Mint.WebSocket do
   @spec next_fun({:halt, t()}) :: {:halt, t()}
   defp next_fun({:halt, state}), do: {:halt, state}
 
+  defp next_fun(%{websocket: nil, ref: ref} = state) do
+    receive do
+      message when Mint.HTTP.is_connection_message(state.conn, message) ->
+        with {:ok, conn, responses} <- Mint.WebSocket.stream(state.conn, message) do
+          next_state = struct!(state, conn: conn)
+
+          next_state =
+            if {:done, ref} == List.last(responses),
+              do: {:halt, next_state},
+              else: next_state
+
+          {responses, next_state}
+        end
+
+      _other ->
+        {[], state}
+    end
+  end
+
   defp next_fun(%{ref: ref} = state) do
     receive do
       message when Mint.HTTP.is_connection_message(state.conn, message) ->
         with {:ok, conn, [{:data, ^ref, data}]} <- Mint.WebSocket.stream(state.conn, message),
-             {:ok, websocket, frames} = Mint.WebSocket.decode(state.websocket, data) do
+             {:ok, websocket, frames} <- Mint.WebSocket.decode(state.websocket, data) do
           next_state = struct!(state, conn: conn, websocket: websocket)
 
           next_state =

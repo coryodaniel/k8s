@@ -1,6 +1,10 @@
 defmodule K8s.Client.Mint.HTTP do
-  alias K8s.Client.Provider
+  @moduledoc """
+  HTTP request implementation of Mint based `K8s.Client.Provider`
+  """
+
   alias K8s.Client.HTTPError
+  alias K8s.Client.Provider
 
   require Logger
   require Mint.HTTP

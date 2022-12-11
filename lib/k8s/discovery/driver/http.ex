@@ -57,7 +57,7 @@ defmodule K8s.Discovery.Driver.HTTP do
   defp http_get(conn, path) do
     case K8s.Conn.RequestOptions.generate(conn) do
       {:ok, request_options} ->
-        uri = Path.join(conn.url, path) |> URI.parse()
+        uri = conn.url |> Path.join(path) |> URI.parse()
         headers = K8s.Client.Provider.headers(request_options)
         opts = [ssl: request_options.ssl_options]
         conn.http_provider.request(:get, uri, "", headers, opts)

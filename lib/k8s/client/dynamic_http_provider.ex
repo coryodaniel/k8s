@@ -57,6 +57,22 @@ defmodule K8s.Client.DynamicHTTPProvider do
     locate_and_apply(:stream, [method, url, body, headers, opts])
   end
 
+  @doc """
+  Dispatch `request/5` to the module registered in the current process or any ancestor.
+  """
+  @impl true
+  def websocket_request(url, headers, opts) do
+    locate_and_apply(:websocket_request, [url, headers, opts])
+  end
+
+  @doc """
+  Dispatch `request/5` to the module registered in the current process or any ancestor.
+  """
+  @impl true
+  def websocket_stream(url, headers, opts) do
+    locate_and_apply(:websocket_stream, [url, headers, opts])
+  end
+
   @spec locate_and_apply(atom(), list()) :: K8s.Client.Provider.response_t()
   defp locate_and_apply(func, args) do
     case locate(self()) do

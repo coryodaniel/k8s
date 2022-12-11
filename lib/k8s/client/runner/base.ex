@@ -97,6 +97,19 @@ defmodule K8s.Client.Runner.Base do
   end
 
   # Run an operation and pass `http_opts` to `K8s.Client.HTTPProvider`
+  def run(%Conn{} = conn, %Operation{verb: :connect} = operation, http_opts) do
+    with {:ok, url} <- K8s.Discovery.url_for(conn, operation),
+         req <- new_request(conn, url, operation, operation.data, http_opts),
+         {:ok, req} <- K8s.Middleware.run(req, conn.middleware.request) do
+      conn.http_provider.websocket_request(
+        req.uri,
+        Keyword.merge(req.headers, Accept: "*/*"),
+        req.opts
+      )
+    end
+  end
+
+  # Run an operation and pass `http_opts` to `K8s.Client.HTTPProvider`
   def run(%Conn{} = conn, %Operation{} = operation, http_opts) do
     with {:ok, url} <- K8s.Discovery.url_for(conn, operation),
          req <- new_request(conn, url, operation, operation.data, http_opts),
@@ -135,6 +148,13 @@ defmodule K8s.Client.Runner.Base do
     end
   end
 
+  @spec new_request(
+          Conn.t(),
+          binary(),
+          Operation.t(),
+          String.t() | nil,
+          keyword()
+        ) :: Request.t()
   defp new_request(%Conn{} = conn, url, %Operation{} = operation, body, http_opts) do
     req = %Request{conn: conn, method: operation.method, body: body}
 
