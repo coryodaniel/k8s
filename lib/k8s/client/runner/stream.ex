@@ -2,14 +2,14 @@ defmodule K8s.Client.Runner.Stream do
   @moduledoc """
   Takes a `K8s.Client.list/3` operation and returns an Elixir [`Stream`](https://hexdocs.pm/elixir/Stream.html) of resources.
   """
-
+  alias K8s.Client.Runner.Base
   alias K8s.Client.Runner.Stream.ListRequest
   alias K8s.Client.Runner.Stream.Watch
   alias K8s.Conn
   alias K8s.Operation
   alias K8s.Operation.Error
 
-  @supported_operations [:list, :list_all_namespaces, :watch, :watch_all_namespaces]
+  @supported_operations [:list, :list_all_namespaces, :watch, :watch_all_namespaces, :connect]
 
   @typedoc "List of items and pagination request"
   @type state_t :: {list(), ListRequest.t()}
@@ -33,6 +33,10 @@ defmodule K8s.Client.Runner.Stream do
       when verb in [:watch, :watch_all_namespaces] do
     op = name_as_field_selector(op)
     Watch.stream(conn, op, http_opts)
+  end
+
+  def run(%Conn{} = conn, %Operation{verb: :connect} = op, http_opts) do
+    Base.stream(conn, op, http_opts)
   end
 
   def run(op, _, _) do

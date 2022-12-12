@@ -11,19 +11,46 @@ defmodule K8s.Client.Provider do
           | :done
   @type success_t :: {:ok, list(map()) | map() | reference() | binary() | list(binary())}
   @type stream_success_t :: {:ok, Enumerable.t(stream_chunk_t())}
+  @type websocket_success_t :: {:ok, %{stdin: binary(), stderr: binary(), error: binary()}}
 
   @type error_t ::
           {:error, K8s.Client.APIError.t() | K8s.Client.HTTPError.t()}
 
   @type response_t :: success_t() | error_t()
   @type stream_response_t :: stream_success_t() | error_t()
+  @type websocket_response_t :: websocket_success_t() | error_t()
 
-  @doc "Perform HTTP Requests"
-  @callback request(atom, binary, binary, keyword, keyword) :: response_t()
+  @doc "Perform HTTP requests"
+  @callback request(
+              method :: atom(),
+              uri :: URI.t(),
+              body :: binary,
+              headers :: list(),
+              http_opts :: keyword()
+            ) :: response_t()
 
-  @doc "Perform HTTP Requests and stream response"
-  @callback stream(atom, binary, binary, keyword, keyword) :: stream_response_t()
+  @doc "Perform HTTP requests and stream response"
+  @callback stream(
+              method :: atom(),
+              uri :: URI.t(),
+              body :: binary,
+              headers :: list(),
+              http_opts :: keyword()
+            ) :: stream_response_t()
 
+  @doc "Perform Websocket requests and stream response"
+  @callback websocket_stream(
+              uri :: URI.t(),
+              headers :: list(),
+              http_opts :: keyword()
+            ) :: stream_response_t()
+
+  @doc "Perform HTTP requests"
+  @callback websocket_request(
+              uri :: URI.t(),
+              headers :: list(),
+              http_opts :: keyword()
+            ) :: websocket_response_t()
   @doc """
   Generates HTTP headers from `K8s.Conn.RequestOptions`
 

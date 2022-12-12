@@ -96,26 +96,15 @@ defmodule K8s.Client.Runner.Base do
     {:error, %K8s.Operation.Error{message: msg}}
   end
 
-  def run(%Conn{} = conn, %Operation{verb: :connect} = operation, websocket_driver_opts) do
-    body = operation.data
-    all_options = Keyword.merge(websocket_driver_opts, operation.query_params)
-
+  # Run an operation and pass `http_opts` to `K8s.Client.HTTPProvider`
+  def run(%Conn{} = conn, %Operation{verb: :connect} = operation, http_opts) do
     with {:ok, url} <- K8s.Discovery.url_for(conn, operation),
-         {:ok, opts} <- process_opts(all_options),
-         req <- new_request(conn, url, operation, body, []),
+         req <- new_request(conn, url, operation, operation.data, http_opts),
          {:ok, req} <- K8s.Middleware.run(req, conn.middleware.request) do
-      # update headers
-      headers = Keyword.merge(req.headers, Accept: "*/*")
-      ssl = Keyword.get(req.opts, :ssl)
-      cacerts = Keyword.get(ssl, :cacerts)
-
-      K8s.websocket_provider().request(
-        req.url,
-        false,
-        ssl,
-        cacerts,
-        headers,
-        opts
+      conn.http_provider.websocket_request(
+        req.uri,
+        Keyword.merge(req.headers, Accept: "*/*"),
+        req.opts
       )
     end
   end
@@ -125,13 +114,25 @@ defmodule K8s.Client.Runner.Base do
     with {:ok, url} <- K8s.Discovery.url_for(conn, operation),
          req <- new_request(conn, url, operation, operation.data, http_opts),
          {:ok, req} <- K8s.Middleware.run(req, conn.middleware.request) do
-      conn.http_provider.request(req.method, req.url, req.body, req.headers, req.opts)
+      conn.http_provider.request(req.method, req.uri, req.body, req.headers, req.opts)
     end
   end
 
   @doc """
-  Runs a `K8s.Operation` and streams chunks to `stream_to_pid`.
+  Runs a `K8s.Operation` and streams the response.
   """
+  def stream(%Conn{} = conn, %Operation{verb: :connect} = operation, http_opts) do
+    with {:ok, url} <- K8s.Discovery.url_for(conn, operation),
+         req <- new_request(conn, url, operation, operation.data, http_opts),
+         {:ok, req} <- K8s.Middleware.run(req, conn.middleware.request) do
+      conn.http_provider.websocket_stream(
+        req.uri,
+        Keyword.merge(req.headers, Accept: "*/*"),
+        req.opts
+      )
+    end
+  end
+
   @spec stream(Conn.t(), Operation.t(), keyword()) :: K8s.Client.Provider.stream_response_t()
   def stream(%Conn{} = conn, %Operation{} = operation, http_opts) do
     with {:ok, url} <- K8s.Discovery.url_for(conn, operation),
@@ -139,7 +140,7 @@ defmodule K8s.Client.Runner.Base do
          {:ok, req} <- K8s.Middleware.run(req, conn.middleware.request) do
       conn.http_provider.stream(
         req.method,
-        req.url,
+        req.uri,
         req.body,
         req.headers,
         req.opts
@@ -147,27 +148,15 @@ defmodule K8s.Client.Runner.Base do
     end
   end
 
-  @spec new_request(Conn.t(), String.t(), Operation.t(), body_t, Keyword.t()) ::
-          Request.t()
-  defp new_request(%Conn{} = conn, url, %Operation{verb: :connect} = operation, body, http_opts) do
-    req = %Request{conn: conn, method: operation.method, body: body, url: url}
-
-    headers = ["Content-Type": "application/json"]
-
-    operation_query_params = build_query_params(operation)
-    # websockex needs a populated url with query params
-    updated_url = URI.append_query(URI.new!(url), operation_query_params)
-
-    http_opts_params = Keyword.get(http_opts, :params, [])
-    merged_params = http_opts_params
-    http_opts_w_merged_params = Keyword.put(http_opts, :params, merged_params)
-    updated_http_opts = Keyword.merge(req.opts, http_opts_w_merged_params)
-
-    %Request{req | url: updated_url, opts: updated_http_opts, headers: headers}
-  end
-
+  @spec new_request(
+          Conn.t(),
+          binary(),
+          Operation.t(),
+          String.t() | nil,
+          keyword()
+        ) :: Request.t()
   defp new_request(%Conn{} = conn, url, %Operation{} = operation, body, http_opts) do
-    req = %Request{conn: conn, method: operation.method, body: body, url: url}
+    req = %Request{conn: conn, method: operation.method, body: body}
 
     headers =
       case operation.verb do
@@ -179,58 +168,33 @@ defmodule K8s.Client.Runner.Base do
     operation_query_params = build_query_params(operation)
     http_opts_params = Keyword.get(http_opts, :params, [])
     merged_params = Keyword.merge(operation_query_params, http_opts_params)
-    http_opts_w_merged_params = Keyword.put(http_opts, :params, merged_params)
-    updated_http_opts = Keyword.merge(req.opts, http_opts_w_merged_params)
 
-    %Request{req | opts: updated_http_opts, headers: headers}
+    uri = url |> URI.parse() |> URI.append_query(URI.encode_query(merged_params))
+
+    %Request{req | opts: http_opts, headers: headers, uri: uri}
   end
 
   @spec build_query_params(Operation.t()) :: String.t() | keyword()
-  defp build_query_params(%Operation{verb: :connect} = operation) do
-    Enum.map_join(operation.query_params, "&", fn {k, v} ->
-      case k do
-        :command when is_list(v) ->
-          res = command_builder(v, [])
-          Enum.join(res, "&")
+  defp build_query_params(operation) do
+    {commands, query_params} = Keyword.pop_values(operation.query_params, :command)
 
-        :command ->
-          res = command_builder([v], [])
-          Enum.join(res, "&")
+    commands =
+      commands
+      |> List.flatten()
+      |> Enum.map(&{:command, &1})
 
-        _ ->
-          "#{URI.encode_query(%{k => v})}"
-      end
-    end)
-  end
-
-  defp build_query_params(%Operation{} = operation) do
     selector = Operation.get_selector(operation)
 
-    Keyword.merge(operation.query_params,
-      labelSelector: K8s.Selector.labels_to_s(selector),
-      fieldSelector: K8s.Selector.fields_to_s(selector)
-    )
-  end
+    selectors =
+      [
+        labelSelector: K8s.Selector.labels_to_s(selector),
+        fieldSelector: K8s.Selector.fields_to_s(selector)
+      ]
+      |> Keyword.reject(&(elem(&1, 1) == ""))
 
-  @doc false
-  # k8s api can take multiple commands params per request
-  @spec command_builder(list, list) :: list
-  defp command_builder([], acc), do: Enum.reverse(acc)
-
-  defp command_builder([h | t], acc) do
-    params = URI.encode_query(%{"command" => h})
-    command_builder(t, ["#{params}" | acc])
-  end
-
-  # Pod connect - fail if missing command
-  @spec process_opts(list) :: {:ok, term()} | {:error, String.t()}
-  defp process_opts(opts) do
-    default = [stream_to: self(), stdin: true, stdout: true, stderr: true, tty: true]
-    processed = Keyword.merge(default, opts)
-    # check for command
-    case Keyword.get(processed, :command) do
-      nil -> {:error, ":command is required in params"}
-      _ -> {:ok, processed}
-    end
+    query_params
+    |> Keyword.delete(:labelSelector)
+    |> Keyword.merge(selectors)
+    |> Keyword.merge(commands)
   end
 end

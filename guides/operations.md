@@ -176,3 +176,90 @@ conn
 |> Stream.map(&my_map_function?/1)
 |> Enum.into([])
 ```
+
+## Connect to pods and execute commands
+
+The `:connect` operation is used to connect to pods and execute commands.
+A `:connect` operation is created with `K8s.Client.connect/N`. Be sure to pass
+the command you want to run in the options.
+
+### Waiting for command termination
+
+If you want to run a command that terminates and wait for it, pass the `:connect`
+operation to `K8s.Client.run/N`.
+
+```elixir
+  {:ok, conn} = K8s.Conn.from_file("~/.kube/config")
+
+  op = K8s.Client.connect(
+    "v1",
+    "pods/exec",
+    [namespace: "default", name: "nginx-8f458dc5b-zwmkb"],
+    command: ["/bin/sh", "-c", "nginx -t"]
+  )
+
+  {:ok, response} = K8s.Client.run(conn, op)
+```
+
+### Opening long-lasting connections (e.g. a shell) and sending messages to pods
+
+If you send a command that does not terminate (e.g. `/bin/sh`) or one that takes
+long to terminate, you can open the connection in a separate process and stream
+the response. Further, you can `send/2` messages to that process (e.g. further
+commands). See the example below.
+
+```elixir
+  {:ok, conn} = K8s.Conn.from_file("~/.kube/config")
+
+  op = K8s.Client.connect(
+    "v1",
+    "pods/exec",
+    [namespace: "default", name: "nginx-8f458dc5b-zwmkb"],
+    command: ["/bin/sh"]
+  )
+
+  parent_process = self()
+
+  task = Task.async(fn ->
+    {:ok, stream} = K8s.Client.stream(conn, op)
+
+    stream
+    |> Stream.map(&send(parent_process, &1))
+    |> Stream.run()
+  end)
+
+  # wait for connection to be established
+  receive(do: (:open -> :ok)
+
+  send(task.pid, {:stdin, ~s(echo "hello world"\n)})
+
+  # you receive "hello world" on stdout
+  receive(do: ({:stdout, message} -> IO.puts(message))
+
+  # close the connection, the task will terminate.
+  send(task.pid, :close)
+```
+
+### Options
+
+- `command` - required for running commands
+- `container` - if a pod runs multiple containers, you have to specify the container to run the command in.
+- `stdin` - enable stdin (defaults to `true`)
+- `stdout` - enable stdout (defaults to `true`)
+- `stderr` - enable stderr (defaults to `true`)
+- `tty` - stdin is a TTY (defaults to `false`)
+
+```elixir
+  {:ok, conn} = K8s.Conn.from_file("~/.kube/config")
+
+  op = K8s.Client.connect(
+    "v1",
+    "pods/exec",
+    [namespace: "default", name: "nginx-8f458dc5b-zwmkb"],
+    command: ["/bin/sh", "-c", "nginx -t"],
+    container: "main",
+    tty: true
+  )
+
+  {:ok, response} = K8s.Client.run(conn, op)
+```

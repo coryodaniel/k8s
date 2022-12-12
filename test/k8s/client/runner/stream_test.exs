@@ -7,31 +7,36 @@ defmodule K8s.Client.Runner.StreamTest do
   alias K8s.Client.DynamicHTTPProvider
 
   defmodule HTTPMock do
-    @base_url "https://localhost:6443"
-    @namespaced_url @base_url <> "/api/v1/namespaces"
+    @namespaced_path "/api/v1/namespaces"
     import K8s.Test.IntegrationHelper
 
-    def request(:get, @namespaced_url <> "/stream-empty-test/services", _body, _headers, _opts) do
+    def request(
+          :get,
+          %URI{path: @namespaced_path <> "/stream-empty-test/services"},
+          _body,
+          _headers,
+          _opts
+        ) do
       data = build_list([])
       {:ok, data}
     end
 
-    def request(:get, @namespaced_url <> "/stream-failure-test/services", _, _, opts) do
+    def request(:get, %URI{path: @namespaced_path <> "/stream-failure-test/services"}, _, _, opts) do
       params = opts[:params]
       page1_items = [build_service("foo", "stream-failure-test")]
       continue_token = "stream-failure-test"
 
       case params do
-        [labelSelector: "", fieldSelector: "", limit: 10, continue: nil] ->
+        [limit: 10, continue: nil] ->
           data = build_list(page1_items, continue_token)
           {:ok, data}
 
-        [labelSelector: "", fieldSelector: "", limit: 10, continue: "stream-failure-test"] ->
+        [limit: 10, continue: "stream-failure-test"] ->
           {:error, %K8s.Client.APIError{reason: "NotFound", message: "next page not found"}}
       end
     end
 
-    def request(:get, @namespaced_url <> "/stream-runner-test/services", _, _, opts) do
+    def request(:get, %URI{path: @namespaced_path <> "/stream-runner-test/services"}, _, _, opts) do
       params = opts[:params]
       page1_items = [build_service("foo", "stream-runner-test")]
       page2_items = [build_service("bar", "stream-runner-test")]
@@ -39,13 +44,13 @@ defmodule K8s.Client.Runner.StreamTest do
 
       body =
         case params do
-          [labelSelector: "", fieldSelector: "", limit: 10, continue: nil] ->
+          [limit: 10, continue: nil] ->
             build_list(page1_items, "start")
 
-          [labelSelector: "", fieldSelector: "", limit: 10, continue: "start"] ->
+          [limit: 10, continue: "start"] ->
             build_list(page2_items, "end")
 
-          [labelSelector: "", fieldSelector: "", limit: 10, continue: "end"] ->
+          [limit: 10, continue: "end"] ->
             build_list(page3_items)
         end
 
@@ -114,7 +119,7 @@ defmodule K8s.Client.Runner.StreamTest do
       assert {:error, error} = K8s.Client.stream(conn, op)
 
       assert error.message =~
-               "Only [:list, :list_all_namespaces, :watch, :watch_all_namespaces] operations can be streamed."
+               "Only [:list, :list_all_namespaces, :watch, :watch_all_namespaces, :connect] operations can be streamed."
     end
   end
 end

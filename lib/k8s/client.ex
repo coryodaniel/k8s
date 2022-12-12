@@ -649,18 +649,20 @@ defmodule K8s.Client do
 
   ## Examples
     connect to the nginx deployment in the test namespace:
-      iex> K8s.Client.connect("apps/v1", "pods/exec", namespace: "test", name: "nginx")
+      iex> K8s.Client.connect("apps/v1", "pods/exec", [namespace: "test", name: "nginx"], command: "ls")
       %K8s.Operation{
         method: :post,
         verb: :connect,
         api_version: "apps/v1",
         name: "pods/exec",
-        path_params: [namespace: "test", name: "nginx"]
+        path_params: [namespace: "test", name: "nginx"],
+        query_params: [{:stdin, true}, {:stdout, true}, {:stderr, true}, {:tty, false}, {:command, "ls"}]
       }
 
   """
-  @spec connect(binary(), binary() | atom(), namespace: binary(), name: binary()) :: Operation.t()
-  def connect(api_version, kind, namespace: namespace, name: name) do
-    Operation.build(:connect, api_version, kind, namespace: namespace, name: name)
+  @spec connect(binary(), binary() | atom(), [namespace: binary(), name: binary()], keyword()) ::
+          Operation.t()
+  def connect(api_version, kind, [namespace: namespace, name: name], opts \\ []) do
+    Operation.build(:connect, api_version, kind, [namespace: namespace, name: name], nil, opts)
   end
 end

@@ -18,7 +18,7 @@ defmodule K8s.MiddlewareTest do
 
       req = %K8s.Middleware.Request{
         conn: conn,
-        url: "http://example.com",
+        uri: URI.parse("http://example.com"),
         method: :post,
         body: %{"metadata" => %{"name" => "nginx"}}
       }
