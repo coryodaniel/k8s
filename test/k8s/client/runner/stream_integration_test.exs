@@ -42,4 +42,134 @@ defmodule K8s.Client.Runner.StreamIntegrationTest do
 
     assert resources == ["stream-nginx-#{test_id}-1", "stream-nginx-#{test_id}-2"]
   end
+
+  @tag :integration
+  test "runs :connect operations and returns stdout", %{
+    conn: conn,
+    labels: labels,
+    test_id: test_id
+  } do
+    pod = pod("stream-nginx-#{test_id}-1", labels)
+    {:ok, created_pod} = K8s.Client.run(conn, pod)
+
+    {:ok, _} =
+      K8s.Client.wait_until(conn, K8s.Client.get(created_pod),
+        find: ["status", "containerStatuses", Access.filter(&(&1["ready"] == true))],
+        eval: &match?([_ | _], &1),
+        timeout: 60
+      )
+
+    {:ok, response} =
+      K8s.Client.run(
+        conn,
+        K8s.Client.connect(
+          created_pod["apiVersion"],
+          "pods/exec",
+          [namespace: K8s.Resource.namespace(created_pod), name: K8s.Resource.name(created_pod)],
+          command: ["/bin/sh", "-c", ~s(echo "ok")],
+          tty: false
+        )
+      )
+
+    assert response.stdout =~ "ok"
+  end
+
+  @tag :integration
+  test "runs :connect operations and returns errors", %{
+    conn: conn,
+    labels: labels,
+    test_id: test_id
+  } do
+    pod = pod("stream-nginx-#{test_id}-1", labels)
+    {:ok, created_pod} = K8s.Client.run(conn, pod)
+
+    {:ok, _} =
+      K8s.Client.wait_until(conn, K8s.Client.get(created_pod),
+        find: ["status", "containerStatuses", Access.filter(&(&1["ready"] == true))],
+        eval: &match?([_ | _], &1),
+        timeout: 60
+      )
+
+    {:ok, response} =
+      K8s.Client.run(
+        conn,
+        K8s.Client.connect(
+          created_pod["apiVersion"],
+          "pods/exec",
+          [namespace: K8s.Resource.namespace(created_pod), name: K8s.Resource.name(created_pod)],
+          command: ["/bin/sh", "-c", "no-such-command"],
+          tty: false
+        )
+      )
+
+    assert response.error =~ "error executing command"
+    assert response.stderr =~ "not found"
+  end
+
+  @tag :integration
+  test "runs :connect operations and accepts messages", %{
+    conn: conn,
+    labels: labels,
+    test_id: test_id
+  } do
+    pod = pod("stream-nginx-#{test_id}-1", labels)
+    {:ok, created_pod} = K8s.Client.run(conn, pod)
+
+    {:ok, _} =
+      K8s.Client.wait_until(conn, K8s.Client.get(created_pod),
+        find: ["status", "containerStatuses", Access.filter(&(&1["ready"] == true))],
+        eval: &match?([_ | _], &1),
+        timeout: 60
+      )
+
+    pid = self()
+
+    task =
+      Task.async(fn ->
+        {:ok, stream} =
+          K8s.Client.stream(
+            conn,
+            K8s.Client.connect(
+              created_pod["apiVersion"],
+              "pods/exec",
+              [
+                namespace: K8s.Resource.namespace(created_pod),
+                name: K8s.Resource.name(created_pod)
+              ],
+              command: ["/bin/sh"],
+              tty: false
+            )
+          )
+
+        stream |> Stream.map(fn chunk -> send(pid, chunk) end) |> Stream.run()
+      end)
+
+    assert_receive :open, 2000
+
+    send(task.pid, {:stdin, ~s(echo "ok"\n)})
+    send(task.pid, :close)
+
+    assert_receive {:stdout, "ok\n"}, 2000
+  end
+
+  @tag :integration
+  test "returns error if connection fails", %{conn: conn} do
+    result =
+      K8s.Client.run(
+        conn,
+        K8s.Client.connect(
+          "v1",
+          "pods/exec",
+          [
+            namespace: "default",
+            name: "does-not-exist"
+          ],
+          command: ["/bin/sh"],
+          tty: false
+        )
+      )
+
+    assert {:error, error} = result
+    assert error.message =~ "404"
+  end
 end

@@ -31,9 +31,9 @@ defmodule K8s.Client.Mint.WebSocket do
           {:error, responses}, acc -> Map.update!(acc, :error, &[responses | &1])
           _other, acc -> acc
         end)
-        |> Map.update!(:stdout, &Enum.reverse(&1))
-        |> Map.update!(:stderr, &Enum.reverse(&1))
-        |> Map.update!(:error, &Enum.reverse(&1))
+        |> Map.update!(:stdout, &(&1 |> Enum.reverse() |> IO.iodata_to_binary()))
+        |> Map.update!(:stderr, &(&1 |> Enum.reverse() |> IO.iodata_to_binary()))
+        |> Map.update!(:error, &(&1 |> Enum.reverse() |> IO.iodata_to_binary()))
 
       {:ok, response}
     end
@@ -72,9 +72,6 @@ defmodule K8s.Client.Mint.WebSocket do
         Mint.HTTP.close(conn)
 
         {:error, HTTPError.new(message: Exception.message(error), adapter_specific_error: error)}
-
-      error ->
-        error
     end
   end
 
