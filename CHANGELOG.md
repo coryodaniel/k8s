@@ -18,11 +18,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `K8s.Client.Runner.Base.stream/3`
 - `K8s.Client.MintHTTPProvider` - The mint client implementation
 - `K8s.Client.HTTPTestHelper` - to be used in tests (resides in `lib/` so it can be used by dependents)
+- Open `:connect` operations (connections) now accept messages to be sent to pods
 
 ### Changed
 
 - `K8s.Client.Provider` behaviour was adapted to the new internal architecture
 - `K8s.Client.watch/N` now returns a `:watch` or `:watch_all_namespaces` operation to be passed to `K8s.Client.stream/N`
+- `Websockex` was replaced by [`Mint.WebSocket`](https://hexdocs.pm/mint_web_socket/Mint.WebSocket.html)
 
 ### Removed
 
@@ -32,7 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Breaking changes
 
 - Tests using the `DynamicHTTPProvider` which work with `watch_and_stream` are going to need to be changed. The HTTP mocks now need to implement the `stream/5` callback. (See `K8s.Client.Runner.Watch.StreamTest` on this branch for examples)
-- The `:stream_to` in `http_opts` is not supported anymore
+- The `:stream_to` in `http_opts` is not supported anymore. Instead, [Elixir Streams](https://hexdocs.pm/elixir/1.14/Stream.html) are returned. Map over the returned stream to send messages to other processes.
 - Errors are encapsulated in `K8s.Client.HTTPError`
 - `headers/1` callback was removed from `K8s.Client.Provider` behaviour
 - `K8s.Client.HTTPProvider` (HTTPoison implementation) was removed.
