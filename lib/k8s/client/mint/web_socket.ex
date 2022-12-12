@@ -112,7 +112,8 @@ defmodule K8s.Client.Mint.WebSocket do
   @spec next_fun({:halt, t()}) :: {:halt, t()}
   defp next_fun({:halt, state}), do: {:halt, state}
 
-  defp next_fun(%{websocket: nil, ref: ref} = state) do
+  @spec next_fun(t()) :: {Enumerable.t(), t()}
+  defp next_fun(%__MODULE__{websocket: nil, ref: ref} = state) do
     receive do
       message when Mint.HTTP.is_connection_message(state.conn, message) ->
         with {:ok, conn, responses} <- Mint.WebSocket.stream(state.conn, message) do
@@ -131,11 +132,11 @@ defmodule K8s.Client.Mint.WebSocket do
     end
   end
 
-  defp next_fun(%{ref: ref} = state) do
+  defp next_fun(%__MODULE__{conn: conn, websocket: websocket, ref: ref} = state) do
     receive do
-      message when Mint.HTTP.is_connection_message(state.conn, message) ->
+      message when Mint.HTTP.is_connection_message(conn, message) ->
         with {:ok, conn, [{:data, ^ref, data}]} <- Mint.WebSocket.stream(state.conn, message),
-             {:ok, websocket, frames} <- Mint.WebSocket.decode(state.websocket, data) do
+             {:ok, websocket, frames} <- Mint.WebSocket.decode(websocket, data) do
           next_state = struct!(state, conn: conn, websocket: websocket)
 
           next_state =
@@ -144,8 +145,38 @@ defmodule K8s.Client.Mint.WebSocket do
           {frames, next_state}
         end
 
+      {:stdin, cmd} ->
+        with {:ok, conn, websocket} <-
+               send_to_websocket(conn, websocket, ref, {:text, <<0>> <> cmd}) do
+          {[], struct!(state, conn: conn, websocket: websocket)}
+        end
+
+      :exit ->
+        with {:ok, conn, websocket} <- send_to_websocket(conn, websocket, ref, :close) do
+          {[], struct!(state, conn: conn, websocket: websocket)}
+        end
+
+      {:exit, code, reason} ->
+        with {:ok, conn, websocket} <-
+               send_to_websocket(conn, websocket, ref, {:close, code, reason}) do
+          {[], struct!(state, conn: conn, websocket: websocket)}
+        end
+
       _other ->
         {[], state}
+    end
+  end
+
+  @spec send_to_websocket(
+          Mint.HTTP.t(),
+          Mint.WebSocket.t(),
+          Mint.Types.request_ref(),
+          Mint.WebSocket.frame() | Mint.WebSocket.shorthand_frame()
+        ) :: {:ok, Mint.HTTP.t(), Mint.WebSocket.t()}
+  defp send_to_websocket(conn, websocket, ref, frame) do
+    with {:ok, websocket, data} <- Mint.WebSocket.encode(websocket, frame),
+         {:ok, conn} <- Mint.WebSocket.stream_request_body(conn, ref, data) do
+      {:ok, conn, websocket}
     end
   end
 
