@@ -72,6 +72,9 @@ defmodule K8s.Client.Mint.WebSocket do
         Mint.HTTP.close(conn)
 
         {:error, HTTPError.new(message: Exception.message(error), adapter_specific_error: error)}
+
+      error ->
+        error
     end
   end
 
