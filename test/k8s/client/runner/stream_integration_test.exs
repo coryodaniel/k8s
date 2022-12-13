@@ -1,5 +1,4 @@
 defmodule K8s.Client.Runner.StreamIntegrationTest do
-  alias K8s.Client.Runner.Stream, as: MUT
   use ExUnit.Case, async: true
   import K8s.Test.IntegrationHelper
 
@@ -26,10 +25,11 @@ defmodule K8s.Client.Runner.StreamIntegrationTest do
     pod2 = pod("stream-nginx-#{test_id}-2", labels)
     {:ok, to_delete_2} = K8s.Client.run(conn, pod2)
 
-    selector = K8s.Selector.label(labels)
-    operation = K8s.Client.list("v1", "Pod", namespace: "default")
-    operation = K8s.Operation.put_selector(operation, selector)
-    assert {:ok, stream} = MUT.run(conn, operation)
+    assert {:ok, stream} =
+             K8s.Client.list("v1", "Pod", namespace: "default")
+             |> K8s.Operation.put_selector(K8s.Selector.label(labels))
+             |> K8s.Client.put_conn(conn)
+             |> K8s.Client.stream()
 
     resources =
       stream

@@ -27,16 +27,25 @@ defmodule K8s.Client do
     force: true
   }
 
+  alias K8s.Conn
   alias K8s.Operation
   alias K8s.Client.Runner.{Async, Base, Stream, Wait}
+
+  defdelegate put_conn(operation, conn), to: Operation
+
+  @spec run(Operation.t(), keyword()) :: K8s.Client.Provider.response_t()
+  def run(operation, http_opts \\ [])
+
+  def run(%Operation{conn: %Conn{} = conn} = operation, http_opts),
+    do: Base.run(conn, operation, http_opts)
 
   @doc "alias of `K8s.Client.Runner.Base.run/2`"
   defdelegate run(conn, operation), to: Base
 
   @doc "alias of `K8s.Client.Runner.Base.run/3`"
   defdelegate run(conn, operation, http_opts), to: Base
-
   @doc "alias of `K8s.Client.Runner.Async.run/3`"
+
   defdelegate async(conn, operations), to: Async, as: :run
 
   @doc "alias of `K8s.Client.Runner.Async.run/3`"
@@ -45,17 +54,22 @@ defmodule K8s.Client do
   @doc "alias of `K8s.Client.Runner.Async.run/3`"
   defdelegate parallel(conn, operations, http_opts), to: Async, as: :run
 
+  @spec wait_until(Operation.t(), keyword()) :: K8s.Client.Provider.response_t()
+  def wait_until(%Operation{conn: %Conn{} = conn} = operation, wait_opts \\ []),
+    do: Wait.run(conn, operation, wait_opts)
+
   @doc "alias of `K8s.Client.Runner.Wait.run/3`"
   defdelegate wait_until(conn, operation, wait_opts), to: Wait, as: :run
+
+  @spec stream(Operation.t(), keyword()) :: K8s.Client.Provider.stream_response_t()
+  def stream(operation, wait_opts \\ [])
+
+  def stream(%Operation{conn: %Conn{} = conn} = operation, wait_opts),
+    do: Stream.run(conn, operation, wait_opts)
 
   @doc "alias of `K8s.Client.Runner.Stream.run/2`"
   defdelegate stream(conn, operation), to: Stream, as: :run
 
-  @spec stream(K8s.Conn.t(), K8s.Operation.t(), keyword) ::
-          {:error, K8s.Operation.Error.t()}
-          | {:ok,
-             ({:cont, any} | {:halt, any} | {:suspend, any}, any ->
-                :badarg | {:halted, any} | {:suspended, any, (any -> any)})}
   @doc "alias of `K8s.Client.Runner.Stream.run/3`"
   defdelegate stream(conn, operation, http_opts), to: Stream, as: :run
 
