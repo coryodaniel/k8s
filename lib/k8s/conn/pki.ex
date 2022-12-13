@@ -30,7 +30,7 @@ defmodule K8s.Conn.PKI do
     |> PKI.cert_from_pem()
   end
 
-  def cert_from_map(%{"insecure-skip-tls-verify" => true}, _), do: {:ok, nil}
+  def cert_from_map(_, _), do: {:ok, nil}
 
   @doc """
   Reads the certificate from a PEM file
