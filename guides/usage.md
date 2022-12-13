@@ -1,13 +1,13 @@
 # Usage
 
-- [Connections (`K8s.Conn`)](./connections.html)
-- [Operations (`K8s.Operation`)](./operations.html)
-- [Discovery (`K8s.Discovery`)](./discovery.html)
-- [Middleware (`K8s.Middleware`)](./middleware.html)
-- [Authentication (`K8s.Conn.Auth`)](./authentication.html)
-- [Observability](./observability.html)
-- [Testing](./testing.html)
-- [Advanced Topics](./advanced.html) - CRDs, Multiple Clusters, and Subresource Requests
+- [Connections (`K8s.Conn`)](./connections.md)
+- [Operations (`K8s.Operation`)](./operations.md)
+- [Discovery (`K8s.Discovery`)](./discovery.md)
+- [Middleware (`K8s.Middleware`)](./middleware.md)
+- [Authentication (`K8s.Conn.Auth`)](./authentication.md)
+- [Observability](./observability.md)
+- [Testing](./testing.md)
+- [Advanced Topics](./advanced.md) - CRDs, Multiple Clusters, and Subresource Requests
 
 ## tl;dr Examples
 
