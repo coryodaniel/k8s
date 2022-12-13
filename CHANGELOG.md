@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `K8s.Client.MintHTTPProvider` - The mint client implementation
 - `K8s.Client.HTTPTestHelper` - to be used in tests (resides in `lib/` so it can be used by dependents)
 - Open `:connect` operations (connections) now accept messages to be sent to pods
+- `K8s.Client.put_conn/2` to add pielining support to the Client API
 
 ### Changed
 

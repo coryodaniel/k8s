@@ -25,6 +25,7 @@ defmodule K8s.Operation do
             api_version: nil,
             name: nil,
             data: nil,
+            conn: nil,
             path_params: [],
             query_params: []
 
@@ -76,6 +77,7 @@ defmodule K8s.Operation do
           api_version: binary(),
           name: name_t(),
           data: map() | nil,
+          conn: K8s.Conn.t() | nil,
           path_params: keyword(),
           query_params: keyword()
         }
@@ -200,12 +202,12 @@ defmodule K8s.Operation do
   end
 
   @doc "Converts a `K8s.Operation` into a URL path."
-  @spec to_path(Operation.t()) ::
+  @spec to_path(t()) ::
           {:ok, String.t()} | {:error, Error.t()}
   def to_path(%Operation{} = operation), do: Operation.Path.build(operation)
 
   @deprecated "Use put_selector/2"
-  @spec put_label_selector(Operation.t(), Selector.t()) :: Operation.t()
+  @spec put_label_selector(t(), Selector.t()) :: t()
   defdelegate put_label_selector(op, selector), to: __MODULE__, as: :put_selector
 
   @doc """
@@ -224,12 +226,12 @@ defmodule K8s.Operation do
         ]
       }
   """
-  @spec put_selector(Operation.t(), Selector.t()) :: Operation.t()
+  @spec put_selector(t(), Selector.t()) :: t()
   def put_selector(%Operation{} = op, %Selector{} = selector),
     do: put_query_param(op, @selector, selector)
 
   @deprecated "Use get_selector/1"
-  @spec get_label_selector(K8s.Operation.t()) :: K8s.Selector.t()
+  @spec get_label_selector(t()) :: K8s.Selector.t()
   defdelegate get_label_selector(operation), to: __MODULE__, as: :get_selector
 
   @doc """
@@ -243,7 +245,7 @@ defmodule K8s.Operation do
         match_labels: %{"component" => {"=", "redis"}}
       }
   """
-  @spec get_selector(K8s.Operation.t()) :: K8s.Selector.t()
+  @spec get_selector(t()) :: K8s.Selector.t()
   def get_selector(%Operation{query_params: params}),
     do: Keyword.get(params, @selector, %K8s.Selector{})
 
@@ -256,7 +258,7 @@ defmodule K8s.Operation do
       ...> K8s.Operation.put_query_param(operation, :foo, "bar")
       %K8s.Operation{query_params: [foo: "bar"]}
   """
-  @spec put_query_param(Operation.t(), any(), String.t() | K8s.Selector.t()) :: Operation.t()
+  @spec put_query_param(t(), any(), String.t() | K8s.Selector.t()) :: t()
   def put_query_param(%Operation{query_params: params} = op, key, value) when is_list(params) do
     new_params = Keyword.put(params, key, value)
     %Operation{op | query_params: new_params}
@@ -269,7 +271,7 @@ defmodule K8s.Operation do
     %Operation{op | query_params: new_params}
   end
 
-  @spec put_query_param(Operation.t(), list() | K8s.Selector.t()) :: Operation.t()
+  @spec put_query_param(t(), list() | K8s.Selector.t()) :: t()
   def put_query_param(%Operation{query_params: _params} = op, opts) when is_list(opts) do
     %Operation{op | query_params: opts}
   end
@@ -283,6 +285,19 @@ defmodule K8s.Operation do
       ...> K8s.Operation.get_query_param(operation, :foo)
       "bar"
   """
-  @spec get_query_param(Operation.t(), atom()) :: any()
+  @spec get_query_param(t(), atom()) :: any()
   def get_query_param(%Operation{query_params: params}, key), do: Keyword.get(params, key)
+
+  @doc """
+  Set the connection object on the operation
+
+  ## Examples
+      iex> operation = %K8s.Operation{query_params: [foo: "bar"]}
+      ...> conn = %K8s.Conn{}
+      ...> operation = K8s.Operation.put_conn(operation, conn)
+      ...> match?(%K8s.Operation{conn: %K8s.Conn{}}, operation)
+      true
+  """
+  @spec put_conn(t(), K8s.Conn.t()) :: t()
+  def put_conn(operation, conn), do: struct!(operation, conn: conn)
 end

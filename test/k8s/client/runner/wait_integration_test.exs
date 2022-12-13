@@ -61,17 +61,20 @@ defmodule K8s.Client.Runner.WaitIntegrationTest do
     test_id: test_id,
     timeout: timeout
   } do
-    create_job =
+    {:ok, _} =
       "wait-job-#{test_id}"
       |> job(labels: %{"test" => "wait-integration-test"})
       |> K8s.Client.create()
+      |> K8s.Client.put_conn(conn)
+      |> K8s.Client.run()
 
-    {:ok, _} = K8s.Client.run(conn, create_job)
-
-    op = K8s.Client.get("batch/v1", :job, namespace: "default", name: "wait-job-#{test_id}")
     opts = [find: ["status", "succeeded"], eval: 1, timeout: timeout]
 
-    assert {:ok, result} = K8s.Client.Runner.Wait.run(conn, op, opts)
+    assert {:ok, result} =
+             K8s.Client.get("batch/v1", :job, namespace: "default", name: "wait-job-#{test_id}")
+             |> K8s.Client.put_conn(conn)
+             |> K8s.Client.wait_until(opts)
+
     assert result["status"]["succeeded"] == 1
   end
 

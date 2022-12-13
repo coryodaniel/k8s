@@ -146,8 +146,10 @@ defmodule K8s.Client.Runner.BaseTest do
 
   describe "run" do
     test "request with HTTP 2xx response", %{conn: conn} do
-      operation = Client.list("v1", "Namespace", [])
-      assert {:ok, _} = Base.run(conn, operation)
+      assert {:ok, _} =
+               Client.list("v1", "Namespace", [])
+               |> Client.put_conn(conn)
+               |> Client.run()
     end
 
     test "supports subresource operations with alternate `kind` HTTP bodies", %{conn: conn} do

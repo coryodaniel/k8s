@@ -20,9 +20,15 @@ defmodule K8s.Client.Runner.Stream do
   @doc """
   Validates operation type before calling `stream/3`. Only supports verbs: `list_all_namespaces` and `list`.
   """
-  @spec run(Conn.t(), Operation.t(), keyword()) :: {:ok, Enumerable.t()} | {:error, Error.t()}
-  def run(conn, op, http_opts \\ [])
+  @spec run(Operation.t()) :: {:ok, Enumerable.t()} | {:error, Error.t()}
+  def run(%Operation{conn: %Conn{} = conn} = op), do: run(conn, op, [])
 
+  @spec run(Operation.t(), keyword()) :: {:ok, Enumerable.t()} | {:error, Error.t()}
+  def run(%Operation{conn: %Conn{} = conn} = op, http_opts), do: run(conn, op, http_opts)
+
+  def run(%Conn{} = conn, %Operation{} = op), do: run(conn, op, [])
+
+  @spec run(Conn.t(), Operation.t(), keyword()) :: {:ok, Enumerable.t()} | {:error, Error.t()}
   def run(%Conn{} = conn, %Operation{verb: verb} = op, http_opts)
       when verb in [:list, :list_all_namespaces] do
     op = name_as_field_selector(op)

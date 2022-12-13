@@ -19,8 +19,11 @@
 opts = [namespace: "default", name: "nginx", image: "nginx:nginx:1.7.9"]
 {:ok, resource} = K8s.Resource.from_file("priv/deployment.yaml", opts)
 
-operation = K8s.Client.create(resource)
-{:ok, deployment} = K8s.Client.run(conn, operation)
+{:ok, deployment} =
+    resource
+    |> K8s.Client.create()
+    |> K8s.Client.put_conn(conn)
+    |> K8s.Client.run()
 ```
 
 ### Listing deployments
@@ -30,8 +33,10 @@ In a namespace:
 ```elixir
 {:ok, conn} = K8s.Conn.from_file("path/to/kubeconfig.yaml")
 
-operation = K8s.Client.list("apps/v1", "Deployment", namespace: "prod")
-{:ok, deployments} = K8s.Client.run(conn, operation)
+{:ok, deployments} =
+    K8s.Client.list("apps/v1", "Deployment", namespace: "prod")
+    |> K8s.Client.put_conn(conn)
+    |> K8s.Client.run()
 ```
 
 Across all namespaces:
@@ -39,8 +44,10 @@ Across all namespaces:
 ```elixir
 {:ok, conn} = K8s.Conn.from_file("path/to/kubeconfig.yaml")
 
-operation = K8s.Client.list("apps/v1", "Deployment", namespace: :all)
-{:ok, deployments} = K8s.Client.run(conn, operation)
+{:ok, deployments} =
+    K8s.Client.list("apps/v1", "Deployment", namespace: :all)
+    |> K8s.Client.put_conn(conn)
+    |> K8s.Client.run()
 ```
 
 ### Getting a deployment
@@ -48,6 +55,8 @@ operation = K8s.Client.list("apps/v1", "Deployment", namespace: :all)
 ```elixir
 {:ok, conn} = K8s.Conn.from_file("path/to/kubeconfig.yaml")
 
-operation = K8s.Client.get("apps/v1", :deployment, [namespace: "default", name: "nginx-deployment"])
-{:ok, deployment} = K8s.Client.run(conn, operation)
+{:ok, deployment} =
+    K8s.Client.get("apps/v1", :deployment, [namespace: "default", name: "nginx-deployment"])
+    |> K8s.Client.put_conn(conn)
+    |> K8s.Client.run(conn, operation)
 ```
