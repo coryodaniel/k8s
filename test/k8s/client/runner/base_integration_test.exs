@@ -193,7 +193,7 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
     end
 
     @tag integration: true
-    test "applying a new status to a deployment", %{conn: conn, test_id: test_id} do
+    test "applying a new status to a pod", %{conn: conn, test_id: test_id} do
       pod = build_pod("k8s-ex-#{test_id}")
       operation = K8s.Client.apply(pod)
       result = K8s.Client.run(conn, operation)
@@ -210,13 +210,24 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
         )
 
       result = K8s.Client.run(conn, operation)
-      assert {:ok, _pod} = result
-
-      operation = K8s.Client.get(pod)
-      result = K8s.Client.run(conn, operation)
       assert {:ok, pod} = result
 
-      assert "some message" == pod["status"]["message"]
+      operation =
+        K8s.Client.get(
+          "v1",
+          "pods",
+          namespace: "default",
+          name: "k8s-ex-#{test_id}"
+        )
+
+      result =
+        K8s.Client.wait_until(conn, operation,
+          find: ["status", "message"],
+          eval: "some message",
+          timeout: 60
+        )
+
+      assert {:ok, _} = result
 
       operation = K8s.Client.delete(pod)
       result = K8s.Client.run(conn, operation)
@@ -236,24 +247,6 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
 
       assert length(service_accounts) == 1
     end
-
-    # @tag integration: true
-    # test "when the `:command` key is not provided should returns an error", %{conn: conn} do
-    #   connect_op =
-    #     K8s.Client.connect("v1", "pods/exec", [namespace: "default", name: "nginx-BAF-sq56w"], command: )
-
-    #   operation =
-    #     K8s.Operation.put_query_param(connect_op,
-    #       kommand: ["/bin/sh", "-c", "date"],
-    #       stdin: true,
-    #       stdout: true,
-    #       stderr: true,
-    #       tty: true
-    #     )
-
-    #   assert {:error, msg} = K8s.Client.run(conn, operation, stream_to: self())
-    #   assert msg == ":command is required in params"
-    # end
 
     @tag integration: true
     test "creating a operation without correct kind `pod/exec` should return an error", %{
