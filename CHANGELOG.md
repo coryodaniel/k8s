@@ -40,6 +40,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `K8s.Client.HTTPProvider` (HTTPoison implementation) was removed.
 - `K8s.Client.watch/N` was removed
 
+### Fixed
+
+- Update `PKI.cert_from_map/2` to support fully qualified domain names (FQDN) - Fix for `K8s.Conn.from_file/1` ([#164](https://github.com/coryodaniel/k8s/pull/164))
 <!--------------------- Don't add new entries after this line --------------------->
 
 ## [1.2.0] - 2022-12-07
