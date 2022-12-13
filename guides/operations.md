@@ -240,7 +240,7 @@ commands). See the example below.
   send(task.pid, :close)
 ```
 
-### Options
+### Options
 
 - `command` - required for running commands
 - `container` - if a pod runs multiple containers, you have to specify the container to run the command in.
