@@ -81,9 +81,17 @@ defmodule K8s.Client.Runner.Base do
   {:ok, result} = K8s.Client.Runner.Base.run(conn, operation)
   ```
   """
+  @spec run(Operation.t()) :: result_t
+  def run(%Operation{conn: %Conn{} = conn} = operation),
+    do: run(conn, operation, [])
+
   @spec run(Conn.t(), Operation.t()) :: result_t
   def run(%Conn{} = conn, %Operation{} = operation),
     do: run(conn, operation, [])
+
+  @spec run(Operation.t(), keyword()) :: result_t
+  def run(%Operation{conn: %Conn{} = conn} = operation, http_opts),
+    do: run(conn, operation, http_opts)
 
   @doc """
   Run a connect operation and pass `websocket_driver_opts` to `K8s.Client.WebSocketProvider`
