@@ -2,7 +2,7 @@ defmodule K8s.MixProject do
   use Mix.Project
 
   @source_url "https://github.com/coryodaniel/k8s"
-  @version "1.2.0"
+  @version "2.0.0-rc.0"
 
   def project do
     [
@@ -54,7 +54,7 @@ defmodule K8s.MixProject do
   defp package do
     [
       name: :k8s,
-      maintainers: ["Cory O'Daniel"],
+      maintainers: ["Cory O'Daniel", "Michael Ruoss"],
       licenses: ["MIT"],
       links: %{
         "GitHub" => @source_url,
@@ -69,15 +69,18 @@ defmodule K8s.MixProject do
       extras: [
         "README.md",
         "CHANGELOG.md",
-        "guides/usage.md",
-        "guides/operations.md",
-        "guides/connections.md",
-        "guides/middleware.md",
-        "guides/authentication.md",
-        "guides/discovery.md",
         "guides/advanced.md",
-        "guides/testing.md",
-        "guides/observability.md"
+        "guides/authentication.md",
+        "guides/connections.md",
+        "guides/discovery.md",
+        "guides/middleware.md",
+        "guides/migrations.md",
+        "guides/observability.md",
+        "guides/operations.md",
+        "guides/testing.md"
+      ],
+      groups_for_extras: [
+        Guides: Path.wildcard("guides/*.md")
       ],
       main: "readme",
       source_ref: @version,
