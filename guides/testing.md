@@ -38,10 +38,9 @@ defmodule MyApp.ResourceTest do
   use ExUnit.Case, async: true
 
   defmodule K8sMock do
-    @base_url "https://localhost:6443"
-    @namespaces_url @base_url <> "/api/v1/namespaces"
+    @namespaces_path "/api/v1/namespaces"
 
-    def request(:get, @namespaces_url, _, _, _) do
+    def request(:get, %URI{path: @namespaces_path}, _, _, _) do
       namespaces = [%{"metadata" => %{"name" => "default"}}]
       body = Jason.encode!(namespaces)
       {:ok, %HTTPoison.Response{status_code: 200, body: body}}
@@ -63,10 +62,10 @@ end
 
 To see advanced examples of usage, check out these examples in the test suite:
 
-* [client/runner/base](./test/k8s/client/runner/base_test.exs)
-* [client/runner/stream](./test/k8s/client/runner/stream_test.exs)
-* [client/runner/watch](./test/k8s/client/runner/watch_test.exs)
-* [discovery](./test/k8s/discovery_test.exs)
+- [client/runner/base](./test/k8s/client/runner/base_test.exs)
+- [client/runner/stream](./test/k8s/client/runner/stream_test.exs)
+- [client/runner/watch](./test/k8s/client/runner/watch_test.exs)
+- [discovery](./test/k8s/discovery_test.exs)
 
 ## Integration Testing
 
@@ -82,5 +81,5 @@ test                           Run all tests
 
 ### Integration environment variables
 
-* `TEST_KUBECONFIG` path to kubeconfig file for integration tests, default: "./integration.yaml"
-* `TEST_WAIT_TIMEOUT` number of seconds to timeout running Wait integration tests, default: 5
+- `TEST_KUBECONFIG` path to kubeconfig file for integration tests, default: "./integration.yaml"
+- `TEST_WAIT_TIMEOUT` number of seconds to timeout running Wait integration tests, default: 5

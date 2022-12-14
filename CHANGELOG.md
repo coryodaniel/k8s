@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- ### Added | Changed | Deprecated | Removed | Fixed | Security -->
 
+This version comes with some breaking changes. Please refer to the
+[migrations guide](./guides/migrations.md) for help on how to migrate your
+projects to this version.
+
 ### Added
 
 - `K8s.Selector.label_not/N`, `K8s.Selector.field/N` and `K8s.Selector.field_not/N` - Support for field selectors ([#117](https://github.com/coryodaniel/k8s/pull/117))
@@ -39,11 +43,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Errors are encapsulated in `K8s.Client.HTTPError`
 - `headers/1` callback was removed from `K8s.Client.Provider` behaviour
 - `K8s.Client.HTTPProvider` (HTTPoison implementation) was removed.
-- `K8s.Client.watch/N` was removed
+- `K8s.Client.watch/N` now returns a `:watch` or `:watch_all_namespaces` operation to be passed to `K8s.Client.stream/N`
 
 ### Fixed
 
 - Update `PKI.cert_from_map/2` to support fully qualified domain names (FQDN) - Fix for `K8s.Conn.from_file/1` ([#164](https://github.com/coryodaniel/k8s/pull/164))
+
 <!--------------------- Don't add new entries after this line --------------------->
 
 ## [1.2.0] - 2022-12-07
