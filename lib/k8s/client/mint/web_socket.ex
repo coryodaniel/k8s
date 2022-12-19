@@ -85,6 +85,7 @@ defmodule K8s.Client.Mint.WebSocket do
          [{:status, ^ref, status}, {:headers, ^ref, resp_headers} | _] <-
            create_stream(fn -> struct!(__MODULE__, conn: conn, ref: ref) end) |> Enum.to_list(),
          {:ok, conn, websocket} <- Mint.WebSocket.new(conn, ref, status, resp_headers) do
+      Process.flag(:trap_exit, true)
       {:ok, struct!(__MODULE__, conn: conn, ref: ref, websocket: websocket)}
     end
   end
@@ -159,6 +160,11 @@ defmodule K8s.Client.Mint.WebSocket do
       {:exit, code, reason} ->
         with {:ok, conn, websocket} <-
                send_to_websocket(conn, websocket, ref, {:close, code, reason}) do
+          {[], struct!(state, conn: conn, websocket: websocket)}
+        end
+
+      {:EXIT, _, _} ->
+        with {:ok, conn, websocket} <- send_to_websocket(conn, websocket, ref, :close) do
           {[], struct!(state, conn: conn, websocket: websocket)}
         end
 

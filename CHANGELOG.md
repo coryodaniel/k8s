@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0-rc.1] - Not yet released
+
+### Fixed
+
+- `K8s.Client.Mint.WebSocket` - Close websocket if process is terminated
+
 ## [2.0.0-rc.0] - 2022-12-14
 
 <!-- Add your changelog entry to the relevant subsection -->
