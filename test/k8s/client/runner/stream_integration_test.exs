@@ -44,6 +44,7 @@ defmodule K8s.Client.Runner.StreamIntegrationTest do
   end
 
   @tag :integration
+  @tag :websocket
   test "runs :connect operations and returns stdout", %{
     conn: conn,
     labels: labels,
@@ -75,6 +76,7 @@ defmodule K8s.Client.Runner.StreamIntegrationTest do
   end
 
   @tag :integration
+  @tag :websocket
   test "runs :connect operations and returns errors", %{
     conn: conn,
     labels: labels,
@@ -107,6 +109,7 @@ defmodule K8s.Client.Runner.StreamIntegrationTest do
   end
 
   @tag :integration
+  @tag :websocket
   test "runs :connect operations and accepts messages", %{
     conn: conn,
     labels: labels,
@@ -124,35 +127,30 @@ defmodule K8s.Client.Runner.StreamIntegrationTest do
 
     pid = self()
 
-    task =
-      Task.async(fn ->
-        {:ok, stream} =
-          K8s.Client.stream(
-            conn,
-            K8s.Client.connect(
-              created_pod["apiVersion"],
-              "pods/exec",
-              [
-                namespace: K8s.Resource.namespace(created_pod),
-                name: K8s.Resource.name(created_pod)
-              ],
-              command: ["/bin/sh"],
-              tty: false
-            )
-          )
+    {:ok, send_to_webstream} =
+      K8s.Client.connect(
+        created_pod["apiVersion"],
+        "pods/exec",
+        [
+          namespace: K8s.Resource.namespace(created_pod),
+          name: K8s.Resource.name(created_pod)
+        ],
+        command: ["/bin/sh"],
+        tty: false
+      )
+      |> K8s.Client.put_conn(conn)
+      |> K8s.Client.stream_to(pid)
 
-        stream |> Stream.map(fn chunk -> send(pid, chunk) end) |> Stream.run()
-      end)
+    assert_receive {:open, true}, 2000
 
-    assert_receive :open, 2000
-
-    send(task.pid, {:stdin, ~s(echo "ok"\n)})
-    send(task.pid, :close)
-
+    send_to_webstream.({:stdin, ~s(echo "ok"\n)})
     assert_receive {:stdout, "ok\n"}, 2000
+
+    send_to_webstream.(:close)
   end
 
   @tag :integration
+  @tag :websocket
   test "returns error if connection fails", %{conn: conn} do
     result =
       K8s.Client.run(

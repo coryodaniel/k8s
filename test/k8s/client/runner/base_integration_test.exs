@@ -245,7 +245,7 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
                 "kind" => "ServiceAccountList"
               }} = K8s.Client.run(conn, operation)
 
-      assert length(service_accounts) == 1
+      assert length(service_accounts) > 0
     end
 
     @tag integration: true

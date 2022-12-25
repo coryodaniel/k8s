@@ -106,8 +106,6 @@
         {Credo.Check.Refactor.NegatedConditionsInUnless, []},
         {Credo.Check.Refactor.NegatedConditionsWithElse, []},
         {Credo.Check.Refactor.Nesting, []},
-        {Credo.Check.Refactor.PipeChainStart,
-         [excluded_argument_types: [:atom, :binary, :fn, :keyword], excluded_functions: []]},
         {Credo.Check.Refactor.UnlessWithElse, []},
 
         #
@@ -146,7 +144,7 @@
         # Custom checks can be created using `mix credo.gen.check`.
         #
 
-        # 
+        #
         # Deprecated after 1.10.4
         #
         {Credo.Check.Refactor.MapInto, false},

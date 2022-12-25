@@ -11,12 +11,6 @@ defmodule K8s.Client.Runner.Stream do
 
   @supported_operations [:list, :list_all_namespaces, :watch, :watch_all_namespaces, :connect]
 
-  @typedoc "List of items and pagination request"
-  @type state_t :: {list(), ListRequest.t()}
-
-  @typedoc "Halt streaming"
-  @type halt_t :: {:halt, state_t}
-
   @doc """
   Validates operation type before calling `stream/3`. Only supports verbs: `list_all_namespaces` and `list`.
   """
@@ -26,6 +20,7 @@ defmodule K8s.Client.Runner.Stream do
   @spec run(Operation.t(), keyword()) :: {:ok, Enumerable.t()} | {:error, Error.t()}
   def run(%Operation{conn: %Conn{} = conn} = op, http_opts), do: run(conn, op, http_opts)
 
+  @spec run(Conn.t(), Operation.t()) :: {:ok, Enumerable.t()} | {:error, Error.t()}
   def run(%Conn{} = conn, %Operation{} = op), do: run(conn, op, [])
 
   @spec run(Conn.t(), Operation.t(), keyword()) :: {:ok, Enumerable.t()} | {:error, Error.t()}

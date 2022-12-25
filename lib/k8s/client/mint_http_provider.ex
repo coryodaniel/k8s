@@ -21,6 +21,10 @@ defmodule K8s.Client.MintHTTPProvider do
   defdelegate stream(method, uri, body, headers, http_opts), to: K8s.Client.Mint.HTTP
 
   @impl true
+  defdelegate stream_to(method, uri, body, headers, http_opts, stream_to),
+    to: K8s.Client.Mint.HTTP
+
+  @impl true
   defdelegate websocket_stream(uri, headers, http_opts),
     to: K8s.Client.Mint.WebSocket,
     as: :stream
@@ -29,4 +33,9 @@ defmodule K8s.Client.MintHTTPProvider do
   defdelegate websocket_request(uri, headers, http_opts),
     to: K8s.Client.Mint.WebSocket,
     as: :request
+
+  @impl true
+  defdelegate websocket_stream_to(uri, headers, http_opts, stream_to),
+    to: K8s.Client.Mint.WebSocket,
+    as: :stream_to
 end

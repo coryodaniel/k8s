@@ -27,6 +27,7 @@ defmodule K8s.Client do
     force: true
   }
 
+  alias K8s.Client.Runner.StreamTo
   alias K8s.Operation
   alias K8s.Client.Runner.{Async, Base, Stream, Wait}
 
@@ -56,6 +57,7 @@ defmodule K8s.Client do
   @doc "alias of `K8s.Client.Runner.Wait.run/3`"
   defdelegate wait_until(conn, operation, wait_opts), to: Wait, as: :run
 
+  @doc "alias of `K8s.Client.Runner.Stream.run/1`"
   defdelegate stream(operation), to: Stream, as: :run
 
   @doc "alias of `K8s.Client.Runner.Stream.run/2`"
@@ -63,6 +65,15 @@ defmodule K8s.Client do
 
   @doc "alias of `K8s.Client.Runner.Stream.run/3`"
   defdelegate stream(conn, operation, http_opts), to: Stream, as: :run
+
+  @doc "alias of `K8s.Client.Runner.StreamTo.run/2`"
+  defdelegate stream_to(operation, stream_to), to: StreamTo, as: :run
+
+  @doc "alias of `K8s.Client.Runner.StreamTo.run/3`"
+  defdelegate stream_to(conn, operation, stream_to), to: StreamTo, as: :run
+
+  @doc "alias of `K8s.Client.Runner.StreamTo.run/4`"
+  defdelegate stream_to(conn, operation, http_opts, stream_to), to: StreamTo, as: :run
 
   @doc """
   Returns a `PATCH` operation to server-side-apply the given resource.
