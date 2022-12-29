@@ -14,7 +14,7 @@ defmodule K8s.Client.Runner.AsyncIntegrationTest do
     |> K8s.Client.create()
   end
 
-  @tag integration: true
+  @tag :integration
   test "performs multiple operations async", %{conn: conn, test_id: test_id} do
     pod1 = pod("async-nginx-#{test_id}-1")
     {:ok, _} = K8s.Client.run(conn, pod1)

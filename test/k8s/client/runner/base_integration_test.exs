@@ -26,7 +26,7 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
   end
 
   describe "cluster scoped resources" do
-    @tag integration: true
+    @tag :integration
     test "creating a resource", %{conn: conn, test_id: test_id, labels: labels} do
       namespace = %{
         "apiVersion" => "v1",
@@ -43,7 +43,7 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
       assert {:ok, _pod} = result
     end
 
-    @tag integration: true
+    @tag :integration
     test "getting a resource", %{conn: conn} do
       operation = K8s.Client.get("v1", "Namespace", name: "default")
       result = K8s.Client.run(conn, operation)
@@ -51,7 +51,7 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
       assert {:ok, %{"apiVersion" => "v1", "kind" => "Namespace"}} = result
     end
 
-    @tag integration: true
+    @tag :integration
     test "listing resources", %{conn: conn} do
       operation = K8s.Client.list("v1", "Namespace")
 
@@ -68,7 +68,7 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
   end
 
   describe "namespaced scoped resources" do
-    @tag integration: true
+    @tag :integration
     test "creating a resource", %{conn: conn, test_id: test_id, labels: labels} do
       pod = build_pod("k8s-ex-#{test_id}", labels)
 
@@ -85,7 +85,7 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
                |> K8s.Client.run()
     end
 
-    @tag integration: true
+    @tag :integration
     test "when the request is unauthorized", %{conn: conn} do
       operation = K8s.Client.get("v1", "ServiceAccount", name: "default", namespace: "default")
       unauthorized = %K8s.Conn.Auth.Token{token: "nope"}
@@ -100,7 +100,7 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
              } == error
     end
 
-    @tag integration: true
+    @tag :integration
     test "getting a resource", %{conn: conn} do
       operation = K8s.Client.get("v1", "ServiceAccount", name: "default", namespace: "default")
       result = K8s.Client.run(conn, operation)
@@ -108,7 +108,7 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
       assert {:ok, %{"apiVersion" => "v1", "kind" => "ServiceAccount"}} = result
     end
 
-    @tag integration: true
+    @tag :integration
     test "getting a resource that doesn't exist returns an error", %{conn: conn} do
       operation = K8s.Client.get("v1", "ServiceAccount", name: "NOPE", namespace: "default")
       {:error, error} = K8s.Client.run(conn, operation)
@@ -119,7 +119,7 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
              } == error
     end
 
-    @tag integration: true
+    @tag :integration
     test "applying a resource that does not exist", %{
       conn: conn,
       test_id: test_id,
@@ -135,7 +135,7 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
       assert {:ok, _pod} = result
     end
 
-    @tag integration: true
+    @tag :integration
     test "applying a resource that does already exist", %{
       conn: conn,
       test_id: test_id,
@@ -165,7 +165,7 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
       assert {:ok, _pod} = result
     end
 
-    @tag integration: true
+    @tag :integration
     test "applying a resource with different managers should return a conflict error", %{
       conn: conn,
       test_id: test_id,
@@ -196,7 +196,7 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
       assert {:ok, _pod} = result
     end
 
-    @tag integration: true
+    @tag :integration
     test "applying a new status to a pod", %{conn: conn, test_id: test_id, labels: labels} do
       pod = build_pod("k8s-ex-#{test_id}", labels)
       operation = K8s.Client.apply(pod)
@@ -238,7 +238,7 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
       assert {:ok, _pod} = result
     end
 
-    @tag integration: true
+    @tag :integration
     test "listing resources", %{conn: conn} do
       operation = K8s.Client.list("v1", "ServiceAccount", namespace: "default")
 
@@ -252,7 +252,7 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
       assert length(service_accounts) > 0
     end
 
-    @tag integration: true
+    @tag :integration
     test "creating a operation without correct kind `pod/exec` should return an error", %{
       conn: conn
     } do

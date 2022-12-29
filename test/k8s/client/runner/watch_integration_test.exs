@@ -58,7 +58,7 @@ defmodule K8s.Client.Runner.WatchIntegrationTest do
       ]
     end
 
-    @tag integration: true
+    @tag :integration
     test "watches and streams a resource list", %{
       conn: conn,
       labels: labels,
@@ -105,7 +105,7 @@ defmodule K8s.Client.Runner.WatchIntegrationTest do
       assert_receive({^ref, "DELETED", ^resource_name}, timeout)
     end
 
-    @tag integration: true
+    @tag :integration
     test "watches and streams resources in all namespaces", %{
       conn: conn,
       labels: labels,
@@ -152,7 +152,7 @@ defmodule K8s.Client.Runner.WatchIntegrationTest do
       assert_receive({^ref, "DELETED", ^resource_name}, timeout)
     end
 
-    @tag integration: true
+    @tag :integration
     test "watches and streams a signle resource", %{
       conn: conn,
       labels: labels,

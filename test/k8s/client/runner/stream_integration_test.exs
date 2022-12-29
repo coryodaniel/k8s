@@ -31,7 +31,7 @@ defmodule K8s.Client.Runner.StreamIntegrationTest do
     |> K8s.Client.create()
   end
 
-  @tag integration: true
+  @tag :integration
   test "returns a list of resources", %{conn: conn, labels: labels, test_id: test_id} do
     # Note: stream_test.exs tests functionality of creating the stream
     # This test is a simple integration test against a real cluster
