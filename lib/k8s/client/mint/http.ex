@@ -3,7 +3,7 @@ defmodule K8s.Client.Mint.HTTP do
   HTTP request implementation of Mint based `K8s.Client.Provider`
   """
 
-  alias K8s.Client.Mint.ConnectionPool
+  alias K8s.Client.Mint.ConnectionRegistry
   alias K8s.Client.Mint.HTTPAdapter
   alias K8s.Client.Provider
 
@@ -28,7 +28,7 @@ defmodule K8s.Client.Mint.HTTP do
         ) :: Provider.response_t()
   def request(method, uri, body, headers, http_opts) do
     {method, path, headers, opts} = prepare_args(method, uri, headers, http_opts)
-    {:ok, adapter_pid} = ConnectionPool.get({uri, opts})
+    {:ok, adapter_pid} = ConnectionRegistry.get({uri, opts})
 
     with {:ok, response} <-
            HTTPAdapter.request(adapter_pid, method, path, headers, body) do
@@ -45,7 +45,7 @@ defmodule K8s.Client.Mint.HTTP do
         ) :: Provider.stream_response_t()
   def stream(method, uri, body, headers, http_opts) do
     {method, path, headers, opts} = prepare_args(method, uri, headers, http_opts)
-    {:ok, adapter_pid} = ConnectionPool.get({uri, opts})
+    {:ok, adapter_pid} = ConnectionRegistry.get({uri, opts})
 
     HTTPAdapter.stream(adapter_pid, method, path, headers, body)
   end
@@ -60,7 +60,7 @@ defmodule K8s.Client.Mint.HTTP do
         ) :: Provider.stream_to_response_t()
   def stream_to(method, uri, body, headers, http_opts, stream_to) do
     {method, path, headers, opts} = prepare_args(method, uri, headers, http_opts)
-    {:ok, adapter_pid} = ConnectionPool.get({uri, opts})
+    {:ok, adapter_pid} = ConnectionRegistry.get({uri, opts})
 
     HTTPAdapter.stream_to(adapter_pid, method, path, headers, body, stream_to)
   end

@@ -1,4 +1,8 @@
-defmodule K8s.Client.Mint.ConnectionPool do
+defmodule K8s.Client.Mint.ConnectionRegistry do
+  @moduledoc """
+  Opens `Mint.HTTP2` connections and registers them in the GenServer state.
+  """
+
   use GenServer
 
   alias K8s.Client.Mint.HTTPAdapter
@@ -17,7 +21,7 @@ defmodule K8s.Client.Mint.ConnectionPool do
   """
   @spec get(key()) :: {:ok, pid()}
   def get(key) do
-    GenServer.call(__MODULE__, {:get_or_create, key})
+    GenServer.call(__MODULE__, {:get_or_open, key})
   end
 
   @impl true
@@ -28,7 +32,7 @@ defmodule K8s.Client.Mint.ConnectionPool do
   end
 
   @impl true
-  def handle_call({:get_or_create, key}, _from, {adapters, refs}) do
+  def handle_call({:get_or_open, key}, _from, {adapters, refs}) do
     if Map.has_key?(adapters, key) do
       {:reply, {:ok, Map.get(adapters, key)}, {adapters, refs}}
     else

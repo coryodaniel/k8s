@@ -1,6 +1,11 @@
-defmodule K8s.Client.Mint.Request do
-  alias K8s.Client.Mint.UpgradeRequest
-  alias K8s.Client.Mint.WebSocketRequest
+defmodule K8s.Client.Mint.Request.HTTP do
+  @moduledoc """
+  Represents a HTTP request state.
+  """
+
+  alias K8s.Client.Mint.Request.Upgrade, as: UpgradeRequest
+  alias K8s.Client.Mint.Request.WebSocket, as: WebSocketRequest
+
   @data_types [:data, :stdout, :stderr, :error]
 
   @type t :: %__MODULE__{}
@@ -51,7 +56,6 @@ defmodule K8s.Client.Mint.Request do
   end
 
   def put_response(request, :done) do
-    # todo: when to pop?
     {request, put_in(request.response[:done], true)}
   end
 

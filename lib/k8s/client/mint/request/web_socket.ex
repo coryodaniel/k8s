@@ -1,4 +1,8 @@
-defmodule K8s.Client.Mint.WebSocketRequest do
+defmodule K8s.Client.Mint.Request.WebSocket do
+  @moduledoc """
+  Represents a WebSocket connection state.
+  """
+
   @type t :: %__MODULE__{}
 
   defstruct [:from, :stream_to, :websocket, response: %{}]

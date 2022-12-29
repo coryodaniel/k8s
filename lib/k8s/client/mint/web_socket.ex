@@ -16,11 +16,8 @@ defmodule K8s.Client.Mint.WebSocket do
 
   defstruct [:conn, :ref, :websocket]
 
-  @spec request(
-          uri :: URI.t(),
-          headers :: list(),
-          http_opts :: keyword()
-        ) :: Provider.websocket_response_t()
+  @spec request(uri :: URI.t(), headers :: list(), http_opts :: keyword()) ::
+          Provider.websocket_response_t()
   def request(uri, headers, http_opts) do
     {opts, path, headers} = prepare_args(uri, headers, http_opts)
 
@@ -33,11 +30,8 @@ defmodule K8s.Client.Mint.WebSocket do
     HTTPAdapter.websocket_request(adapter_pid, path, headers)
   end
 
-  @spec stream(
-          uri :: URI.t(),
-          headers :: list(),
-          http_opts :: keyword()
-        ) :: Provider.stream_response_t()
+  @spec stream(uri :: URI.t(), headers :: list(), http_opts :: keyword()) ::
+          Provider.stream_response_t()
   def stream(uri, headers, http_opts) do
     {opts, path, headers} = prepare_args(uri, headers, http_opts)
 
@@ -50,12 +44,8 @@ defmodule K8s.Client.Mint.WebSocket do
     HTTPAdapter.websocket_stream(adapter_pid, path, headers)
   end
 
-  @spec stream_to(
-          uri :: URI.t(),
-          headers :: list(),
-          http_opts :: keyword(),
-          stream_to :: pid()
-        ) :: Provider.stream_to_response_t()
+  @spec stream_to(uri :: URI.t(), headers :: list(), http_opts :: keyword(), stream_to :: pid()) ::
+          Provider.stream_to_response_t()
   def stream_to(uri, headers, http_opts, stream_to) do
     {opts, path, headers} = prepare_args(uri, headers, http_opts)
 

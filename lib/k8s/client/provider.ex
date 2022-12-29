@@ -25,7 +25,7 @@ defmodule K8s.Client.Provider do
 
   @type response_t :: success_t() | error_t()
   @type stream_response_t :: stream_success_t() | error_t()
-  @type stream_to_response_t :: {:ok, send_callback()} | error_t()
+  @type stream_to_response_t :: {:ok, send_callback()} | :ok | error_t()
   @type websocket_response_t :: websocket_success_t() | error_t()
 
   @doc "Perform HTTP requests"

@@ -71,29 +71,21 @@ release, there is now a `:watch` operation. `K8s.Client.watch/N` now is used
 to create a `:watch` operation which has to be passed to `K8s.Client.stream/N`.
 Also, the `stream_to` option was removed. See below.
 
-### `stream_to` was removed
+### Streaming to another process - The `stream_to` option was removed
 
 Before `2.0.0`, you could pass the `stream_to` option to stream packets to a
 process. With the migration from HTTPoison to Mint, this option was removed.
-It was very low-level and revealed implementation details.
-
-To stream packest to a different process, use `K8s.Client.stream/N` to retrieve
-an Elixir Stream. Map over that stream and send the packets to a process.
+As a replacement, `K8s.Client.stream_to/N` was added. Use this function instest
+but note that the chunks that are sent to the receiving process come in different
+form now.
 
 #### Example
 
 ```elixir
-parent_pid = self()
-Task.async(fn ->
-  {:ok, stream} =
-    K8s.Client.watch("v1", "ConfigMap", namespace: "default")
-    |> K8s.Client.put_conn(conn)
-    |> K8s.Client.stream()
-
-  stream
-  |> Stream.map(&send(parent_pid, &1))
-  |> Stream.run()
-end)
+:ok =
+  K8s.Client.watch("v1", "ConfigMap", namespace: "default")
+  |> K8s.Client.put_conn(conn)
+  |> K8s.Client.stream_to(self())
 
 receive do
   event -> IO.inspect(event)

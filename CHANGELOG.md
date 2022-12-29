@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0-rc.2] -
+
+### Added
+
+- `K8s.Client.Mint.HTTPAdapter` - A GenServer handling `Mint.HTTP` connections.
+
 ## [2.0.0-rc.1] - 2022-12-19
 
 ### Fixed
@@ -26,6 +32,8 @@ projects to this version.
 - `K8s.Selector.label_not/N`, `K8s.Selector.field/N` and `K8s.Selector.field_not/N` - Support for field selectors ([#117](https://github.com/coryodaniel/k8s/pull/117))
 - `K8s.Client.Provider.stream/5` callback was added to the behaviour
 - `K8s.Client.Runner.Base.stream/3`
+- `K8s.Client.Provider.stream_to/6` callback was added to the behaviour
+- `K8s.Client.Runner.Base.stream_to/4`
 - `K8s.Client.MintHTTPProvider` - The mint client implementation
 - `K8s.Client.HTTPTestHelper` - to be used in tests (resides in `lib/` so it can be used by dependents)
 - Open `:connect` operations (connections) now accept messages to be sent to pods
@@ -40,14 +48,16 @@ projects to this version.
 ### Removed
 
 - `K8s.Client.HTTPProvider` was removed in favor of `K8s.Client.MintHTTPProvider`
-- The `:stream_to` in `http_opts` is not supported anymore.
+- The `:stream_to` in `http_opts` was removed in favor of `K8s.Client.stream_to/N`.
+- `K8s.Client.DynamicWebSocketProvider` was removed. Use `K8s.Client.DynamcHTTPProvider.websocket*` functions instead .
 
 ### Breaking changes
 
-- Tests using the `DynamicHTTPProvider` which work with `watch_and_stream` are going to need to be changed. The HTTP mocks now need to implement the `stream/5` callback. (See `K8s.Client.Runner.Watch.StreamTest` on this branch for examples)
-- The `:stream_to` in `http_opts` is not supported anymore. Instead, [Elixir Streams](https://hexdocs.pm/elixir/1.14/Stream.html) are returned. Map over the returned stream to send messages to other processes.
+- Tests using the `DynamicHTTPProvider` which work with `watch_and_stream` are going to need to be changed. The HTTP mocks now need to implement the `stream/5` callback. (See `K8s.Client.Runner.Watch.StreamTest` on this branch for examples)d.
+- `K8s.Client.DynamicWebSocketProvider` was removed in favor of `K8s.Client.DynamcHTTPProvider.websocket*` functions.
+- The `:stream_to` in `http_opts` is not supported anymore. Use `K8s.Client.stream_to/N` instead.
 - Errors are encapsulated in `K8s.Client.HTTPError`
-- `headers/1` callback was removed from `K8s.Client.Provider` behaviour
+- `headers/1` callback was removed from `K8s.Client.Provider` behaviour.
 - `K8s.Client.HTTPProvider` (HTTPoison implementation) was removed.
 - `K8s.Client.watch/N` now returns a `:watch` or `:watch_all_namespaces` operation to be passed to `K8s.Client.stream/N`
 
