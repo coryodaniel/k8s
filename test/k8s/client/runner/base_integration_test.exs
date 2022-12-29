@@ -2,31 +2,36 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
   use ExUnit.Case, async: true
   import K8s.Test.IntegrationHelper
 
-  setup do
-    test_id = :rand.uniform(10_000)
+  setup_all do
     conn = conn()
 
     on_exit(fn ->
-      delete_pod =
-        K8s.Client.delete(%{
-          "apiVersion" => "v1",
-          "kind" => "Pod",
-          "metadata" => %{"name" => "k8s-ex-#{test_id}"}
-        })
-
-      K8s.Client.run(conn, delete_pod)
+      K8s.Client.delete(%{
+        "apiVersion" => "v1",
+        "kind" => "Pod"
+      })
+      |> K8s.Selector.label({"k8s-ex-test", "base"})
+      |> K8s.Client.put_conn(conn)
+      |> K8s.Client.run()
     end)
 
-    {:ok, %{conn: conn, test_id: test_id}}
+    [conn: conn]
+  end
+
+  setup do
+    test_id = :rand.uniform(10_000)
+    labels = %{"k8s-ex-base-test" => "#{test_id}", "k8s-ex-test" => "base"}
+
+    {:ok, %{test_id: test_id, labels: labels}}
   end
 
   describe "cluster scoped resources" do
     @tag integration: true
-    test "creating a resource", %{conn: conn, test_id: test_id} do
+    test "creating a resource", %{conn: conn, test_id: test_id, labels: labels} do
       namespace = %{
         "apiVersion" => "v1",
         "kind" => "Namespace",
-        "metadata" => %{"name" => "k8s-ex-#{test_id}"}
+        "metadata" => %{"name" => "k8s-ex-#{test_id}", "labels" => labels}
       }
 
       operation = K8s.Client.create(namespace)
@@ -60,34 +65,24 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
       namespace_names = Enum.map(namespaces, fn ns -> get_in(ns, ["metadata", "name"]) end)
       assert Enum.member?(namespace_names, "default")
     end
-
-    # TODO
-    # @tag integration: true
-    # test "running a command in a container", %{conn: conn} do
-    #   operation =
-    #     K8s.Client.connect(
-    #       "v1",
-    #       "pods/exec",
-    #       [namespace: "default", name: "nginx-76d6c9b8c-sq56w"],
-    #       command: ["/bin/sh", "-c", "date"]
-    #     )
-
-    #   assert {:ok, stream} = K8s.Client.run(conn, operation)
-    #   assert [] == Enum.to_list(stream)
-    # end
   end
 
   describe "namespaced scoped resources" do
     @tag integration: true
-    test "creating a resource", %{conn: conn, test_id: test_id} do
-      pod = build_pod("k8s-ex-#{test_id}")
-      operation = K8s.Client.create(pod)
-      result = K8s.Client.run(conn, operation)
-      assert {:ok, _pod} = result
+    test "creating a resource", %{conn: conn, test_id: test_id, labels: labels} do
+      pod = build_pod("k8s-ex-#{test_id}", labels)
 
-      operation = K8s.Client.delete(pod)
-      result = K8s.Client.run(conn, operation)
-      assert {:ok, _pod} = result
+      assert {:ok, _pod} =
+               pod
+               |> K8s.Client.create()
+               |> K8s.Client.put_conn(conn)
+               |> K8s.Client.run()
+
+      assert {:ok, _pod} =
+               pod
+               |> K8s.Client.delete()
+               |> K8s.Client.put_conn(conn)
+               |> K8s.Client.run()
     end
 
     @tag integration: true
@@ -125,8 +120,12 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
     end
 
     @tag integration: true
-    test "applying a resource that does not exist", %{conn: conn, test_id: test_id} do
-      pod = build_pod("k8s-ex-#{test_id}")
+    test "applying a resource that does not exist", %{
+      conn: conn,
+      test_id: test_id,
+      labels: labels
+    } do
+      pod = build_pod("k8s-ex-#{test_id}", labels)
       operation = K8s.Client.apply(pod)
       result = K8s.Client.run(conn, operation)
       assert {:ok, _pod} = result
@@ -137,8 +136,12 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
     end
 
     @tag integration: true
-    test "applying a resource that does already exist", %{conn: conn, test_id: test_id} do
-      pod = build_pod("k8s-ex-#{test_id}")
+    test "applying a resource that does already exist", %{
+      conn: conn,
+      test_id: test_id,
+      labels: labels
+    } do
+      pod = build_pod("k8s-ex-#{test_id}", labels)
       # make sure pod is created with no label called "some"
       assert is_nil(pod["metadata"]["labels"]["some"])
 
@@ -165,9 +168,10 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
     @tag integration: true
     test "applying a resource with different managers should return a conflict error", %{
       conn: conn,
-      test_id: test_id
+      test_id: test_id,
+      labels: labels
     } do
-      pod = build_pod("k8s-ex-#{test_id}", %{"some" => "init"})
+      pod = build_pod("k8s-ex-#{test_id}", Map.put(labels, "some", "init"))
 
       # make sure pod is created with label "some"
       assert "init" == pod["metadata"]["labels"]["some"]
@@ -193,8 +197,8 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
     end
 
     @tag integration: true
-    test "applying a new status to a pod", %{conn: conn, test_id: test_id} do
-      pod = build_pod("k8s-ex-#{test_id}")
+    test "applying a new status to a pod", %{conn: conn, test_id: test_id, labels: labels} do
+      pod = build_pod("k8s-ex-#{test_id}", labels)
       operation = K8s.Client.apply(pod)
       result = K8s.Client.run(conn, operation)
       assert {:ok, _pod} = result
@@ -259,5 +263,96 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
               %K8s.Discovery.Error{message: "Unsupported Kubernetes resource: \"not-real\""}} =
                K8s.Client.run(conn, operation)
     end
+  end
+
+  @tag :integration
+  @tag :websocket
+  test "runs :connect operations and returns stdout", %{
+    conn: conn,
+    labels: labels,
+    test_id: test_id
+  } do
+    {:ok, created_pod} =
+      build_pod("k8s-ex-#{test_id}", labels)
+      |> K8s.Client.create()
+      |> K8s.Client.put_conn(conn)
+      |> K8s.Client.run()
+
+    {:ok, _} =
+      K8s.Client.wait_until(conn, K8s.Client.get(created_pod),
+        find: ["status", "containerStatuses", Access.filter(&(&1["ready"] == true))],
+        eval: &match?([_ | _], &1),
+        timeout: 60
+      )
+
+    {:ok, response} =
+      K8s.Client.connect(
+        created_pod["apiVersion"],
+        "pods/exec",
+        [namespace: K8s.Resource.namespace(created_pod), name: K8s.Resource.name(created_pod)],
+        command: ["/bin/sh", "-c", ~s(echo "ok")],
+        tty: false
+      )
+      |> K8s.Client.put_conn(conn)
+      |> K8s.Client.run()
+
+    assert response.stdout =~ "ok"
+  end
+
+  @tag :integration
+  @tag :websocket
+  test "runs :connect operations and returns errors", %{
+    conn: conn,
+    labels: labels,
+    test_id: test_id
+  } do
+    {:ok, created_pod} =
+      build_pod("k8s-ex-#{test_id}", labels)
+      |> K8s.Client.create()
+      |> K8s.Client.put_conn(conn)
+      |> K8s.Client.run()
+
+    {:ok, _} =
+      K8s.Client.wait_until(conn, K8s.Client.get(created_pod),
+        find: ["status", "containerStatuses", Access.filter(&(&1["ready"] == true))],
+        eval: &match?([_ | _], &1),
+        timeout: 60
+      )
+
+    {:ok, response} =
+      K8s.Client.connect(
+        created_pod["apiVersion"],
+        "pods/exec",
+        [namespace: K8s.Resource.namespace(created_pod), name: K8s.Resource.name(created_pod)],
+        command: ["/bin/sh", "-c", "no-such-command"],
+        tty: false
+      )
+      |> K8s.Client.put_conn(conn)
+      |> K8s.Client.run()
+
+    assert response.error =~ "error executing command"
+    assert response.stderr =~ "not found"
+  end
+
+  @tag :integration
+  @tag :websocket
+  test "returns error if connection fails", %{conn: conn} do
+    result =
+      K8s.Client.run(
+        conn,
+        K8s.Client.connect(
+          "v1",
+          "pods/exec",
+          [
+            namespace: "default",
+            name: "does-not-exist"
+          ],
+          command: ["/bin/sh"],
+          tty: false
+        )
+      )
+
+    assert {:error, error} = result
+    assert error.message =~ "404"
   end
 end

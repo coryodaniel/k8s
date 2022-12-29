@@ -2,10 +2,26 @@ defmodule K8s.Client.Runner.StreamIntegrationTest do
   use ExUnit.Case, async: true
   import K8s.Test.IntegrationHelper
 
+  setup_all do
+    conn = conn()
+
+    on_exit(fn ->
+      K8s.Client.delete(%{
+        "apiVersion" => "v1",
+        "kind" => "Pod"
+      })
+      |> K8s.Selector.label({"k8s-ex-test", "stream"})
+      |> K8s.Client.put_conn(conn)
+      |> K8s.Client.run()
+    end)
+
+    [conn: conn]
+  end
+
   setup do
     test_id = :rand.uniform(10_000)
-    labels = %{"k8s-ex-stream-test" => "#{test_id}", "k8s-ex" => "true"}
-    {:ok, %{conn: conn(), test_id: test_id, labels: labels}}
+    labels = %{"k8s-ex-stream-test" => "#{test_id}", "k8s-ex-test" => "stream"}
+    {:ok, %{test_id: test_id, labels: labels}}
   end
 
   @spec pod(binary, map) :: K8s.Operation.t()
@@ -45,127 +61,20 @@ defmodule K8s.Client.Runner.StreamIntegrationTest do
 
   @tag :integration
   @tag :websocket
-  test "runs :connect operations and returns stdout", %{
-    conn: conn,
-    labels: labels,
-    test_id: test_id
-  } do
-    pod = pod("stream-nginx-#{test_id}-1", labels)
-    {:ok, created_pod} = K8s.Client.run(conn, pod)
-
-    {:ok, _} =
-      K8s.Client.wait_until(conn, K8s.Client.get(created_pod),
-        find: ["status", "containerStatuses", Access.filter(&(&1["ready"] == true))],
-        eval: &match?([_ | _], &1),
-        timeout: 60
-      )
-
-    {:ok, response} =
-      K8s.Client.run(
-        conn,
-        K8s.Client.connect(
-          created_pod["apiVersion"],
-          "pods/exec",
-          [namespace: K8s.Resource.namespace(created_pod), name: K8s.Resource.name(created_pod)],
-          command: ["/bin/sh", "-c", ~s(echo "ok")],
-          tty: false
-        )
-      )
-
-    assert response.stdout =~ "ok"
-  end
-
-  @tag :integration
-  @tag :websocket
-  test "runs :connect operations and returns errors", %{
-    conn: conn,
-    labels: labels,
-    test_id: test_id
-  } do
-    pod = pod("stream-nginx-#{test_id}-1", labels)
-    {:ok, created_pod} = K8s.Client.run(conn, pod)
-
-    {:ok, _} =
-      K8s.Client.wait_until(conn, K8s.Client.get(created_pod),
-        find: ["status", "containerStatuses", Access.filter(&(&1["ready"] == true))],
-        eval: &match?([_ | _], &1),
-        timeout: 60
-      )
-
-    {:ok, response} =
-      K8s.Client.run(
-        conn,
-        K8s.Client.connect(
-          created_pod["apiVersion"],
-          "pods/exec",
-          [namespace: K8s.Resource.namespace(created_pod), name: K8s.Resource.name(created_pod)],
-          command: ["/bin/sh", "-c", "no-such-command"],
-          tty: false
-        )
-      )
-
-    assert response.error =~ "error executing command"
-    assert response.stderr =~ "not found"
-  end
-
-  @tag :integration
-  @tag :websocket
-  test "runs :connect operations and accepts messages", %{
-    conn: conn,
-    labels: labels,
-    test_id: test_id
-  } do
-    pod = pod("stream-nginx-#{test_id}-1", labels)
-    {:ok, created_pod} = K8s.Client.run(conn, pod)
-
-    {:ok, _} =
-      K8s.Client.wait_until(conn, K8s.Client.get(created_pod),
-        find: ["status", "containerStatuses", Access.filter(&(&1["ready"] == true))],
-        eval: &match?([_ | _], &1),
-        timeout: 60
-      )
-
-    pid = self()
-
-    {:ok, send_to_webstream} =
+  test "returns error if connection fails", %{conn: conn} do
+    result =
       K8s.Client.connect(
-        created_pod["apiVersion"],
+        "v1",
         "pods/exec",
         [
-          namespace: K8s.Resource.namespace(created_pod),
-          name: K8s.Resource.name(created_pod)
+          namespace: "default",
+          name: "does-not-exist"
         ],
         command: ["/bin/sh"],
         tty: false
       )
       |> K8s.Client.put_conn(conn)
-      |> K8s.Client.stream_to(pid)
-
-    assert_receive {:open, true}, 2000
-
-    send_to_webstream.({:stdin, ~s(echo "ok"\n)})
-    assert_receive {:stdout, "ok\n"}, 2000
-
-    send_to_webstream.(:close)
-  end
-
-  @tag :integration
-  @tag :websocket
-  test "returns error if connection fails", %{conn: conn} do
-    result =
-      K8s.Client.run(
-        conn,
-        K8s.Client.connect(
-          "v1",
-          "pods/exec",
-          [
-            namespace: "default",
-            name: "does-not-exist"
-          ],
-          command: ["/bin/sh"],
-          tty: false
-        )
-      )
+      |> K8s.Client.stream()
 
     assert {:error, error} = result
     assert error.message =~ "404"
