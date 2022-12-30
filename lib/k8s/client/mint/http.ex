@@ -28,9 +28,9 @@ defmodule K8s.Client.Mint.HTTP do
         ) :: Provider.response_t()
   def request(method, uri, body, headers, http_opts) do
     {method, path, headers, opts} = prepare_args(method, uri, headers, http_opts)
-    {:ok, adapter_pid} = ConnectionRegistry.get({uri, opts})
 
-    with {:ok, response} <-
+    with {:ok, adapter_pid} <- ConnectionRegistry.get({uri, opts}),
+         {:ok, response} <-
            HTTPAdapter.request(adapter_pid, method, path, headers, body) do
       process_response(response)
     end
@@ -45,9 +45,10 @@ defmodule K8s.Client.Mint.HTTP do
         ) :: Provider.stream_response_t()
   def stream(method, uri, body, headers, http_opts) do
     {method, path, headers, opts} = prepare_args(method, uri, headers, http_opts)
-    {:ok, adapter_pid} = ConnectionRegistry.get({uri, opts})
 
-    HTTPAdapter.stream(adapter_pid, method, path, headers, body)
+    with {:ok, adapter_pid} <- ConnectionRegistry.get({uri, opts}) do
+      HTTPAdapter.stream(adapter_pid, method, path, headers, body)
+    end
   end
 
   @spec stream_to(
@@ -60,9 +61,10 @@ defmodule K8s.Client.Mint.HTTP do
         ) :: Provider.stream_to_response_t()
   def stream_to(method, uri, body, headers, http_opts, stream_to) do
     {method, path, headers, opts} = prepare_args(method, uri, headers, http_opts)
-    {:ok, adapter_pid} = ConnectionRegistry.get({uri, opts})
 
-    HTTPAdapter.stream_to(adapter_pid, method, path, headers, body, stream_to)
+    with {:ok, adapter_pid} <- ConnectionRegistry.get({uri, opts}) do
+      HTTPAdapter.stream_to(adapter_pid, method, path, headers, body, stream_to)
+    end
   end
 
   @spec process_response(request_response_t()) :: K8s.Client.Provider.response_t()

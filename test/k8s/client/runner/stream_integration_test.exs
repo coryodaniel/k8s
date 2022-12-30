@@ -102,7 +102,8 @@ defmodule K8s.Client.Runner.StreamIntegrationTest do
       |> K8s.Client.stream()
 
     response_parts = Enum.to_list(stream)
-    assert response_parts[:stdout] =~ "ok"
+
+    assert Enum.member?(response_parts, {:stdout, "ok\n"})
   end
 
   @tag :integration
@@ -137,8 +138,12 @@ defmodule K8s.Client.Runner.StreamIntegrationTest do
       |> K8s.Client.stream()
 
     response_parts = Enum.to_list(stream)
-    assert response_parts[:stderr] =~ "no-such-command"
-    assert response_parts[:error] =~ "command terminated with non-zero exit code"
+    Enum.any?(response_parts, &match?({:stderr, "no-such-command" <> _}, &1))
+
+    Enum.any?(
+      response_parts,
+      &match?({:error, "command terminated with non-zero exit code" <> _}, &1)
+    )
   end
 
   @tag :integration

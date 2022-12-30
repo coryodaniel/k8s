@@ -5,9 +5,11 @@ defmodule K8s.Client.Mint.ConnectionRegistry do
 
   use GenServer
 
+  alias K8s.Client.HTTPError
   alias K8s.Client.Mint.HTTPAdapter
 
-  @type key :: {URI.t(), keyword()}
+  @type uriopts :: {URI.t(), keyword()}
+
   @doc """
   Starts the registry.
   """
@@ -19,9 +21,9 @@ defmodule K8s.Client.Mint.ConnectionRegistry do
   @doc """
   Ensures there is an adapter associated with the given `key`.
   """
-  @spec get(key()) :: {:ok, pid()}
-  def get(key) do
-    GenServer.call(__MODULE__, {:get_or_open, key})
+  @spec get(uriopts()) :: {:ok, pid()}
+  def get({uri, opts}) do
+    GenServer.call(__MODULE__, {:get_or_open, HTTPAdapter.connection_args(uri, opts)})
   end
 
   @impl true
@@ -36,16 +38,19 @@ defmodule K8s.Client.Mint.ConnectionRegistry do
     if Map.has_key?(adapters, key) do
       {:reply, {:ok, Map.get(adapters, key)}, {adapters, refs}}
     else
-      {:ok, adapter} =
-        DynamicSupervisor.start_child(
-          K8s.Client.Mint.ConnectionSupervisor,
-          {HTTPAdapter, key}
-        )
+      case DynamicSupervisor.start_child(
+             K8s.Client.Mint.ConnectionSupervisor,
+             {HTTPAdapter, key}
+           ) do
+        {:ok, adapter} ->
+          ref = Process.monitor(adapter)
+          refs = Map.put(refs, ref, adapter)
+          adapters = Map.put(adapters, key, adapter)
+          {:reply, {:ok, adapter}, {adapters, refs}}
 
-      ref = Process.monitor(adapter)
-      refs = Map.put(refs, ref, adapter)
-      adapters = Map.put(adapters, key, adapter)
-      {:reply, {:ok, adapter}, {adapters, refs}}
+        {:error, error} ->
+          {:reply, {:error, HTTPError.from_exception(error)}, {adapters, refs}}
+      end
     end
   end
 

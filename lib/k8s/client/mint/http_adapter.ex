@@ -67,6 +67,8 @@ defmodule K8s.Client.Mint.HTTPAdapter do
 
   defstruct [:conn, requests: %{}]
 
+  @type connection_args_t ::
+          {scheme :: atom(), host :: binary(), port :: integer(), opts :: keyword()}
   @type t :: %__MODULE__{}
 
   @doc """
@@ -75,7 +77,17 @@ defmodule K8s.Client.Mint.HTTPAdapter do
   """
   @spec start_link({URI.t(), keyword()}) :: GenServer.on_start()
   def start_link({uri, opts}) do
-    GenServer.start_link(__MODULE__, {uri, opts})
+    start_link(connection_args(uri, opts))
+  end
+
+  @spec start_link(connection_args_t()) :: GenServer.on_start()
+  def start_link(connection_args) do
+    GenServer.start_link(__MODULE__, connection_args)
+  end
+
+  @spec connection_args(URI.t(), keyword()) :: connection_args_t()
+  def connection_args(uri, opts) do
+    {String.to_atom(uri.scheme), uri.host, uri.port, opts}
   end
 
   @doc """
@@ -217,13 +229,8 @@ defmodule K8s.Client.Mint.HTTPAdapter do
   end
 
   @impl true
-  def init({uri, opts}) do
-    case Mint.HTTP.connect(
-           String.to_atom(uri.scheme),
-           uri.host,
-           uri.port,
-           opts
-         ) do
+  def init({scheme, host, port, opts}) do
+    case Mint.HTTP.connect(scheme, host, port, opts) do
       {:ok, conn} ->
         state = %__MODULE__{conn: conn}
         {:ok, state}
