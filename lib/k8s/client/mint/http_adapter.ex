@@ -118,7 +118,7 @@ defmodule K8s.Client.Mint.HTTPAdapter do
               end
           end,
           fn request_ref ->
-            GenServer.cast(pid, {:pop_request, request_ref})
+            GenServer.cast(pid, {:terminate_request, request_ref})
           end
         )
 
@@ -152,7 +152,9 @@ defmodule K8s.Client.Mint.HTTPAdapter do
           Mint.Types.headers()
         ) :: Provider.websocket_response_t()
   def websocket_request(pid, path, headers) do
-    GenServer.call(pid, {:websocket_request, path, headers})
+    result = GenServer.call(pid, {:websocket_request, path, headers})
+    :ok = GenServer.stop(pid, :normal)
+    result
   end
 
   @doc """
@@ -171,17 +173,17 @@ defmodule K8s.Client.Mint.HTTPAdapter do
         Stream.resource(
           fn -> request_ref end,
           fn
-            {:halt, request_ref} ->
-              {:halt, request_ref}
+            {:halt, nil} ->
+              {:halt, nil}
 
             request_ref ->
               case GenServer.call(pid, {:next_buffer, request_ref}) do
                 {:cont, data} -> {data, request_ref}
-                {:halt, data} -> {data, {:halt, request_ref}}
+                {:halt, data} -> {data, {:halt, nil}}
               end
           end,
-          fn request_ref ->
-            GenServer.cast(pid, {:pop_request, request_ref})
+          fn _ ->
+            GenServer.stop(pid, :normal)
             nil
           end
         )
@@ -274,7 +276,7 @@ defmodule K8s.Client.Mint.HTTPAdapter do
     end
   end
 
-  def handle_cast({:pop_request, request_ref}, state) do
+  def handle_cast({:terminate_request, request_ref}, state) do
     {_, state} = pop_in(state.requests[request_ref])
     {:noreply, state}
   end
@@ -289,12 +291,11 @@ defmodule K8s.Client.Mint.HTTPAdapter do
         |> process_responses_or_frames(responses)
 
       {:error, conn, %Mint.TransportError{reason: :closed}, []} ->
-        Logger.debug(
-          "The connection was closed. I'm stopping this process now.",
-          library: :k8s
-        )
+        Logger.debug("The connection was closed.", library: :k8s)
 
-        {:stop, :normal, struct!(state, conn: conn)}
+        # We could terminate the process here. But there might still be chunks
+        # in the buffer, so we don't.
+        {:noreply, struct!(state, conn: conn)}
 
       {:error, conn, error, responses} ->
         Logger.error("An error occurred when streaming the response: #{Exception.message(error)}",
@@ -396,46 +397,48 @@ defmodule K8s.Client.Mint.HTTPAdapter do
   @spec process_frames(t(), reference(), list(Mint.WebSocket.frame())) :: {:noreply, t()}
   defp process_frames(state, request_ref, frames) do
     state =
-      for frame <- frames, reduce: state do
-        state ->
-          mapped_frame = WebSocketRequest.map_frame(frame)
-          put_response(state, mapped_frame, request_ref)
-      end
+      frames
+      |> Enum.map(&WebSocketRequest.map_frame/1)
+      |> Enum.reduce_while(state, fn mapped_frame, state ->
+        case get_and_update_in(
+               state.requests[request_ref],
+               &HTTPRequest.put_response(&1, mapped_frame)
+             ) do
+          {:stop, state} ->
+            # StreamTo requests need to be stopped from inside the GenServer.
+            {:halt, {:stop, :normal, state}}
 
-    {:noreply, flush_buffer(state)}
+          {_, state} ->
+            {:cont, state}
+        end
+      end)
+
+    case state do
+      {:stop, :normal, state} -> {:stop, :normal, flush_buffer(state)}
+      state -> {:noreply, flush_buffer(state)}
+    end
   end
 
   @spec process_responses(t(), [Mint.Types.response()]) :: {:noreply, t()}
   defp process_responses(state, responses) do
     state =
-      for response <- responses, reduce: state do
-        state ->
-          {mapped_response, request_ref} = HTTPRequest.map_response(response)
-          put_response(state, mapped_response, request_ref)
-      end
+      responses
+      |> Enum.map(&HTTPRequest.map_response/1)
+      |> Enum.reduce(state, fn {mapped_response, request_ref}, state ->
+        if mapped_response == :done and match?(%UpgradeRequest{}, state.requests[request_ref]) do
+          create_websocket(state, request_ref)
+        else
+          {_, state} =
+            get_and_update_in(
+              state.requests[request_ref],
+              &HTTPRequest.put_response(&1, mapped_response)
+            )
+
+          state
+        end
+      end)
 
     {:noreply, flush_buffer(state)}
-  end
-
-  @spec put_response(t(), {:done} | {atom(), term}, reference) :: t()
-  defp put_response(state, :done, request_ref) do
-    case state.requests[request_ref] do
-      %UpgradeRequest{} ->
-        create_websocket(state, request_ref)
-
-      _ ->
-        {_, state} =
-          get_and_update_in(state.requests[request_ref], &HTTPRequest.put_response(&1, :done))
-
-        state
-    end
-  end
-
-  defp put_response(state, response, request_ref) do
-    {_, state} =
-      get_and_update_in(state.requests[request_ref], &HTTPRequest.put_response(&1, response))
-
-    state
   end
 
   @spec create_websocket(t(), reference()) :: t()

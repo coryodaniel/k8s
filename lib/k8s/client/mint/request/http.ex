@@ -43,7 +43,7 @@ defmodule K8s.Client.Mint.Request.HTTP do
   def put_response(%{stream_to: stream_to} = request, {:close, data})
       when not is_nil(stream_to) do
     send(stream_to, {:close, data})
-    {request, request}
+    {:stop, request}
   end
 
   def put_response(%{stream_to: stream_to}, :done) when not is_nil(stream_to) do
