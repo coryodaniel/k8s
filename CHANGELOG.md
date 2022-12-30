@@ -48,14 +48,14 @@ projects to this version.
 ### Removed
 
 - `K8s.Client.HTTPProvider` was removed in favor of `K8s.Client.MintHTTPProvider`
-- The `:stream_to` in `http_opts` was removed in favor of `K8s.Client.stream_to/N`.
+- The `:stream_to` in `http_opts` was removed in favor of `K8s.Client.stream_to/N` and `K8s.Client.stream/N`.
 - `K8s.Client.DynamicWebSocketProvider` was removed. Use `K8s.Client.DynamcHTTPProvider.websocket*` functions instead .
 
 ### Breaking changes
 
 - Tests using the `DynamicHTTPProvider` which work with `watch_and_stream` are going to need to be changed. The HTTP mocks now need to implement the `stream/5` callback. (See `K8s.Client.Runner.Watch.StreamTest` on this branch for examples)d.
 - `K8s.Client.DynamicWebSocketProvider` was removed in favor of `K8s.Client.DynamcHTTPProvider.websocket*` functions.
-- The `:stream_to` in `http_opts` is not supported anymore. Use `K8s.Client.stream_to/N` instead.
+- The `:stream_to` in `http_opts` is not supported anymore. Use `K8s.Client.stream/N` and `K8s.Client.stream_to/N` instead.
 - Errors are encapsulated in `K8s.Client.HTTPError`
 - `headers/1` callback was removed from `K8s.Client.Provider` behaviour.
 - `K8s.Client.HTTPProvider` (HTTPoison implementation) was removed.

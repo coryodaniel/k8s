@@ -16,6 +16,18 @@ defmodule K8s.Client.Runner.StreamToIntegrationTest do
   end
 
   @tag :integration
+  test "getting a resource", %{conn: conn} do
+    operation = K8s.Client.get("v1", "Namespace", name: "default")
+    result = K8s.Client.Runner.Base.stream_to(conn, operation, [], self())
+
+    assert :ok = result
+    assert_receive {:status, 200}
+    assert_receive {:headers, _headers}
+    assert_receive {:data, _data}
+    assert_receive {:done, true}
+  end
+
+  @tag :integration
   @tag :websocket
   test "streams :connect operations to process and accepts messages", %{
     conn: conn,

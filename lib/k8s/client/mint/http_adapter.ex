@@ -310,6 +310,8 @@ defmodule K8s.Client.Mint.HTTPAdapter do
 
   @impl true
   def terminate(_reason, state) do
+    state = flush_buffer(state)
+
     state
     |> Map.get(:requests)
     |> Enum.filter(fn {_ref, request} -> is_map_key(request, :websocket) end)

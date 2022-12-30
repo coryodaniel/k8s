@@ -178,7 +178,7 @@ defmodule K8s.Client.Runner.Base do
     with {:ok, url} <- K8s.Discovery.url_for(conn, operation),
          req <- new_request(conn, url, operation, operation.data, http_opts),
          {:ok, req} <- K8s.Middleware.run(req, conn.middleware.request) do
-      conn.http_provider.stream(
+      conn.http_provider.stream_to(
         req.method,
         req.uri,
         req.body,

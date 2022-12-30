@@ -75,9 +75,8 @@ Also, the `stream_to` option was removed. See below.
 
 Before `2.0.0`, you could pass the `stream_to` option to stream packets to a
 process. With the migration from HTTPoison to Mint, this option was removed.
-As a replacement, `K8s.Client.stream_to/N` was added. Use this function instest
-but note that the chunks that are sent to the receiving process come in different
-form now.
+For `:connect` operations, `K8s.Client.stream_to/N` can be used as a replacement.
+Other operations will have to be streamed using `K8s.Client.stream/N`.
 
 #### Example
 

@@ -95,8 +95,7 @@ defmodule K8s.Client.Mint.Request.HTTP do
       |> Enum.to_list()
       |> Enum.reject(&(&1 |> elem(1) |> is_nil()))
 
-    type = if is_map_key(request, :done) or is_map_key(request, :close), do: :halt, else: :cont
-
+    type = if is_map_key(response, :done) or is_map_key(response, :close), do: :halt, else: :cont
     GenServer.reply(request.waiting, {type, buffer})
     struct!(request, response: %{}, waiting: nil)
   end
