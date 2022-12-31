@@ -129,6 +129,7 @@ defmodule K8s.Client.Runner.Base do
   @doc """
   Runs a `K8s.Operation` and streams the response.
   """
+  @spec stream(Conn.t(), Operation.t(), keyword()) :: K8s.Client.Provider.stream_response_t()
   def stream(%Conn{} = conn, %Operation{verb: :connect} = operation, http_opts) do
     with {:ok, url} <- K8s.Discovery.url_for(conn, operation),
          req <- new_request(conn, url, operation, operation.data, http_opts),
@@ -141,7 +142,6 @@ defmodule K8s.Client.Runner.Base do
     end
   end
 
-  @spec stream(Conn.t(), Operation.t(), keyword()) :: K8s.Client.Provider.stream_response_t()
   def stream(%Conn{} = conn, %Operation{} = operation, http_opts) do
     with {:ok, url} <- K8s.Discovery.url_for(conn, operation),
          req <- new_request(conn, url, operation, operation.data, http_opts),
@@ -152,6 +152,39 @@ defmodule K8s.Client.Runner.Base do
         req.body,
         req.headers,
         req.opts
+      )
+    end
+  end
+
+  @doc """
+  Runs a `K8s.Operation` and streams the response.
+  """
+  @spec stream_to(Conn.t(), Operation.t(), keyword(), pid()) ::
+          K8s.Client.Provider.stream_to_response_t()
+  def stream_to(%Conn{} = conn, %Operation{verb: :connect} = operation, http_opts, stream_to) do
+    with {:ok, url} <- K8s.Discovery.url_for(conn, operation),
+         req <- new_request(conn, url, operation, operation.data, http_opts),
+         {:ok, req} <- K8s.Middleware.run(req, conn.middleware.request) do
+      conn.http_provider.websocket_stream_to(
+        req.uri,
+        Keyword.merge(req.headers, Accept: "*/*"),
+        req.opts,
+        stream_to
+      )
+    end
+  end
+
+  def stream_to(%Conn{} = conn, %Operation{} = operation, http_opts, stream_to) do
+    with {:ok, url} <- K8s.Discovery.url_for(conn, operation),
+         req <- new_request(conn, url, operation, operation.data, http_opts),
+         {:ok, req} <- K8s.Middleware.run(req, conn.middleware.request) do
+      conn.http_provider.stream_to(
+        req.method,
+        req.uri,
+        req.body,
+        req.headers,
+        req.opts,
+        stream_to
       )
     end
   end

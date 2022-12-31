@@ -58,6 +58,14 @@ defmodule K8s.Client.DynamicHTTPProvider do
   end
 
   @doc """
+  Dispatch `stream_to/6` to the module registered in the current process or any ancestor.
+  """
+  @impl true
+  def stream_to(method, url, body, headers, opts, stream_to) do
+    locate_and_apply(:stream_to, [method, url, body, headers, opts, stream_to])
+  end
+
+  @doc """
   Dispatch `request/5` to the module registered in the current process or any ancestor.
   """
   @impl true
@@ -71,6 +79,14 @@ defmodule K8s.Client.DynamicHTTPProvider do
   @impl true
   def websocket_stream(url, headers, opts) do
     locate_and_apply(:websocket_stream, [url, headers, opts])
+  end
+
+  @doc """
+  Dispatch `request/5` to the module registered in the current process or any ancestor.
+  """
+  @impl true
+  def websocket_stream_to(url, headers, opts, stream_to) do
+    locate_and_apply(:websocket_stream_to, [url, headers, opts, stream_to])
   end
 
   @spec locate_and_apply(atom(), list()) :: K8s.Client.Provider.response_t()

@@ -8,8 +8,8 @@ defmodule K8s.Client.HTTPStream do
 
   @type to_lines_t :: %{remainder: binary()}
 
-  @spec transform_to_lines(Enumerable.t(Provider.stream_chunk_t())) ::
-          Enumerable.t(Provider.stream_chunk_t() | {:line, binary()})
+  @spec transform_to_lines(Enumerable.t(Provider.http_chunk_t())) ::
+          Enumerable.t(Provider.http_chunk_t() | {:line, binary()})
   def transform_to_lines(stream) do
     stream
     |> Stream.transform(%{remainder: ""}, fn
@@ -39,8 +39,8 @@ defmodule K8s.Client.HTTPStream do
     {resp, Map.put(state, :remainder, remainder)}
   end
 
-  @spec decode_json_objects(Enumerable.t(Provider.stream_chunk_t())) ::
-          Enumerable.t(Provider.stream_chunk_t() | {:object, binary()})
+  @spec decode_json_objects(Enumerable.t(Provider.http_chunk_t())) ::
+          Enumerable.t(Provider.http_chunk_t() | {:object, binary()})
   def decode_json_objects(stream) do
     stream
     |> transform_to_lines()

@@ -55,7 +55,7 @@ defmodule K8s.Client.Runner.WaitIntegrationTest do
     }
   end
 
-  @tag integration: true
+  @tag :integration
   test "waiting on a job to finish successfully", %{
     conn: conn,
     test_id: test_id,
@@ -78,7 +78,7 @@ defmodule K8s.Client.Runner.WaitIntegrationTest do
     assert result["status"]["succeeded"] == 1
   end
 
-  @tag integration: true
+  @tag :integration
   test "using an anonymous function to evaluate a job", %{
     conn: conn,
     test_id: test_id,

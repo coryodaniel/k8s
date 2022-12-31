@@ -35,8 +35,7 @@ defmodule K8s.Client.Runner.Stream.Watch do
       http_opts
       |> Keyword.put_new(:params, [])
       |> put_in([:params, :allowWatchBookmarks], true)
-      |> put_in([:params, :watch], true)
-      |> Keyword.put(:async, :once)
+      |> put_in([:params, :watch], 1)
 
     do_resource(conn, struct!(operation, verb: :list), http_opts, nil)
   end
@@ -72,7 +71,7 @@ defmodule K8s.Client.Runner.Stream.Watch do
     end
   end
 
-  @spec reduce(K8s.Client.Provider.stream_chunk_t(), t() | :halt) ::
+  @spec reduce(K8s.Client.Provider.http_chunk_t(), t() | :halt) ::
           {:halt, nil} | {Enumerable.t(), t()}
   defp reduce(_, :halt), do: {:halt, nil}
 
