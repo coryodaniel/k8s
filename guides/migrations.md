@@ -91,8 +91,25 @@ receive do
 end
 ```
 
+### Local Clusters and TLS Hostname Verification
+
+Local clusters are usually accessed via IP address so the hostname provided by
+the TLS certificate can't match the actual hostname (IP address). While somehow
+HTTPoison was OK with this, Mint declines the HTTPS connection. In order to make
+this work, you have to disable TLS peer verification. See also issue
+[#203](https://github.com/coryodaniel/k8s/issues/203)
+
+```elixir
+{:ok, conn} = K8s.Conn.from_file(...)
+conn = struct!(conn, insecure_skip_tls_verify: true)
+```
+
 ### HTTPoison was removed
 
 Wherever you match against `HTTPoison.*`, you're gonna have to change your code.
 This might be the case in your error handlers. With `2.0.0`, all HTTP errors are
 wrapped in a `K8s.Client.HTTPError` exception struct.
+
+```
+
+```
