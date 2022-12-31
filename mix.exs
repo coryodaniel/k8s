@@ -2,7 +2,7 @@ defmodule K8s.MixProject do
   use Mix.Project
 
   @source_url "https://github.com/coryodaniel/k8s"
-  @version "2.0.0-rc.1"
+  @version "2.0.0-rc.2"
 
   def project do
     [
