@@ -9,8 +9,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k8s_version: [v1.21.9-k3s1, v1.22.6-k3s1, latest]
-        otp: [25.x] # with 24.3.0 hackney returns :checkout_failure
+        k8s_version: [v1.24.9-k3s1, v1.25.5-k3s1, v1.26.0-k3s1]
+        otp: [25.x]
         elixir: [1.14.x]
     steps:
       - uses: debianmaster/actions-k3s@v1.0.5

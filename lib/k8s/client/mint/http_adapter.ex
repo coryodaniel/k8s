@@ -101,7 +101,7 @@ defmodule K8s.Client.Mint.HTTPAdapter do
           body :: iodata() | nil | :stream
         ) :: Provider.response_t()
   def request(pid, method, path, headers, body) do
-    GenServer.call(pid, {:request, method, path, headers, body})
+    GenServer.call(pid, {:request, method, path, headers, body}, 30_000)
   end
 
   @doc """
@@ -124,7 +124,7 @@ defmodule K8s.Client.Mint.HTTPAdapter do
               {:halt, request_ref}
 
             request_ref ->
-              case GenServer.call(pid, {:next_buffer, request_ref}) do
+              case GenServer.call(pid, {:next_buffer, request_ref}, :infinity) do
                 {:cont, data} -> {data, request_ref}
                 {:halt, data} -> {data, {:halt, request_ref}}
               end
@@ -164,7 +164,7 @@ defmodule K8s.Client.Mint.HTTPAdapter do
           Mint.Types.headers()
         ) :: Provider.websocket_response_t()
   def websocket_request(pid, path, headers) do
-    result = GenServer.call(pid, {:websocket_request, path, headers})
+    result = GenServer.call(pid, {:websocket_request, path, headers}, 30_000)
     :ok = GenServer.stop(pid, :normal)
     result
   end
@@ -189,7 +189,7 @@ defmodule K8s.Client.Mint.HTTPAdapter do
               {:halt, nil}
 
             request_ref ->
-              case GenServer.call(pid, {:next_buffer, request_ref}) do
+              case GenServer.call(pid, {:next_buffer, request_ref}, :infinity) do
                 {:cont, data} -> {data, request_ref}
                 {:halt, data} -> {data, {:halt, nil}}
               end
