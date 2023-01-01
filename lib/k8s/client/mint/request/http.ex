@@ -27,7 +27,8 @@ defmodule K8s.Client.Mint.Request.HTTP do
     :pop
   end
 
-  def put_response(%{response: response, from: from}, {:close, data}) when not is_nil(from) do
+  def put_response(%{response: response, from: from} = request, {:close, data})
+      when not is_nil(from) do
     response =
       response
       |> Map.update(:stdout, nil, &(&1 |> Enum.reverse() |> IO.iodata_to_binary()))
@@ -37,7 +38,7 @@ defmodule K8s.Client.Mint.Request.HTTP do
       |> Map.put(:close, data)
 
     GenServer.reply(from, {:ok, response})
-    :pop
+    {:stop, request}
   end
 
   def put_response(%{stream_to: stream_to} = request, {:close, data})

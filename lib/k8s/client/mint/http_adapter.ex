@@ -164,9 +164,7 @@ defmodule K8s.Client.Mint.HTTPAdapter do
           Mint.Types.headers()
         ) :: Provider.websocket_response_t()
   def websocket_request(pid, path, headers) do
-    result = GenServer.call(pid, {:websocket_request, path, headers}, 30_000)
-    :ok = GenServer.stop(pid, :normal)
-    result
+    GenServer.call(pid, {:websocket_request, path, headers}, 30_000)
   end
 
   @doc """
