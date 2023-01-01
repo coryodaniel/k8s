@@ -1,11 +1,25 @@
 defmodule K8s.Client.Mint.Request.WebSocket do
   @moduledoc """
   Represents a WebSocket connection state.
+
+  ### Fields
+
+  - `:caller` - Synchronous requests only: The calling process.
+  - `:stream_to` - StreamTo requests only: The process expecting response parts sent to.
+  - `:waiting` - Streamed requests only: The process waiting for the next response part.
+  - `:websocket` - The websocket state (`Mint.WebSocket.t()`).
+  - `:response` - The response containing received parts.
   """
 
-  @type t :: %__MODULE__{}
+  @type t :: %__MODULE__{
+          caller: pid() | nil,
+          stream_to: pid() | nil,
+          waiting: pid() | nil,
+          websocket: Mint.WebSocket.t() | nil,
+          response: %{}
+        }
 
-  defstruct [:from, :stream_to, :websocket, :waiting, response: %{}]
+  defstruct [:caller, :stream_to, :websocket, :waiting, response: %{}]
 
   @spec new(keyword()) :: t()
   def new(fields \\ []), do: struct!(__MODULE__, fields)

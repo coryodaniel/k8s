@@ -1,6 +1,13 @@
 defmodule K8s.Client.Mint.Request.HTTP do
   @moduledoc """
   Represents a HTTP request state.
+
+  ### Fields
+
+  - `:caller` - Synchronous requests only: The calling process.
+  - `:stream_to` - StreamTo requests only: The process expecting response parts sent to.
+  - `:waiting` - Streamed requests only: The process waiting for the next response part.
+  - `:response` - The response containing received parts.
   """
 
   alias K8s.Client.Mint.Request.Upgrade, as: UpgradeRequest
@@ -8,27 +15,33 @@ defmodule K8s.Client.Mint.Request.HTTP do
 
   @data_types [:data, :stdout, :stderr, :error, :waiting]
 
-  @type t :: %__MODULE__{}
+  @type t :: %__MODULE__{
+          caller: pid() | nil,
+          stream_to: pid() | nil,
+          waiting: pid() | nil,
+          response: %{}
+        }
+
   @type request :: t() | WebSocketRequest.t() | UpgradeRequest.t()
 
-  defstruct [:from, :stream_to, :waiting, response: %{}]
+  defstruct [:caller, :stream_to, :waiting, response: %{}]
 
   @spec new(keyword()) :: t()
   def new(fields), do: struct!(__MODULE__, fields)
 
   @spec put_response(request(), :done | {atom(), term()}) :: :pop | {request(), request()}
-  def put_response(%{response: response, from: from}, :done) when not is_nil(from) do
+  def put_response(%{response: response, caller: caller}, :done) when not is_nil(caller) do
     response =
       response
       |> Map.update(:data, nil, &(&1 |> Enum.reverse() |> IO.iodata_to_binary()))
       |> Map.reject(&(&1 |> elem(1) |> is_nil()))
 
-    GenServer.reply(from, {:ok, response})
+    GenServer.reply(caller, {:ok, response})
     :pop
   end
 
-  def put_response(%{response: response, from: from} = request, {:close, data})
-      when not is_nil(from) do
+  def put_response(%{response: response, caller: caller} = request, {:close, data})
+      when not is_nil(caller) do
     response =
       response
       |> Map.update(:stdout, nil, &(&1 |> Enum.reverse() |> IO.iodata_to_binary()))
@@ -37,7 +50,7 @@ defmodule K8s.Client.Mint.Request.HTTP do
       |> Map.reject(&(&1 |> elem(1) |> is_nil()))
       |> Map.put(:close, data)
 
-    GenServer.reply(from, {:ok, response})
+    GenServer.reply(caller, {:ok, response})
     {:stop, request}
   end
 

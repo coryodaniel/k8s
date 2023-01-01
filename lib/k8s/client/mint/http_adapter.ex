@@ -240,7 +240,7 @@ defmodule K8s.Client.Mint.HTTPAdapter do
 
   @impl true
   def handle_call({:request, method, path, headers, body}, from, state) do
-    make_request(state, method, path, headers, body, from: from)
+    make_request(state, method, path, headers, body, caller: from)
   end
 
   def handle_call({:stream, method, path, headers, body}, _from, state) do
@@ -252,7 +252,7 @@ defmodule K8s.Client.Mint.HTTPAdapter do
   end
 
   def handle_call({:websocket_request, path, headers}, from, state) do
-    upgrade_to_websocket(state, path, headers, from, WebSocketRequest.new(from: from))
+    upgrade_to_websocket(state, path, headers, from, WebSocketRequest.new(caller: from))
   end
 
   def handle_call({:websocket_stream, path, headers}, from, state) do
@@ -342,7 +342,7 @@ defmodule K8s.Client.Mint.HTTPAdapter do
           )
 
         cond do
-          Keyword.has_key?(extra, :from) -> {:noreply, struct!(state, conn: conn)}
+          Keyword.has_key?(extra, :caller) -> {:noreply, struct!(state, conn: conn)}
           Keyword.has_key?(extra, :stream_to) -> {:reply, :ok, struct!(state, conn: conn)}
           true -> {:reply, {:ok, request_ref}, struct!(state, conn: conn)}
         end
@@ -356,13 +356,13 @@ defmodule K8s.Client.Mint.HTTPAdapter do
 
   @spec upgrade_to_websocket(t(), binary(), Mint.Types.headers(), pid(), WebSocketRequest.t()) ::
           {:noreply, t()} | {:reply, {:error, HTTPError.t(), t()}}
-  defp upgrade_to_websocket(state, path, headers, from, websocket_request) do
+  defp upgrade_to_websocket(state, path, headers, caller, websocket_request) do
     case Mint.WebSocket.upgrade(:wss, state.conn, path, headers) do
       {:ok, conn, request_ref} ->
         state =
           put_in(
             state.requests[request_ref],
-            UpgradeRequest.new(from: from, websocket_request: websocket_request)
+            UpgradeRequest.new(caller: caller, websocket_request: websocket_request)
           )
 
         {:noreply, struct!(state, conn: conn)}
@@ -448,7 +448,7 @@ defmodule K8s.Client.Mint.HTTPAdapter do
 
   @spec create_websocket(t(), reference()) :: t()
   defp create_websocket(state, request_ref) do
-    %UpgradeRequest{response: response, from: from, websocket_request: websocket_request} =
+    %UpgradeRequest{response: response, caller: caller, websocket_request: websocket_request} =
       state.requests[request_ref]
 
     case Mint.WebSocket.new(
@@ -458,8 +458,8 @@ defmodule K8s.Client.Mint.HTTPAdapter do
            response.headers
          ) do
       {:ok, conn, websocket} ->
-        if is_nil(websocket_request.from),
-          do: GenServer.reply(from, {:ok, request_ref})
+        if is_nil(websocket_request.caller),
+          do: GenServer.reply(caller, {:ok, request_ref})
 
         {_, websocket_request} =
           websocket_request
@@ -470,7 +470,7 @@ defmodule K8s.Client.Mint.HTTPAdapter do
         |> struct!(conn: conn)
 
       {:error, conn, error} ->
-        GenServer.reply(from, {:error, HTTPError.from_exception(error)})
+        GenServer.reply(caller, {:error, HTTPError.from_exception(error)})
         struct!(state, conn: conn)
     end
   end
