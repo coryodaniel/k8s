@@ -6,7 +6,7 @@ defmodule K8s.Client.Mint.Request.HTTP do
   alias K8s.Client.Mint.Request.Upgrade, as: UpgradeRequest
   alias K8s.Client.Mint.Request.WebSocket, as: WebSocketRequest
 
-  @data_types [:data, :stdout, :stderr, :error]
+  @data_types [:data, :stdout, :stderr, :error, :waiting]
 
   @type t :: %__MODULE__{}
   @type request :: t() | WebSocketRequest.t() | UpgradeRequest.t()
