@@ -44,7 +44,7 @@ defmodule K8s.Client.Mint.ConnectionRegistry do
            ) do
         {:ok, adapter} ->
           ref = Process.monitor(adapter)
-          refs = Map.put(refs, ref, adapter)
+          refs = Map.put(refs, ref, key)
           adapters = Map.put(adapters, key, adapter)
           {:reply, {:ok, adapter}, {adapters, refs}}
 
