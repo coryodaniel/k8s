@@ -5,11 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0-rc.3] - 2023-01-01
+
+### Fixed
+
+- `K8s.Client.Mint.ConnectionRegistry` - closed connections were not re-established.
+- `K8s.Client.Mint.Request.HTTP` - Add missing struct field `:waiting`
+
 ## [2.0.0-rc.2] - 2022-12-31
 
 ### Added
 
 - `K8s.Client.Mint.HTTPAdapter` - A GenServer handling `Mint.HTTP` connections.
+- `K8s.Client.Mint.ConnectionRegistry` - The registry for open `HTTP/2` connections
 
 ## [2.0.0-rc.1] - 2022-12-19
 
