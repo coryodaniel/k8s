@@ -18,6 +18,7 @@ defmodule K8s.Client.Mint.Request.HTTP do
 
   @type t :: %__MODULE__{
           caller: pid() | nil,
+          caller_ref: reference(),
           stream_to: pid() | nil,
           waiting: pid() | nil,
           response: %{},
@@ -26,7 +27,7 @@ defmodule K8s.Client.Mint.Request.HTTP do
 
   @type request :: t() | WebSocketRequest.t() | UpgradeRequest.t()
 
-  defstruct [:caller, :stream_to, :waiting, :type, response: %{}]
+  defstruct [:caller, :caller_ref, :stream_to, :waiting, :type, response: %{}]
 
   @spec new(keyword()) :: t()
   def new(fields), do: struct!(__MODULE__, fields)
@@ -97,6 +98,11 @@ defmodule K8s.Client.Mint.Request.HTTP do
   def map_response({:done, ref}), do: {:done, ref}
   def map_response({type, ref, value}), do: {{type, value}, ref}
 
+  @doc """
+  If there are any parts in the response, they are sent to the process
+  registered in the `:waiting` field of that request. The response is cleared
+  thereafter.
+  """
   @spec flush_buffer(request()) :: request()
   def flush_buffer(%{waiting: waiting, response: response} = request)
       when not is_nil(waiting) and response != %{} do

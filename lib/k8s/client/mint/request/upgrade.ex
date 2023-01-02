@@ -12,12 +12,13 @@ defmodule K8s.Client.Mint.Request.Upgrade do
 
   @type t :: %__MODULE__{
           caller: pid() | nil,
+          caller_ref: reference(),
           websocket_request: WebSocketRequest.t(),
           response: %{},
           type: :sync
         }
 
-  defstruct [:caller, :websocket_request, response: %{}, type: :sync]
+  defstruct [:caller, :caller_ref, :websocket_request, response: %{}, type: :sync]
 
   @spec new(keyword()) :: t()
   def new(fields), do: struct!(__MODULE__, fields)

@@ -15,6 +15,7 @@ defmodule K8s.Client.Mint.Request.WebSocket do
 
   @type t :: %__MODULE__{
           caller: pid() | nil,
+          caller_ref: reference(),
           stream_to: pid() | nil,
           waiting: pid() | nil,
           websocket: Mint.WebSocket.t() | nil,
@@ -22,7 +23,7 @@ defmodule K8s.Client.Mint.Request.WebSocket do
           type: HTTPRequest.request_types()
         }
 
-  defstruct [:caller, :stream_to, :websocket, :waiting, :type, response: %{}]
+  defstruct [:caller, :caller_ref, :stream_to, :websocket, :waiting, :type, response: %{}]
 
   @spec new(keyword()) :: t()
   def new(fields \\ []), do: struct!(__MODULE__, fields)

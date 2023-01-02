@@ -240,15 +240,15 @@ defmodule K8s.Client.Mint.HTTPAdapter do
 
   @impl true
   def handle_call({:request, method, path, headers, body}, from, state) do
-    make_request(state, method, path, headers, body, type: :sync, caller: from)
+    make_request(state, method, path, headers, body, from, type: :sync, caller: from)
   end
 
-  def handle_call({:stream, method, path, headers, body}, _from, state) do
-    make_request(state, method, path, headers, body, type: :stream)
+  def handle_call({:stream, method, path, headers, body}, from, state) do
+    make_request(state, method, path, headers, body, from, type: :stream)
   end
 
-  def handle_call({:stream_to, method, path, headers, body, stream_to}, _from, state) do
-    make_request(state, method, path, headers, body, type: :stream_to, stream_to: stream_to)
+  def handle_call({:stream_to, method, path, headers, body, stream_to}, from, state) do
+    make_request(state, method, path, headers, body, from, type: :stream_to, stream_to: stream_to)
   end
 
   def handle_call({:websocket_request, path, headers}, from, state) do
@@ -326,13 +326,39 @@ defmodule K8s.Client.Mint.HTTPAdapter do
     end
   end
 
+  def handle_info({:DOWN, ref, :process, _pid, _reason}, state) do
+    state =
+      state.requests
+      |> Map.filter(fn {_request_ref, request} -> request.caller_ref == ref end)
+      |> Map.keys()
+      |> Enum.reduce_while(state, fn
+        request_ref, state ->
+          case pop_in(state.requests[request_ref]) do
+            {%HTTPRequest{}, state} ->
+              conn = Mint.HTTP2.cancel_request(state.conn, request_ref) |> elem(1)
+              {:cont, struct!(state, conn: conn)}
+
+            {_, state} ->
+              {:halt, {:stop, state}}
+          end
+      end)
+
+    case state do
+      {:stop, state} ->
+        {:stop, :normal, state}
+
+      state ->
+        {:noreply, state}
+    end
+  end
+
   @impl true
   def terminate(_reason, state) do
     state = flush_buffer(state)
 
     state
     |> Map.get(:requests)
-    |> Enum.filter(fn {_ref, request} -> is_map_key(request, :websocket) end)
+    |> Enum.filter(fn {_ref, request} -> is_struct(request, WebSocketRequest) end)
     |> Enum.each(fn {request_ref, request} ->
       {:ok, _websocket, data} = Mint.WebSocket.encode(request.websocket, :close)
       Mint.WebSocket.stream_request_body(state.conn, request_ref, data)
@@ -342,15 +368,25 @@ defmodule K8s.Client.Mint.HTTPAdapter do
     :ok
   end
 
-  @spec make_request(t(), binary(), binary(), Mint.Types.headers(), binary(), keyword()) ::
+  @spec make_request(
+          t(),
+          binary(),
+          binary(),
+          Mint.Types.headers(),
+          binary(),
+          GenServer.from(),
+          keyword()
+        ) ::
           {:noreply, t()} | {:reply, :ok | {:ok, reference()} | {:error, HTTPError.t()}, t()}
-  defp make_request(state, method, path, headers, body, extra) do
+  defp make_request(state, method, path, headers, body, caller, extra) do
+    caller_ref = caller |> elem(0) |> Process.monitor()
+
     case Mint.HTTP.request(state.conn, method, path, headers, body) do
       {:ok, conn, request_ref} ->
         state =
           put_in(
             state.requests[request_ref],
-            HTTPRequest.new(extra)
+            extra |> Keyword.put(:caller_ref, caller_ref) |> HTTPRequest.new()
           )
 
         case extra[:type] do
@@ -366,15 +402,27 @@ defmodule K8s.Client.Mint.HTTPAdapter do
     end
   end
 
-  @spec upgrade_to_websocket(t(), binary(), Mint.Types.headers(), pid(), WebSocketRequest.t()) ::
+  @spec upgrade_to_websocket(
+          t(),
+          binary(),
+          Mint.Types.headers(),
+          GenServer.from(),
+          WebSocketRequest.t()
+        ) ::
           {:noreply, t()} | {:reply, {:error, HTTPError.t(), t()}}
   defp upgrade_to_websocket(state, path, headers, caller, websocket_request) do
+    caller_ref = caller |> elem(0) |> Process.monitor()
+
     case Mint.WebSocket.upgrade(:wss, state.conn, path, headers) do
       {:ok, conn, request_ref} ->
         state =
           put_in(
             state.requests[request_ref],
-            UpgradeRequest.new(caller: caller, websocket_request: websocket_request)
+            UpgradeRequest.new(
+              caller: caller,
+              caller_ref: caller_ref,
+              websocket_request: struct!(websocket_request, caller_ref: caller_ref)
+            )
           )
 
         {:noreply, struct!(state, conn: conn)}
