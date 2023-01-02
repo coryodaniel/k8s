@@ -240,27 +240,39 @@ defmodule K8s.Client.Mint.HTTPAdapter do
 
   @impl true
   def handle_call({:request, method, path, headers, body}, from, state) do
-    make_request(state, method, path, headers, body, caller: from)
+    make_request(state, method, path, headers, body, type: :sync, caller: from)
   end
 
   def handle_call({:stream, method, path, headers, body}, _from, state) do
-    make_request(state, method, path, headers, body)
+    make_request(state, method, path, headers, body, type: :stream)
   end
 
   def handle_call({:stream_to, method, path, headers, body, stream_to}, _from, state) do
-    make_request(state, method, path, headers, body, stream_to: stream_to)
+    make_request(state, method, path, headers, body, type: :stream_to, stream_to: stream_to)
   end
 
   def handle_call({:websocket_request, path, headers}, from, state) do
-    upgrade_to_websocket(state, path, headers, from, WebSocketRequest.new(caller: from))
+    upgrade_to_websocket(
+      state,
+      path,
+      headers,
+      from,
+      WebSocketRequest.new(type: :sync, caller: from)
+    )
   end
 
   def handle_call({:websocket_stream, path, headers}, from, state) do
-    upgrade_to_websocket(state, path, headers, from, WebSocketRequest.new())
+    upgrade_to_websocket(state, path, headers, from, WebSocketRequest.new(type: :stream))
   end
 
   def handle_call({:websocket_stream_to, path, headers, stream_to}, from, state) do
-    upgrade_to_websocket(state, path, headers, from, WebSocketRequest.new(stream_to: stream_to))
+    upgrade_to_websocket(
+      state,
+      path,
+      headers,
+      from,
+      WebSocketRequest.new(type: :stream_to, stream_to: stream_to)
+    )
   end
 
   def handle_call({:next_buffer, request_ref}, from, state) do
@@ -332,7 +344,7 @@ defmodule K8s.Client.Mint.HTTPAdapter do
 
   @spec make_request(t(), binary(), binary(), Mint.Types.headers(), binary(), keyword()) ::
           {:noreply, t()} | {:reply, :ok | {:ok, reference()} | {:error, HTTPError.t()}, t()}
-  defp make_request(state, method, path, headers, body, extra \\ []) do
+  defp make_request(state, method, path, headers, body, extra) do
     case Mint.HTTP.request(state.conn, method, path, headers, body) do
       {:ok, conn, request_ref} ->
         state =
@@ -341,10 +353,10 @@ defmodule K8s.Client.Mint.HTTPAdapter do
             HTTPRequest.new(extra)
           )
 
-        cond do
-          Keyword.has_key?(extra, :caller) -> {:noreply, struct!(state, conn: conn)}
-          Keyword.has_key?(extra, :stream_to) -> {:reply, :ok, struct!(state, conn: conn)}
-          true -> {:reply, {:ok, request_ref}, struct!(state, conn: conn)}
+        case extra[:type] do
+          :sync -> {:noreply, struct!(state, conn: conn)}
+          :stream_to -> {:reply, :ok, struct!(state, conn: conn)}
+          :stream -> {:reply, {:ok, request_ref}, struct!(state, conn: conn)}
         end
 
       {:error, conn, error} ->

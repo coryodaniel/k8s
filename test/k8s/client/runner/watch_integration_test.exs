@@ -2,23 +2,24 @@ defmodule K8s.Client.Runner.WatchIntegrationTest do
   use ExUnit.Case, async: false
   import K8s.Test.IntegrationHelper
 
-  setup do
-    test_id = :rand.uniform(10_000)
-    labels = %{"k8s-ex-watch-test" => "#{test_id}", "k8s-ex" => "true"}
+  setup_all do
     conn = conn()
 
     on_exit(fn ->
-      delete_pod =
-        K8s.Client.delete(%{
-          "apiVersion" => "v1",
-          "kind" => "Pod",
-          "metadata" => %{"name" => "watch-nginx-#{test_id}"}
-        })
-
-      K8s.Client.run(conn, delete_pod)
+      K8s.Client.delete_all("v1", "Pod", namespace: "default")
+      |> K8s.Selector.label({"k8s-ex-test", "watch"})
+      |> K8s.Client.put_conn(conn)
+      |> K8s.Client.run()
     end)
 
-    {:ok, %{conn: conn, test_id: test_id, labels: labels}}
+    [conn: conn]
+  end
+
+  setup do
+    test_id = :rand.uniform(10_000)
+    labels = %{"k8s-ex-watch-test" => "#{test_id}", "k8s-ex-test" => "watch"}
+
+    {:ok, %{test_id: test_id, labels: labels}}
   end
 
   describe "watch_and_stream" do

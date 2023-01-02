@@ -11,15 +11,18 @@ defmodule K8s.Client.Mint.Request.WebSocket do
   - `:response` - The response containing received parts.
   """
 
+  alias K8s.Client.Mint.Request.HTTP, as: HTTPRequest
+
   @type t :: %__MODULE__{
           caller: pid() | nil,
           stream_to: pid() | nil,
           waiting: pid() | nil,
           websocket: Mint.WebSocket.t() | nil,
-          response: %{}
+          response: %{},
+          type: HTTPRequest.request_types()
         }
 
-  defstruct [:caller, :stream_to, :websocket, :waiting, response: %{}]
+  defstruct [:caller, :stream_to, :websocket, :waiting, :type, response: %{}]
 
   @spec new(keyword()) :: t()
   def new(fields \\ []), do: struct!(__MODULE__, fields)

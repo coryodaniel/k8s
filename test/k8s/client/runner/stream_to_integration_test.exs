@@ -2,9 +2,22 @@ defmodule K8s.Client.Runner.StreamToIntegrationTest do
   use ExUnit.Case, async: true
   import K8s.Test.IntegrationHelper
 
+  setup_all do
+    conn = conn()
+
+    on_exit(fn ->
+      K8s.Client.delete_all("v1", "Pod", namespace: "default")
+      |> K8s.Selector.label({"k8s-ex-test", "stream_to"})
+      |> K8s.Client.put_conn(conn)
+      |> K8s.Client.run()
+    end)
+
+    [conn: conn]
+  end
+
   setup do
     test_id = :rand.uniform(10_000)
-    labels = %{"k8s-ex-stream-test" => "#{test_id}", "k8s-ex" => "true"}
+    labels = %{"k8s-ex-stream-to-test" => "#{test_id}", "k8s-ex-test" => "stream_to"}
     {:ok, %{conn: conn(), test_id: test_id, labels: labels}}
   end
 
@@ -34,7 +47,7 @@ defmodule K8s.Client.Runner.StreamToIntegrationTest do
     labels: labels,
     test_id: test_id
   } do
-    pod = pod("stream-nginx-#{test_id}-1", labels)
+    pod = pod("stream-to-nginx-#{test_id}-1", labels)
     {:ok, created_pod} = K8s.Client.run(conn, pod)
 
     {:ok, _} =

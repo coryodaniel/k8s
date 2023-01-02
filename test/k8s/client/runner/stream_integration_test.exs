@@ -6,10 +6,7 @@ defmodule K8s.Client.Runner.StreamIntegrationTest do
     conn = conn()
 
     on_exit(fn ->
-      K8s.Client.delete(%{
-        "apiVersion" => "v1",
-        "kind" => "Pod"
-      })
+      K8s.Client.delete_all("v1", "Pod", namespace: "default")
       |> K8s.Selector.label({"k8s-ex-test", "stream"})
       |> K8s.Client.put_conn(conn)
       |> K8s.Client.run()

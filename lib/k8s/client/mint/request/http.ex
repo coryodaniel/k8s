@@ -14,78 +14,78 @@ defmodule K8s.Client.Mint.Request.HTTP do
   alias K8s.Client.Mint.Request.WebSocket, as: WebSocketRequest
 
   @data_types [:data, :stdout, :stderr, :error, :waiting]
+  @type request_types :: :sync | :stream_to | :stream
 
   @type t :: %__MODULE__{
           caller: pid() | nil,
           stream_to: pid() | nil,
           waiting: pid() | nil,
-          response: %{}
+          response: %{},
+          type: request_types()
         }
 
   @type request :: t() | WebSocketRequest.t() | UpgradeRequest.t()
 
-  defstruct [:caller, :stream_to, :waiting, response: %{}]
+  defstruct [:caller, :stream_to, :waiting, :type, response: %{}]
 
   @spec new(keyword()) :: t()
   def new(fields), do: struct!(__MODULE__, fields)
 
   @spec put_response(request(), :done | {atom(), term()}) :: :pop | {request(), request()}
-  def put_response(%{response: response, caller: caller}, :done) when not is_nil(caller) do
+  def put_response(%{type: :sync} = request, :done) do
     response =
-      response
+      request.response
       |> Map.update(:data, nil, &(&1 |> Enum.reverse() |> IO.iodata_to_binary()))
       |> Map.reject(&(&1 |> elem(1) |> is_nil()))
 
-    GenServer.reply(caller, {:ok, response})
+    GenServer.reply(request.caller, {:ok, response})
     :pop
   end
 
-  def put_response(%{response: response, caller: caller} = request, {:close, data})
-      when not is_nil(caller) do
+  def put_response(%{type: :sync} = request, {:close, data}) do
     response =
-      response
+      request.response
       |> Map.update(:stdout, nil, &(&1 |> Enum.reverse() |> IO.iodata_to_binary()))
       |> Map.update(:stderr, nil, &(&1 |> Enum.reverse() |> IO.iodata_to_binary()))
       |> Map.update(:error, nil, &(&1 |> Enum.reverse() |> IO.iodata_to_binary()))
       |> Map.reject(&(&1 |> elem(1) |> is_nil()))
       |> Map.put(:close, data)
 
-    GenServer.reply(caller, {:ok, response})
+    GenServer.reply(request.caller, {:ok, response})
     {:stop, request}
   end
 
-  def put_response(%{stream_to: stream_to} = request, {:close, data})
-      when not is_nil(stream_to) do
-    send(stream_to, {:close, data})
-    {:stop, request}
-  end
-
-  def put_response(%{stream_to: stream_to}, :done) when not is_nil(stream_to) do
-    send(stream_to, {:done, true})
+  def put_response(%{type: :stream_to} = request, :done) do
+    send(request.stream_to, {:done, true})
     :pop
   end
 
-  def put_response(request, {:close, data}) do
+  def put_response(%{type: :stream_to} = request, {:close, data}) do
+    send(request.stream_to, {:close, data})
+    {:stop, request}
+  end
+
+  def put_response(%{type: :stream_to} = request, {type, new_data})
+      when type in @data_types do
+    send(request.stream_to, {type, new_data})
+    {request, request}
+  end
+
+  def put_response(%{type: :stream_to} = request, {type, value}) do
+    send(request.stream_to, {type, value})
+    {request, request}
+  end
+
+  def put_response(%{type: :stream} = request, {:close, data}) do
     {request, put_in(request.response[:close], data)}
   end
 
-  def put_response(request, :done) do
+  def put_response(%{type: :stream} = request, :done) do
     {request, put_in(request.response[:done], true)}
-  end
-
-  def put_response(%{stream_to: stream_to} = request, {type, new_data})
-      when type in @data_types and not is_nil(stream_to) do
-    send(stream_to, {type, new_data})
-    {request, request}
   end
 
   def put_response(request, {type, new_data}) when type in @data_types do
     {request, update_in(request, [Access.key(:response), Access.key(type, [])], &[new_data | &1])}
-  end
-
-  def put_response(%{stream_to: stream_to} = request, {type, value}) when not is_nil(stream_to) do
-    send(stream_to, {type, value})
-    {request, request}
   end
 
   def put_response(request, {type, value}) do
