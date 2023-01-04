@@ -17,13 +17,14 @@ defmodule K8s.Client.Mint.Request.WebSocket do
           caller: pid() | nil,
           caller_ref: reference(),
           stream_to: pid() | nil,
+          pool: pid() | nil,
           waiting: pid() | nil,
           websocket: Mint.WebSocket.t() | nil,
           response: %{},
           type: HTTPRequest.request_types()
         }
 
-  defstruct [:caller, :caller_ref, :stream_to, :websocket, :waiting, :type, response: %{}]
+  defstruct [:caller, :caller_ref, :stream_to, :pool, :websocket, :waiting, :type, response: %{}]
 
   @spec new(keyword()) :: t()
   def new(fields \\ []), do: struct!(__MODULE__, fields)

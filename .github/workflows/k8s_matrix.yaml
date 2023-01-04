@@ -9,7 +9,14 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k8s_version: [v1.24.9-k3s1, v1.25.5-k3s1, v1.26.0-k3s1]
+        k8s_version:
+          [
+            v1.22.17-k3s1,
+            v1.23.15-k3s1,
+            v1.24.9-k3s1,
+            v1.25.5-k3s1,
+            v1.26.0-k3s1,
+          ]
         otp: [25.x]
         elixir: [1.14.x]
     steps:
