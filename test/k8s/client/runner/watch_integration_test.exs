@@ -71,7 +71,7 @@ defmodule K8s.Client.Runner.WatchIntegrationTest do
       operation = K8s.Client.watch("v1", "ConfigMap", namespace: "default")
       operation = K8s.Operation.put_selector(operation, selector)
 
-      Task.start(fn ->
+      Task.start_link(fn ->
         {:ok, event_stream} = K8s.Client.stream(conn, operation)
         event_stream |> handle_stream.() |> Stream.run()
       end)
@@ -118,7 +118,7 @@ defmodule K8s.Client.Runner.WatchIntegrationTest do
       operation = K8s.Client.watch("v1", "ConfigMap", namespace: :all)
       operation = K8s.Operation.put_selector(operation, selector)
 
-      Task.start(fn ->
+      Task.start_link(fn ->
         {:ok, event_stream} = K8s.Client.stream(conn, operation)
         event_stream |> handle_stream.() |> Stream.run()
       end)
@@ -165,7 +165,7 @@ defmodule K8s.Client.Runner.WatchIntegrationTest do
       operation = K8s.Client.watch("v1", "ConfigMap", namespace: "default", name: resource_name)
       operation = K8s.Operation.put_selector(operation, selector)
 
-      Task.start(fn ->
+      Task.start_link(fn ->
         {:ok, event_stream} = K8s.Client.stream(conn, operation)
         event_stream |> handle_stream.() |> Stream.run()
       end)
@@ -212,7 +212,7 @@ defmodule K8s.Client.Runner.WatchIntegrationTest do
       operation = K8s.Client.watch("v1", "ConfigMap", namespace: "default")
       operation = K8s.Operation.put_selector(operation, selector)
 
-      Task.start(fn ->
+      Task.start_link(fn ->
         {:ok, event_stream} = K8s.Client.stream(conn, operation)
         event_stream |> handle_stream.() |> Stream.run()
       end)

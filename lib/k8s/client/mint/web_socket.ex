@@ -22,9 +22,9 @@ defmodule K8s.Client.Mint.WebSocket do
   def request(uri, headers, http_opts) do
     {opts, path, headers} = prepare_args(uri, headers, http_opts)
 
-    ConnectionRegistry.run({uri, opts}, fn adapter_pid ->
+    with {:ok, %{adapter: adapter_pid}} <- ConnectionRegistry.checkout({uri, opts}) do
       HTTPAdapter.websocket_request(adapter_pid, path, headers)
-    end)
+    end
   end
 
   @spec stream(uri :: URI.t(), headers :: list(), http_opts :: keyword()) ::

@@ -121,7 +121,7 @@ defmodule K8s.Client.Mint.ConnectionRegistry do
          %{id: conn_args, start: {:poolboy, :start_link, [@poolboy_config, conn_args]}}}
 
       :http2 ->
-        {:singleton, {HTTPAdapter, conn}}
+        {:singleton, {HTTPAdapter, conn_args}}
     end
   end
 end

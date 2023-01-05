@@ -76,16 +76,8 @@ defmodule K8s.Client.Mint.HTTPAdapter do
   and starts the GenServer.
   """
   @spec start_link(connection_args_t()) :: GenServer.on_start()
-  def start_link({scheme, host, port, opts}) do
-    case Mint.HTTP.connect(scheme, host, port, opts) do
-      {:ok, conn} -> start_link(conn)
-      {:error, error} -> {:error, HTTPError.from_exception(error)}
-    end
-  end
-
-  @spec start_link(Mint.HTTP.t()) :: GenServer.on_start()
-  def start_link(conn) do
-    GenServer.start_link(__MODULE__, conn)
+  def start_link(conn_args) do
+    GenServer.start_link(__MODULE__, conn_args)
   end
 
   @spec connection_args(URI.t(), keyword()) :: connection_args_t()
@@ -200,8 +192,8 @@ defmodule K8s.Client.Mint.HTTPAdapter do
   end
 
   @impl true
-  def init(conn) do
-    case Mint.HTTP.controlling_process(conn, self()) do
+  def init({scheme, host, port, opts}) do
+    case Mint.HTTP.connect(scheme, host, port, opts) do
       {:ok, conn} ->
         state = %__MODULE__{conn: conn}
         {:ok, state}
