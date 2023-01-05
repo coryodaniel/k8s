@@ -42,6 +42,7 @@ defmodule K8s.Client.Mint.Request.HTTP do
       |> Map.reject(&(&1 |> elem(1) |> is_nil()))
 
     GenServer.reply(request.caller, {:ok, response})
+    Process.demonitor(request.caller_ref)
     :pop
   end
 
@@ -60,6 +61,7 @@ defmodule K8s.Client.Mint.Request.HTTP do
 
   def put_response(%{type: :stream_to} = request, :done) do
     send(request.stream_to, {:done, true})
+    Process.demonitor(request.caller_ref)
     ConnectionRegistry.checkin(%{pool: request.pool, adapter: self()})
     :pop
   end

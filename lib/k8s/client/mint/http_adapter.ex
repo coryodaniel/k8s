@@ -271,7 +271,8 @@ defmodule K8s.Client.Mint.HTTPAdapter do
   end
 
   def handle_cast({:terminate_request, request_ref}, state) do
-    {_, state} = pop_in(state.requests[request_ref])
+    {request, state} = pop_in(state.requests[request_ref])
+    Process.demonitor(request.caller_ref)
     {:noreply, state}
   end
 
