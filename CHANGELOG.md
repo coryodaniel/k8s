@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `K8s.Client.Mint.HTTPAdapter` - Monitor caller and cleanup state upon `:DOWN`.
+- `:poolboy` - Pooling for HTTP/1 connections
+- `K8s.Client.Mint.HTTPAdapter` - Monitor caller and cleanup state upon `:DOWN`
 
 ## [2.0.0-rc.3] - 2023-01-01
 
