@@ -36,19 +36,19 @@ defmodule K8s.Client.Mint.HTTPAdapter do
 
   As mentioned above, there's three ways to make a request.
 
-  ### Requests - `request/5` and `websocket_request/3`
+  ### Requests
 
   Requests are synchronous (blocking) calls to the GenServer. It's not until
   the requeset is `:done` resp. the websocket is closed that the GenServer
   will reply with the complete request's response map.
 
-  ### Streams - `stream/5` and `websocket_stream/3`
+  ### Streams
 
   These functions immediately return an [Elixir Stream](https://hexdocs.pm/elixir/Stream.html).
   Running the stream blocks until response parts are received and streams
   them thereafter.
 
-  ### StreamTo - `stream_to/6`and `websocket_stream_to/4`
+  ### StreamTo
 
   These functions take an extra `stream_to` argument and return a
   `{:ok, send_to_websocket}` tuple. They stream the response parts to the
@@ -75,14 +75,9 @@ defmodule K8s.Client.Mint.HTTPAdapter do
   Opens a connection to Kubernetes, defined by `uri` and `opts`,
   and starts the GenServer.
   """
-  @spec start_link({URI.t(), keyword()}) :: GenServer.on_start()
-  def start_link({uri, opts}) do
-    start_link(connection_args(uri, opts))
-  end
-
   @spec start_link(connection_args_t()) :: GenServer.on_start()
-  def start_link(connection_args) do
-    GenServer.start_link(__MODULE__, connection_args)
+  def start_link(conn_args) do
+    GenServer.start_link(__MODULE__, conn_args)
   end
 
   @spec connection_args(URI.t(), keyword()) :: connection_args_t()
@@ -104,38 +99,15 @@ defmodule K8s.Client.Mint.HTTPAdapter do
     GenServer.call(pid, {:request, method, path, headers, body}, 30_000)
   end
 
-  @doc """
-  Same as `request/5` but returns a stream of response chunks.
-  """
   @spec stream(
           pid(),
           method :: binary(),
           path :: binary(),
           Mint.Types.headers(),
           body :: iodata() | nil | :stream
-        ) :: Provider.stream_response_t()
+        ) :: {:ok, reference()} | {:error, HTTPError.t()}
   def stream(pid, method, path, headers, body) do
-    with {:ok, request_ref} <- GenServer.call(pid, {:stream, method, path, headers, body}) do
-      stream =
-        Stream.resource(
-          fn -> request_ref end,
-          fn
-            {:halt, request_ref} ->
-              {:halt, request_ref}
-
-            request_ref ->
-              case GenServer.call(pid, {:next_buffer, request_ref}, :infinity) do
-                {:cont, data} -> {data, request_ref}
-                {:halt, data} -> {data, {:halt, request_ref}}
-              end
-          end,
-          fn request_ref ->
-            GenServer.cast(pid, {:terminate_request, request_ref})
-          end
-        )
-
-      {:ok, stream}
-    end
+    GenServer.call(pid, {:stream, method, path, headers, body})
   end
 
   @doc """
@@ -148,10 +120,11 @@ defmodule K8s.Client.Mint.HTTPAdapter do
           path :: binary(),
           Mint.Types.headers(),
           body :: iodata() | nil | :stream,
+          pool :: pid() | nil,
           stream_to :: pid()
         ) :: Provider.stream_to_response_t()
-  def stream_to(pid, method, path, headers, body, stream_to) do
-    GenServer.call(pid, {:stream_to, method, path, headers, body, stream_to})
+  def stream_to(pid, method, path, headers, body, pool, stream_to) do
+    GenServer.call(pid, {:stream_to, method, path, headers, body, pool, stream_to})
   end
 
   @doc """
@@ -175,31 +148,9 @@ defmodule K8s.Client.Mint.HTTPAdapter do
           pid(),
           path :: binary(),
           Mint.Types.headers()
-        ) :: Provider.stream_response_t()
+        ) :: {:ok, reference()} | {:error, HTTPError.t()}
   def websocket_stream(pid, path, headers) do
-    with {:ok, request_ref} <-
-           GenServer.call(pid, {:websocket_stream, path, headers}) do
-      stream =
-        Stream.resource(
-          fn -> request_ref end,
-          fn
-            {:halt, nil} ->
-              {:halt, nil}
-
-            request_ref ->
-              case GenServer.call(pid, {:next_buffer, request_ref}, :infinity) do
-                {:cont, data} -> {data, request_ref}
-                {:halt, data} -> {data, {:halt, nil}}
-              end
-          end,
-          fn _ ->
-            GenServer.stop(pid, :normal)
-            nil
-          end
-        )
-
-      {:ok, stream}
-    end
+    GenServer.call(pid, {:websocket_stream, path, headers})
   end
 
   @doc """
@@ -213,17 +164,31 @@ defmodule K8s.Client.Mint.HTTPAdapter do
           pid(),
           path :: binary(),
           Mint.Types.headers(),
-          stream_to :: pid
+          pool :: pid() | nil,
+          stream_to :: pid()
         ) :: Provider.stream_to_response_t()
-  def websocket_stream_to(pid, path, headers, stream_to) do
+  def websocket_stream_to(pid, path, headers, pool, stream_to) do
     with {:ok, request_ref} <-
-           GenServer.call(pid, {:websocket_stream_to, path, headers, stream_to}) do
+           GenServer.call(pid, {:websocket_stream_to, path, headers, pool, stream_to}) do
       send_to_websocket = fn data ->
         GenServer.cast(pid, {:websocket_send, request_ref, data})
       end
 
       {:ok, send_to_websocket}
     end
+  end
+
+  @spec next_buffer(pid(), reference()) :: {:cont, binary()} | {:halt, binary()}
+  def next_buffer(pid, request_ref) do
+    GenServer.call(pid, {:next_buffer, request_ref}, :infinity)
+  end
+
+  @spec stop(pid()) :: :ok
+  def stop(pid), do: GenServer.stop(pid, :normal)
+
+  @spec terminate_request(pid(), reference()) :: :ok
+  def terminate_request(pid, request_ref) do
+    GenServer.cast(pid, {:terminate_request, request_ref})
   end
 
   @impl true
@@ -234,6 +199,7 @@ defmodule K8s.Client.Mint.HTTPAdapter do
         {:ok, state}
 
       {:error, error} ->
+        Logger.error("Failed initializing HTTPAdapter GenServer", library: :k8s)
         {:stop, HTTPError.from_exception(error)}
     end
   end
@@ -247,8 +213,12 @@ defmodule K8s.Client.Mint.HTTPAdapter do
     make_request(state, method, path, headers, body, from, type: :stream)
   end
 
-  def handle_call({:stream_to, method, path, headers, body, stream_to}, from, state) do
-    make_request(state, method, path, headers, body, from, type: :stream_to, stream_to: stream_to)
+  def handle_call({:stream_to, method, path, headers, body, pool, stream_to}, from, state) do
+    make_request(state, method, path, headers, body, from,
+      type: :stream_to,
+      pool: pool,
+      stream_to: stream_to
+    )
   end
 
   def handle_call({:websocket_request, path, headers}, from, state) do
@@ -265,13 +235,13 @@ defmodule K8s.Client.Mint.HTTPAdapter do
     upgrade_to_websocket(state, path, headers, from, WebSocketRequest.new(type: :stream))
   end
 
-  def handle_call({:websocket_stream_to, path, headers, stream_to}, from, state) do
+  def handle_call({:websocket_stream_to, path, headers, pool, stream_to}, from, state) do
     upgrade_to_websocket(
       state,
       path,
       headers,
       from,
-      WebSocketRequest.new(type: :stream_to, stream_to: stream_to)
+      WebSocketRequest.new(type: :stream_to, pool: pool, stream_to: stream_to)
     )
   end
 
@@ -294,7 +264,8 @@ defmodule K8s.Client.Mint.HTTPAdapter do
   end
 
   def handle_cast({:terminate_request, request_ref}, state) do
-    {_, state} = pop_in(state.requests[request_ref])
+    {request, state} = pop_in(state.requests[request_ref])
+    Process.demonitor(request.caller_ref)
     {:noreply, state}
   end
 
@@ -334,7 +305,7 @@ defmodule K8s.Client.Mint.HTTPAdapter do
       |> Enum.reduce_while(state, fn
         request_ref, state ->
           case pop_in(state.requests[request_ref]) do
-            {%HTTPRequest{}, state} ->
+            {%HTTPRequest{}, %{conn: %Mint.HTTP2{}} = state} ->
               conn = Mint.HTTP2.cancel_request(state.conn, request_ref) |> elem(1)
               {:cont, struct!(state, conn: conn)}
 
@@ -345,6 +316,11 @@ defmodule K8s.Client.Mint.HTTPAdapter do
 
     case state do
       {:stop, state} ->
+        Logger.debug(
+          "Received :DOWN signal from parent process. Terminating HTTPAdapter #{inspect(self())}.",
+          library: :k8s
+        )
+
         {:stop, :normal, state}
 
       state ->
@@ -365,6 +341,7 @@ defmodule K8s.Client.Mint.HTTPAdapter do
     end)
 
     Mint.HTTP.close(state.conn)
+    Logger.debug("Terminating HTTPAdapter GenServer #{inspect(self())}", library: :k8s)
     :ok
   end
 

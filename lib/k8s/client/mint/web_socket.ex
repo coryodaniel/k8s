@@ -3,6 +3,7 @@ defmodule K8s.Client.Mint.WebSocket do
   Websocket implementation of Mint based `K8s.Client.Provider`
   """
 
+  alias K8s.Client.Mint.ConnectionRegistry
   alias K8s.Client.Mint.HTTPAdapter
   alias K8s.Client.Provider
 
@@ -21,13 +22,9 @@ defmodule K8s.Client.Mint.WebSocket do
   def request(uri, headers, http_opts) do
     {opts, path, headers} = prepare_args(uri, headers, http_opts)
 
-    {:ok, adapter_pid} =
-      DynamicSupervisor.start_child(
-        K8s.Client.Mint.ConnectionSupervisor,
-        {HTTPAdapter, {uri, opts}}
-      )
-
-    HTTPAdapter.websocket_request(adapter_pid, path, headers)
+    with {:ok, %{adapter: adapter_pid}} <- ConnectionRegistry.checkout({uri, opts}) do
+      HTTPAdapter.websocket_request(adapter_pid, path, headers)
+    end
   end
 
   @spec stream(uri :: URI.t(), headers :: list(), http_opts :: keyword()) ::
@@ -35,13 +32,29 @@ defmodule K8s.Client.Mint.WebSocket do
   def stream(uri, headers, http_opts) do
     {opts, path, headers} = prepare_args(uri, headers, http_opts)
 
-    {:ok, adapter_pid} =
-      DynamicSupervisor.start_child(
-        K8s.Client.Mint.ConnectionSupervisor,
-        {HTTPAdapter, {uri, opts}}
-      )
+    with {:ok, %{adapter: adapter_pid}} <- ConnectionRegistry.checkout({uri, opts}),
+         {:ok, request_ref} <- HTTPAdapter.websocket_stream(adapter_pid, path, headers) do
+      stream =
+        Stream.resource(
+          fn -> request_ref end,
+          fn
+            {:halt, nil} ->
+              {:halt, nil}
 
-    HTTPAdapter.websocket_stream(adapter_pid, path, headers)
+            request_ref ->
+              case HTTPAdapter.next_buffer(adapter_pid, request_ref) do
+                {:cont, data} -> {data, request_ref}
+                {:halt, data} -> {data, {:halt, nil}}
+              end
+          end,
+          fn _ ->
+            HTTPAdapter.stop(adapter_pid)
+            nil
+          end
+        )
+
+      {:ok, stream}
+    end
   end
 
   @spec stream_to(uri :: URI.t(), headers :: list(), http_opts :: keyword(), stream_to :: pid()) ::
@@ -49,13 +62,10 @@ defmodule K8s.Client.Mint.WebSocket do
   def stream_to(uri, headers, http_opts, stream_to) do
     {opts, path, headers} = prepare_args(uri, headers, http_opts)
 
-    {:ok, adapter_pid} =
-      DynamicSupervisor.start_child(
-        K8s.Client.Mint.ConnectionSupervisor,
-        {HTTPAdapter, {uri, opts}}
-      )
-
-    HTTPAdapter.websocket_stream_to(adapter_pid, path, headers, stream_to)
+    with {:ok, %{adapter: adapter_pid, pool: pool}} <-
+           ConnectionRegistry.checkout({uri, opts}) do
+      HTTPAdapter.websocket_stream_to(adapter_pid, path, headers, pool, stream_to)
+    end
   end
 
   @spec prepare_args(uri :: URI.t(), headers :: list(), http_opts :: keyword()) ::

@@ -10,6 +10,7 @@ defmodule K8s.Client.Mint.Request.HTTP do
   - `:response` - The response containing received parts.
   """
 
+  alias K8s.Client.Mint.ConnectionRegistry
   alias K8s.Client.Mint.Request.Upgrade, as: UpgradeRequest
   alias K8s.Client.Mint.Request.WebSocket, as: WebSocketRequest
 
@@ -20,6 +21,7 @@ defmodule K8s.Client.Mint.Request.HTTP do
           caller: pid() | nil,
           caller_ref: reference(),
           stream_to: pid() | nil,
+          pool: pid() | nil,
           waiting: pid() | nil,
           response: %{},
           type: request_types()
@@ -27,7 +29,7 @@ defmodule K8s.Client.Mint.Request.HTTP do
 
   @type request :: t() | WebSocketRequest.t() | UpgradeRequest.t()
 
-  defstruct [:caller, :caller_ref, :stream_to, :waiting, :type, response: %{}]
+  defstruct [:caller, :caller_ref, :stream_to, :waiting, :type, :pool, response: %{}]
 
   @spec new(keyword()) :: t()
   def new(fields), do: struct!(__MODULE__, fields)
@@ -40,6 +42,7 @@ defmodule K8s.Client.Mint.Request.HTTP do
       |> Map.reject(&(&1 |> elem(1) |> is_nil()))
 
     GenServer.reply(request.caller, {:ok, response})
+    Process.demonitor(request.caller_ref)
     :pop
   end
 
@@ -58,6 +61,8 @@ defmodule K8s.Client.Mint.Request.HTTP do
 
   def put_response(%{type: :stream_to} = request, :done) do
     send(request.stream_to, {:done, true})
+    Process.demonitor(request.caller_ref)
+    ConnectionRegistry.checkin(%{pool: request.pool, adapter: self()})
     :pop
   end
 

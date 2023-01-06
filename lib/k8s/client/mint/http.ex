@@ -29,11 +29,12 @@ defmodule K8s.Client.Mint.HTTP do
   def request(method, uri, body, headers, http_opts) do
     {method, path, headers, opts} = prepare_args(method, uri, headers, http_opts)
 
-    with {:ok, adapter_pid} <- ConnectionRegistry.get({uri, opts}),
-         {:ok, response} <-
-           HTTPAdapter.request(adapter_pid, method, path, headers, body) do
-      process_response(response)
-    end
+    ConnectionRegistry.run({uri, opts}, fn adapter_pid ->
+      with {:ok, response} <-
+             HTTPAdapter.request(adapter_pid, method, path, headers, body) do
+        process_response(response)
+      end
+    end)
   end
 
   @spec stream(
@@ -46,8 +47,28 @@ defmodule K8s.Client.Mint.HTTP do
   def stream(method, uri, body, headers, http_opts) do
     {method, path, headers, opts} = prepare_args(method, uri, headers, http_opts)
 
-    with {:ok, adapter_pid} <- ConnectionRegistry.get({uri, opts}) do
-      HTTPAdapter.stream(adapter_pid, method, path, headers, body)
+    with {:ok, %{adapter: adapter_pid} = pool_worker} <- ConnectionRegistry.checkout({uri, opts}),
+         {:ok, request_ref} <- HTTPAdapter.stream(adapter_pid, method, path, headers, body) do
+      stream =
+        Stream.resource(
+          fn -> request_ref end,
+          fn
+            {:halt, request_ref} ->
+              {:halt, request_ref}
+
+            request_ref ->
+              case HTTPAdapter.next_buffer(adapter_pid, request_ref) do
+                {:cont, data} -> {data, request_ref}
+                {:halt, data} -> {data, {:halt, request_ref}}
+              end
+          end,
+          fn request_ref ->
+            HTTPAdapter.terminate_request(adapter_pid, request_ref)
+            ConnectionRegistry.checkin(pool_worker)
+          end
+        )
+
+      {:ok, stream}
     end
   end
 
@@ -62,8 +83,9 @@ defmodule K8s.Client.Mint.HTTP do
   def stream_to(method, uri, body, headers, http_opts, stream_to) do
     {method, path, headers, opts} = prepare_args(method, uri, headers, http_opts)
 
-    with {:ok, adapter_pid} <- ConnectionRegistry.get({uri, opts}) do
-      HTTPAdapter.stream_to(adapter_pid, method, path, headers, body, stream_to)
+    with {:ok, %{adapter: adapter_pid, pool: pool}} <-
+           ConnectionRegistry.checkout({uri, opts}) do
+      HTTPAdapter.stream_to(adapter_pid, method, path, headers, body, pool, stream_to)
     end
   end
 
