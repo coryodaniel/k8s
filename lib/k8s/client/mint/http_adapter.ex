@@ -36,19 +36,19 @@ defmodule K8s.Client.Mint.HTTPAdapter do
 
   As mentioned above, there's three ways to make a request.
 
-  ### Requests - `request/5` and `websocket_request/3`
+  ### Requests
 
   Requests are synchronous (blocking) calls to the GenServer. It's not until
   the requeset is `:done` resp. the websocket is closed that the GenServer
   will reply with the complete request's response map.
 
-  ### Streams - `stream/5` and `websocket_stream/3`
+  ### Streams
 
   These functions immediately return an [Elixir Stream](https://hexdocs.pm/elixir/Stream.html).
   Running the stream blocks until response parts are received and streams
   them thereafter.
 
-  ### StreamTo - `stream_to/6`and `websocket_stream_to/4`
+  ### StreamTo
 
   These functions take an extra `stream_to` argument and return a
   `{:ok, send_to_websocket}` tuple. They stream the response parts to the

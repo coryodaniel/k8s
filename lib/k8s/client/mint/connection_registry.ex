@@ -1,6 +1,13 @@
 defmodule K8s.Client.Mint.ConnectionRegistry do
   @moduledoc """
-  Opens `Mint.HTTP2` connections and registers them in the GenServer state.
+  A registry for open connections. As HTTP/2 allows simultaneous requests,
+  we handle multiple requests with one process. In this case, the registry
+  stores the PID of the HTTPAdapter which is connected according to the
+  given connection details (URI/opts).
+
+  HTTP/1 only allows one request per connection at a time. In order to
+  support simultaneous requests, we need a connection pool. This is where
+  the `:poolboy` library comes in.
   """
 
   use GenServer
@@ -16,8 +23,8 @@ defmodule K8s.Client.Mint.ConnectionRegistry do
   ]
 
   @type uriopts :: {URI.t(), keyword()}
-  @type adapter_type_t :: :pool_worker | :singleton
-  @type pool_worker_t :: %{required(:adapter) => pid(), required(:pool) => pid() | nil}
+  @type adapter_type_t :: :adapter_pool | :singleton
+  @type adapter_pool_t :: %{required(:adapter) => pid(), required(:pool) => pid() | nil}
 
   @doc """
   Starts the registry.
@@ -28,8 +35,11 @@ defmodule K8s.Client.Mint.ConnectionRegistry do
   end
 
   @doc """
-  Ensures there is an adapter associated with the given `key`.
-  # TODO: spec responses
+  Gets a `HTTPAdapter` process from the registry and runs the given `callback`
+  function, passing it the adapter's PID.
+
+  If the process returned by the registry is a pool, it runs the given
+  `callback` in a `:poolboy` transaction.
   """
   @spec run(uriopts(), (pid() -> any())) :: any()
   def run({uri, opts}, callback) do
@@ -37,7 +47,7 @@ defmodule K8s.Client.Mint.ConnectionRegistry do
       {:ok, {:singleton, adapter_pid}} ->
         callback.(adapter_pid)
 
-      {:ok, {:pool_worker, pool_pid}} ->
+      {:ok, {:adapter_pool, pool_pid}} ->
         :poolboy.transaction(pool_pid, callback)
 
       {:error, error} ->
@@ -46,19 +56,23 @@ defmodule K8s.Client.Mint.ConnectionRegistry do
   end
 
   @doc """
-  Ensures there is an adapter associated with the given `key`.
-  # TODO: spec responses
+  ets a `HTTPAdapter` process from the registry.
+
+  If the returned process is an adapter pool, an adapter is checked out from
+  the pool and a map with both PIDs is returned.
+
+  If the returned process is an adapter process, a map with its PID and `pool`
+  set to `nil` is returned.
   """
-  @spec checkout(uriopts()) :: {:ok, pool_worker_t()} | {:error, HTTPError.t()}
+  @spec checkout(uriopts()) :: {:ok, adapter_pool_t()} | {:error, HTTPError.t()}
   def checkout({uri, opts}) do
     case GenServer.call(__MODULE__, {:get_or_open, HTTPAdapter.connection_args(uri, opts)}) do
       {:ok, {:singleton, pid}} ->
         {:ok, %{adapter: pid, pool: nil}}
 
-      {:ok, {:pool_worker, pid}} ->
+      {:ok, {:adapter_pool, pool_pid}} ->
         try do
-          worker_pid = :poolboy.checkout(pid)
-          {:ok, %{adapter: worker_pid, pool: pid}}
+          {:ok, %{adapter: :poolboy.checkout(pool_pid), pool: pool_pid}}
         catch
           :exit, {:timeout, _} ->
             {:error,
@@ -70,7 +84,7 @@ defmodule K8s.Client.Mint.ConnectionRegistry do
     end
   end
 
-  @spec checkin(pool_worker_t()) :: :ok
+  @spec checkin(adapter_pool_t()) :: :ok
   def checkin(%{pool: nil}), do: :ok
 
   def checkin(%{adapter: worker_pid, pool: pool_pid}) do
@@ -91,6 +105,7 @@ defmodule K8s.Client.Mint.ConnectionRegistry do
     else
       {scheme, host, port, opts} = key
 
+      # Connect to the server to see if the server supports HTTP/2
       with {:ok, conn} <- Mint.HTTP.connect(scheme, host, port, opts),
            {type, adapter_spec} <- get_adapter_spec(conn, key),
            {:ok, adapter} <-
@@ -124,7 +139,7 @@ defmodule K8s.Client.Mint.ConnectionRegistry do
   defp get_adapter_spec(conn, conn_args) do
     case Mint.HTTP.protocol(conn) do
       :http1 ->
-        {:pool_worker,
+        {:adapter_pool,
          %{id: conn_args, start: {:poolboy, :start_link, [@poolboy_config, conn_args]}}}
 
       :http2 ->
