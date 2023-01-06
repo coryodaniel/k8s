@@ -48,7 +48,7 @@ defmodule K8s.Client.Mint.HTTP do
     {method, path, headers, opts} = prepare_args(method, uri, headers, http_opts)
 
     with {:ok, %{adapter: adapter_pid} = pool_worker} <- ConnectionRegistry.checkout({uri, opts}),
-         {:ok, request_ref} <- GenServer.call(adapter_pid, {:stream, method, path, headers, body}) do
+         {:ok, request_ref} <- HTTPAdapter.stream(adapter_pid, method, path, headers, body) do
       stream =
         Stream.resource(
           fn -> request_ref end,

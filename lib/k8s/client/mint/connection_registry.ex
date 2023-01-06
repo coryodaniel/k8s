@@ -8,7 +8,12 @@ defmodule K8s.Client.Mint.ConnectionRegistry do
   alias K8s.Client.HTTPError
   alias K8s.Client.Mint.HTTPAdapter
 
-  @poolboy_config [worker_module: K8s.Client.Mint.HTTPAdapter, size: 10, max_overflow: 20]
+  @poolboy_config [
+    worker_module: K8s.Client.Mint.HTTPAdapter,
+    size: 10,
+    max_overflow: 20,
+    strategy: :fifo
+  ]
 
   @type uriopts :: {URI.t(), keyword()}
   @type adapter_type_t :: :pool_worker | :singleton
@@ -29,11 +34,11 @@ defmodule K8s.Client.Mint.ConnectionRegistry do
   @spec run(uriopts(), (pid() -> any())) :: any()
   def run({uri, opts}, callback) do
     case GenServer.call(__MODULE__, {:get_or_open, HTTPAdapter.connection_args(uri, opts)}) do
-      {:ok, {:singleton, pid}} ->
-        callback.(pid)
+      {:ok, {:singleton, adapter_pid}} ->
+        callback.(adapter_pid)
 
-      {:ok, {:pool_worker, pid}} ->
-        :poolboy.transaction(pid, callback)
+      {:ok, {:pool_worker, pool_pid}} ->
+        :poolboy.transaction(pool_pid, callback)
 
       {:error, error} ->
         {:error, error}
@@ -52,7 +57,8 @@ defmodule K8s.Client.Mint.ConnectionRegistry do
 
       {:ok, {:pool_worker, pid}} ->
         try do
-          {:ok, %{adapter: :poolboy.checkout(pid), pool: pid}}
+          worker_pid = :poolboy.checkout(pid)
+          {:ok, %{adapter: worker_pid, pool: pid}}
         catch
           :exit, {:timeout, _} ->
             {:error,
@@ -89,6 +95,7 @@ defmodule K8s.Client.Mint.ConnectionRegistry do
            {type, adapter_spec} <- get_adapter_spec(conn, key),
            {:ok, adapter} <-
              DynamicSupervisor.start_child(K8s.Client.Mint.ConnectionSupervisor, adapter_spec) do
+        Mint.HTTP.close(conn)
         ref = Process.monitor(adapter)
         refs = Map.put(refs, ref, key)
         adapters = Map.put(adapters, key, {type, adapter})

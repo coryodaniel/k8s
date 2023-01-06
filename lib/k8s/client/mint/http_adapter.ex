@@ -199,6 +199,7 @@ defmodule K8s.Client.Mint.HTTPAdapter do
         {:ok, state}
 
       {:error, error} ->
+        Logger.error("Failed initializing HTTPAdapter GenServer", library: :k8s)
         {:stop, HTTPError.from_exception(error)}
     end
   end
@@ -315,6 +316,11 @@ defmodule K8s.Client.Mint.HTTPAdapter do
 
     case state do
       {:stop, state} ->
+        Logger.debug(
+          "Received :DOWN signal from parent process. Terminating HTTPAdapter #{inspect(self())}.",
+          library: :k8s
+        )
+
         {:stop, :normal, state}
 
       state ->
@@ -335,6 +341,7 @@ defmodule K8s.Client.Mint.HTTPAdapter do
     end)
 
     Mint.HTTP.close(state.conn)
+    Logger.debug("Terminating HTTPAdapter GenServer #{inspect(self())}", library: :k8s)
     :ok
   end
 
