@@ -8,16 +8,8 @@ defmodule K8s.Client.Mint.HTTP do
   alias K8s.Client.Provider
 
   require Logger
-  require Mint.HTTP
-
-  @type t :: %__MODULE__{
-          conn: Mint.HTTP.t(),
-          request_ref: Mint.Types.request_ref() | nil
-        }
 
   @typep request_response_t :: map()
-
-  defstruct [:conn, :request_ref]
 
   @spec request(
           method :: atom(),

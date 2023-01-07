@@ -58,8 +58,7 @@ defmodule K8s.Client.Mint.HTTPAdapter do
   use GenServer, restart: :temporary
 
   alias K8s.Client.{HTTPError, Provider}
-  alias K8s.Client.Mint.Request.HTTP, as: HTTPRequest
-  alias K8s.Client.Mint.Request.WebSocket, as: WebSocketRequest
+  alias K8s.Client.Mint.Request
 
   require Logger
   require Mint.HTTP
@@ -157,7 +156,7 @@ defmodule K8s.Client.Mint.HTTPAdapter do
         state =
           put_in(
             state.requests[request_ref],
-            HTTPRequest.new(pool: pool, stream_to: stream_to, caller_ref: caller_ref)
+            Request.new(pool: pool, stream_to: stream_to, caller_ref: caller_ref)
           )
 
         {:reply, :ok, struct!(state, conn: conn)}
@@ -174,14 +173,14 @@ defmodule K8s.Client.Mint.HTTPAdapter do
 
     with {:ok, conn} <- Mint.HTTP.set_mode(state.conn, :passive),
          {:ok, conn, request_ref} <- Mint.WebSocket.upgrade(:wss, conn, path, headers),
-         {:ok, conn, response} <- WebSocketRequest.receive_upgrade_response(conn, request_ref),
+         {:ok, conn, response} <- Request.receive_upgrade_response(conn, request_ref),
          {:ok, conn} <- Mint.HTTP.set_mode(conn, :active),
          {:ok, conn, websocket} <-
            Mint.WebSocket.new(conn, request_ref, response.status, response.headers) do
       state =
         put_in(
           state.requests[request_ref],
-          WebSocketRequest.new(
+          Request.new(
             websocket: websocket,
             pool: pool,
             stream_to: stream_to,
@@ -206,7 +205,7 @@ defmodule K8s.Client.Mint.HTTPAdapter do
   def handle_cast({:websocket_send, request_ref, data}, state) do
     request = state.requests[request_ref]
 
-    with {:ok, frame} <- WebSocketRequest.map_outgoing_frame(data),
+    with {:ok, frame} <- Request.map_outgoing_frame(data),
          {:ok, websocket, data} <- Mint.WebSocket.encode(request.websocket, frame),
          {:ok, conn} <- Mint.WebSocket.stream_request_body(state.conn, request_ref, data) do
       state = struct!(state, conn: conn)
@@ -257,7 +256,7 @@ defmodule K8s.Client.Mint.HTTPAdapter do
       |> Enum.reduce_while(state, fn
         request_ref, state ->
           case pop_in(state.requests[request_ref]) do
-            {%HTTPRequest{}, %{conn: %Mint.HTTP2{}} = state} ->
+            {%Request{}, %{conn: %Mint.HTTP2{}} = state} ->
               conn = Mint.HTTP2.cancel_request(state.conn, request_ref) |> elem(1)
               {:cont, struct!(state, conn: conn)}
 
@@ -286,7 +285,7 @@ defmodule K8s.Client.Mint.HTTPAdapter do
 
     state
     |> Map.get(:requests)
-    |> Enum.filter(fn {_ref, request} -> is_struct(request, WebSocketRequest) end)
+    |> Enum.filter(fn {_ref, request} -> !is_nil(request.websocket) end)
     |> Enum.each(fn {request_ref, request} ->
       {:ok, _websocket, data} = Mint.WebSocket.encode(request.websocket, :close)
       Mint.WebSocket.stream_request_body(state.conn, request_ref, data)
@@ -301,12 +300,12 @@ defmodule K8s.Client.Mint.HTTPAdapter do
   defp process_responses_or_frames(state, [{:data, request_ref, data}] = responses) do
     request = state.requests[request_ref]
 
-    if is_struct(request, WebSocketRequest) do
+    if is_nil(request.websocket) do
+      process_responses(state, responses)
+    else
       {:ok, websocket, frames} = Mint.WebSocket.decode(request.websocket, data)
       state = put_in(state.requests[request_ref].websocket, websocket)
       process_frames(state, request_ref, frames)
-    else
-      process_responses(state, responses)
     end
   end
 
@@ -318,11 +317,11 @@ defmodule K8s.Client.Mint.HTTPAdapter do
   defp process_frames(state, request_ref, frames) do
     state =
       frames
-      |> Enum.map(&WebSocketRequest.map_frame/1)
+      |> Enum.map(&Request.map_frame/1)
       |> Enum.reduce_while(state, fn mapped_frame, state ->
         case get_and_update_in(
                state.requests[request_ref],
-               &HTTPRequest.put_response(&1, mapped_frame)
+               &Request.put_response(&1, mapped_frame)
              ) do
           {:stop, state} ->
             # StreamTo requests need to be stopped from inside the GenServer.
@@ -343,12 +342,12 @@ defmodule K8s.Client.Mint.HTTPAdapter do
   defp process_responses(state, responses) do
     state =
       responses
-      |> Enum.map(&HTTPRequest.map_response/1)
+      |> Enum.map(&Request.map_response/1)
       |> Enum.reduce(state, fn {mapped_response, request_ref}, state ->
         {_, state} =
           get_and_update_in(
             state.requests[request_ref],
-            &HTTPRequest.put_response(&1, mapped_response)
+            &Request.put_response(&1, mapped_response)
           )
 
         state

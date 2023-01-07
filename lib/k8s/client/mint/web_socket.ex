@@ -7,17 +7,7 @@ defmodule K8s.Client.Mint.WebSocket do
   alias K8s.Client.Mint.HTTPAdapter
   alias K8s.Client.Provider
 
-  require Mint.HTTP
-
   @data_types [:data, :stdout, :stderr, :error]
-
-  @type t :: %__MODULE__{
-          conn: Mint.HTTP.t(),
-          ref: Mint.Types.request_ref() | nil,
-          websocket: Mint.WebSocket.t() | nil
-        }
-
-  defstruct [:conn, :ref, :websocket]
 
   @spec request(uri :: URI.t(), headers :: list(), http_opts :: keyword()) ::
           Provider.websocket_response_t()
