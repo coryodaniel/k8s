@@ -57,7 +57,7 @@ defmodule K8s.Client.Mint.HTTPAdapter do
   """
   use GenServer, restart: :temporary
 
-  alias K8s.Client.{HTTPError, Provider}
+  alias K8s.Client.HTTPError
   alias K8s.Client.Mint.Request
 
   require Logger
@@ -83,21 +83,26 @@ defmodule K8s.Client.Mint.HTTPAdapter do
     {String.to_atom(uri.scheme), uri.host, uri.port, opts}
   end
 
+  @spec recv(GenServer.server(), reference()) :: list()
+  def recv(pid, ref) do
+    GenServer.call(pid, {:recv, ref}, :infinity)
+  end
+
   @doc """
   Same as `request/5` but streams the response chunks to the process
   defined by `stream_to`
   """
-  @spec stream_to(
-          pid(),
+  @spec stream(
+          GenServer.server(),
           method :: binary(),
           path :: binary(),
           Mint.Types.headers(),
           body :: iodata() | nil | :stream,
           pool :: pid() | nil,
-          stream_to :: pid()
-        ) :: Provider.stream_to_response_t()
-  def stream_to(pid, method, path, headers, body, pool, stream_to) do
-    GenServer.call(pid, {:stream_to, method, path, headers, body, pool, stream_to})
+          stream_to :: pid() | nil
+        ) :: {:ok, reference()} | {:error, HTTPError.t()}
+  def stream(pid, method, path, headers, body, pool, stream_to) do
+    GenServer.call(pid, {:stream, method, path, headers, body, pool, stream_to})
   end
 
   @doc """
@@ -107,22 +112,24 @@ defmodule K8s.Client.Mint.HTTPAdapter do
   `send_to_websocket` is a function that can be called to send data
   to the websocket.
   """
-  @spec websocket_stream_to(
+  @spec websocket_stream(
           pid(),
           path :: binary(),
           Mint.Types.headers(),
           pool :: pid() | nil,
-          stream_to :: pid()
-        ) :: Provider.stream_to_response_t()
-  def websocket_stream_to(pid, path, headers, pool, stream_to) do
-    with {:ok, request_ref} <-
-           GenServer.call(pid, {:websocket_stream_to, path, headers, pool, stream_to}) do
-      send_to_websocket = fn data ->
-        GenServer.cast(pid, {:websocket_send, request_ref, data})
-      end
+          stream_to :: pid() | nil
+        ) :: {:ok, reference()} | {:error, HTTPError.t()}
+  def websocket_stream(pid, path, headers, pool, stream_to) do
+    GenServer.call(pid, {:websocket_stream, path, headers, pool, stream_to})
+  end
 
-      {:ok, send_to_websocket}
-    end
+  @spec websocket_send(
+          GenServer.server(),
+          reference(),
+          term()
+        ) :: :ok
+  def websocket_send(pid, request_ref, data) do
+    GenServer.cast(pid, {:websocket_send, request_ref, data})
   end
 
   # def stop(pid), do: GenServer.stop(pid, :normal)
@@ -148,7 +155,7 @@ defmodule K8s.Client.Mint.HTTPAdapter do
 
   @impl true
 
-  def handle_call({:stream_to, method, path, headers, body, pool, stream_to}, from, state) do
+  def handle_call({:stream, method, path, headers, body, pool, stream_to}, from, state) do
     caller_ref = from |> elem(0) |> Process.monitor()
 
     case Mint.HTTP.request(state.conn, method, path, headers, body) do
@@ -159,7 +166,7 @@ defmodule K8s.Client.Mint.HTTPAdapter do
             Request.new(pool: pool, stream_to: stream_to, caller_ref: caller_ref)
           )
 
-        {:reply, :ok, struct!(state, conn: conn)}
+        {:reply, {:ok, request_ref}, struct!(state, conn: conn)}
 
       {:error, conn, error} ->
         state = struct!(state, conn: conn)
@@ -168,7 +175,7 @@ defmodule K8s.Client.Mint.HTTPAdapter do
     end
   end
 
-  def handle_call({:websocket_stream_to, path, headers, pool, stream_to}, from, state) do
+  def handle_call({:websocket_stream, path, headers, pool, stream_to}, from, state) do
     caller_ref = from |> elem(0) |> Process.monitor()
 
     with {:ok, conn} <- Mint.HTTP.set_mode(state.conn, :passive),
@@ -198,6 +205,19 @@ defmodule K8s.Client.Mint.HTTPAdapter do
       {:error, conn, error} ->
         GenServer.reply(from, {:error, HTTPError.from_exception(error)})
         {:stop, :normal, struct!(state, conn: conn)}
+    end
+  end
+
+  def handle_call({:recv, request_ref}, from, state) do
+    case get_and_update_in(
+           state.requests[request_ref],
+           &Request.recv(&1, from)
+         ) do
+      {:stop, state} ->
+        {:stop, :normal, state}
+
+      {_, state} ->
+        {:noreply, state}
     end
   end
 

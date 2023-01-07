@@ -8,7 +8,7 @@ defmodule K8s.Client.Provider do
           | {:status, integer()}
           | {:headers, headers()}
           | {:error, K8s.Client.HTTPError.t()}
-          | {:done, true}
+          | :done
   @type websocket_chunk_t ::
           {:stdout, binary}
           | {:stderr, binary}

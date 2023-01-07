@@ -4,6 +4,7 @@ defmodule K8s.Client.MintHTTPProvider do
   """
   @behaviour K8s.Client.Provider
 
+  alias K8s.Client.HTTPError
   alias K8s.Client.Mint.ConnectionRegistry
   alias K8s.Client.Mint.HTTPAdapter
   require Logger
@@ -15,10 +16,11 @@ defmodule K8s.Client.MintHTTPProvider do
     with {:ok, stream} <- stream(method, uri, body, headers, http_opts) do
       response =
         stream
-        |> Stream.reject(&(&1 == {:done, true}))
+        |> Stream.reject(&(&1 == :done))
         |> Enum.reduce(%{data: []}, fn
           {:data, data}, response -> Map.update!(response, :data, &[data | &1])
           {type, value}, response -> Map.put(response, type, value)
+          type, response -> Map.put(response, type, true)
         end)
 
       response
@@ -29,29 +31,56 @@ defmodule K8s.Client.MintHTTPProvider do
 
   @impl true
   def stream(method, uri, body, headers, http_opts) do
-    with :ok <- stream_to(method, uri, body, headers, http_opts, self()) do
-      stream =
-        Stream.unfold(:pending, fn :pending ->
-          receive do
-            {:done, true} -> nil
-            other -> {other, :pending}
-          end
-        end)
+    case do_stream_to(method, uri, body, headers, http_opts, nil) do
+      {:ok, request_ref, adapter_pid} ->
+        stream =
+          Stream.resource(
+            fn -> :pending end,
+            fn
+              :pending ->
+                parts = HTTPAdapter.recv(adapter_pid, request_ref)
+                # credo:disable-for-next-line
+                next_state = if :done in parts, do: :done, else: :pending
+                {parts, next_state}
 
-      {:ok, stream}
+              :done ->
+                {:halt, :ok}
+            end,
+            fn _ -> :ok end
+          )
+
+        {:ok, stream}
+
+      {:error, error} ->
+        {:error, error}
     end
   end
 
   @impl true
   def stream_to(method, uri, body, headers, http_opts, stream_to) do
+    with {:ok, _, _} <- do_stream_to(method, uri, body, headers, http_opts, stream_to) do
+      :ok
+    end
+  end
+
+  @spec do_stream_to(
+          method :: atom(),
+          uri :: URI.t(),
+          body :: binary,
+          headers :: list(),
+          http_opts :: keyword(),
+          stream_to :: pid() | nil
+        ) :: {:ok, reference(), pid()} | {:error, HTTPError.t()}
+  defp do_stream_to(method, uri, body, headers, http_opts, stream_to) do
     opts = [transport_opts: Keyword.fetch!(http_opts, :ssl)]
     method = String.upcase("#{method}")
     headers = Enum.map(headers, fn {header, value} -> {"#{header}", "#{value}"} end)
     path = uri_to_path(uri)
 
-    with {:ok, %{adapter: adapter_pid, pool: pool}} <-
-           ConnectionRegistry.checkout({uri, opts}) do
-      HTTPAdapter.stream_to(adapter_pid, method, path, headers, body, pool, stream_to)
+    with {:ok, %{adapter: adapter_pid, pool: pool}} <- ConnectionRegistry.checkout({uri, opts}),
+         {:ok, request_ref} <-
+           HTTPAdapter.stream(adapter_pid, method, path, headers, body, pool, stream_to) do
+      {:ok, request_ref, adapter_pid}
     end
   end
 
@@ -60,7 +89,7 @@ defmodule K8s.Client.MintHTTPProvider do
     with {:ok, stream} <- websocket_stream(uri, headers, http_opts) do
       response =
         stream
-        |> Stream.reject(&(&1 == {:done, true}))
+        |> Stream.reject(&(&1 == :done))
         |> Enum.reduce(%{}, fn
           {type, data}, response when type in @data_types ->
             Map.update(response, type, [data], &[data | &1])
@@ -82,32 +111,61 @@ defmodule K8s.Client.MintHTTPProvider do
 
   @impl true
   def websocket_stream(uri, headers, http_opts) do
-    with {:ok, _} <- websocket_stream_to(uri, headers, http_opts, self()) do
-      stream =
-        Stream.unfold(:open, fn
-          :close ->
-            nil
+    case do_websocket_stream_to(uri, headers, http_opts, self()) do
+      {:ok, request_ref, adapter_pid} ->
+        stream =
+          Stream.resource(
+            fn -> :pending end,
+            fn
+              :pending ->
+                parts = HTTPAdapter.recv(adapter_pid, request_ref)
 
-          :open ->
-            receive do
-              {:close, data} -> {{:close, data}, :close}
-              other -> {other, :open}
-            end
-        end)
+                # credo:disable-for-lines:2
+                next_state =
+                  if Enum.any?(parts, &(elem(&1, 0) == :close)), do: :done, else: :pending
 
-      {:ok, stream}
+                {parts, next_state}
+
+              :done ->
+                {:halt, :ok}
+            end,
+            fn _ -> :ok end
+          )
+
+        {:ok, stream}
+
+      {:error, error} ->
+        {:error, error}
     end
   end
 
   @impl true
   def websocket_stream_to(uri, headers, http_opts, stream_to) do
+    with {:ok, request_ref, adapter_pid} <-
+           do_websocket_stream_to(uri, headers, http_opts, stream_to) do
+      send_to_websocket = fn data ->
+        HTTPAdapter.websocket_send(adapter_pid, request_ref, data)
+      end
+
+      {:ok, send_to_websocket}
+    end
+  end
+
+  @spec do_websocket_stream_to(
+          uri :: URI.t(),
+          headers :: list(),
+          http_opts :: keyword(),
+          stream_to :: pid() | nil
+        ) :: {:ok, reference(), pid()} | {:error, HTTPError.t()}
+  defp do_websocket_stream_to(uri, headers, http_opts, stream_to) do
     opts = [transport_opts: Keyword.fetch!(http_opts, :ssl), protocols: [:http1]]
     path = uri_to_path(uri)
     headers = Enum.map(headers, fn {header, value} -> {"#{header}", "#{value}"} end)
 
-    with {:ok, %{adapter: adapter_pid, pool: pool}} <-
-           ConnectionRegistry.checkout({uri, opts}) do
-      HTTPAdapter.websocket_stream_to(adapter_pid, path, headers, pool, stream_to)
+    with {:ok, %{adapter: adapter_pid, pool: pool}} <- ConnectionRegistry.checkout({uri, opts}),
+         {:ok, request_ref} <-
+           HTTPAdapter.websocket_stream(adapter_pid, path, headers, pool, stream_to) do
+      {:ok, request_ref, adapter_pid}
     end
   end
 

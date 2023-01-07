@@ -12,43 +12,82 @@ defmodule K8s.Client.Mint.Request do
 
   alias K8s.Client.Mint.ConnectionRegistry
 
-  @data_types [:data, :stdout, :stderr, :error]
-  @type request_types :: :sync | :stream_to | :stream
+  @type request_modes :: :receiving | :closing | :terminating | :closed
 
   @type t :: %__MODULE__{
           caller_ref: reference(),
           stream_to: pid() | nil,
           pool: pid() | nil,
-          websocket: Mint.WebSocket.t() | nil
+          websocket: Mint.WebSocket.t() | nil,
+          mode: request_modes(),
+          buffer: list()
         }
 
-  defstruct [:caller_ref, :stream_to, :pool, :websocket]
+  defstruct [:caller_ref, :stream_to, :pool, :websocket, mode: :receiving, buffer: []]
 
   @spec new(keyword()) :: t()
   def new(fields), do: struct!(__MODULE__, fields)
 
-  @spec put_response(t(), :done | {atom(), any()}) :: :pop | {:stop, t()} | {t(), t()}
-  def put_response(request, :done) do
-    send(request.stream_to, {:done, true})
+  @spec put_response(t(), :done | {atom(), any()}) :: :pop | {t() | :stop, t()}
+  def put_response(request, response) do
+    request
+    |> struct!(buffer: [response | request.buffer])
+    |> update_mode(response)
+    |> send_response()
+    |> maybe_terminate_request()
+  end
+
+  @spec recv(t(), GenServer.from()) :: :pop | {t() | :stop, t()}
+  def recv(request, from) do
+    request
+    |> struct!(stream_to: {:reply, from})
+    |> send_response()
+    |> maybe_terminate_request()
+  end
+
+  @spec update_mode(t(), :done | {atom(), term()}) :: t()
+  defp update_mode(%__MODULE__{mode: mode} = request, _) when mode != :receiving, do: request
+
+  defp update_mode(request, {:close, _}) do
+    struct!(request, mode: :closing)
+  end
+
+  defp update_mode(request, :done) do
+    struct!(request, mode: :terminating)
+  end
+
+  defp update_mode(request, _), do: request
+
+  @spec maybe_terminate_request(t()) :: {t() | :stop, t()} | :pop
+  def maybe_terminate_request(%__MODULE__{mode: :closing, buffer: []} = request),
+    do: {:stop, struct!(request, mode: :closed)}
+
+  def maybe_terminate_request(%__MODULE__{mode: :terminating, buffer: []} = request) do
     Process.demonitor(request.caller_ref)
     ConnectionRegistry.checkin(%{pool: request.pool, adapter: self()})
     :pop
   end
 
-  def put_response(request, {:close, data}) do
-    send(request.stream_to, {:close, data})
-    {:stop, request}
+  def maybe_terminate_request(request), do: {request, request}
+
+  @spec send_response(t()) :: t()
+  defp send_response(%__MODULE__{stream_to: nil} = request) do
+    request
   end
 
-  def put_response(request, {type, new_data})
-      when type in @data_types do
-    send(request.stream_to, {type, new_data})
-    {request, request}
+  defp send_response(%__MODULE__{stream_to: {:reply, from}, buffer: [_ | _]} = request) do
+    GenServer.reply(from, request.buffer)
+    struct!(request, stream_to: nil, buffer: [])
   end
 
-  def put_response(request, {type, value}) do
-    send(request.stream_to, {type, value})
-    {request, request}
+  defp send_response(%__MODULE__{stream_to: {pid, ref}} = request) do
+    Enum.each(request.buffer, &send(pid, {ref, &1}))
+    struct!(request, buffer: [])
+  end
+
+  defp send_response(%__MODULE__{stream_to: pid} = request) do
+    Enum.each(request.buffer, &send(pid, &1))
+    struct!(request, buffer: [])
   end
 
   @spec map_response({:done, reference()} | {atom(), reference(), any}) ::
