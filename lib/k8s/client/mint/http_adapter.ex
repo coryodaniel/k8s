@@ -59,7 +59,6 @@ defmodule K8s.Client.Mint.HTTPAdapter do
 
   alias K8s.Client.{HTTPError, Provider}
   alias K8s.Client.Mint.Request.HTTP, as: HTTPRequest
-  alias K8s.Client.Mint.Request.Upgrade, as: UpgradeRequest
   alias K8s.Client.Mint.Request.WebSocket, as: WebSocketRequest
 
   require Logger
@@ -86,31 +85,6 @@ defmodule K8s.Client.Mint.HTTPAdapter do
   end
 
   @doc """
-  Makes a synchronous HTTP request to the server.
-  """
-  @spec request(
-          pid(),
-          method :: binary(),
-          path :: binary(),
-          Mint.Types.headers(),
-          body :: iodata() | nil | :stream
-        ) :: Provider.response_t()
-  def request(pid, method, path, headers, body) do
-    GenServer.call(pid, {:request, method, path, headers, body}, 30_000)
-  end
-
-  @spec stream(
-          pid(),
-          method :: binary(),
-          path :: binary(),
-          Mint.Types.headers(),
-          body :: iodata() | nil | :stream
-        ) :: {:ok, reference()} | {:error, HTTPError.t()}
-  def stream(pid, method, path, headers, body) do
-    GenServer.call(pid, {:stream, method, path, headers, body})
-  end
-
-  @doc """
   Same as `request/5` but streams the response chunks to the process
   defined by `stream_to`
   """
@@ -125,32 +99,6 @@ defmodule K8s.Client.Mint.HTTPAdapter do
         ) :: Provider.stream_to_response_t()
   def stream_to(pid, method, path, headers, body, pool, stream_to) do
     GenServer.call(pid, {:stream_to, method, path, headers, body, pool, stream_to})
-  end
-
-  @doc """
-  Upgrades the connection to a websocket and waits for the other end to close it.
-  Once it is closed, all the received chunks are returned as a map.
-  """
-  @spec websocket_request(
-          pid(),
-          path :: binary(),
-          Mint.Types.headers()
-        ) :: Provider.websocket_response_t()
-  def websocket_request(pid, path, headers) do
-    GenServer.call(pid, {:websocket_request, path, headers}, 30_000)
-  end
-
-  @doc """
-  Upgrades the connection to a websocket and returns a stream of
-  the received chunks.
-  """
-  @spec websocket_stream(
-          pid(),
-          path :: binary(),
-          Mint.Types.headers()
-        ) :: {:ok, reference()} | {:error, HTTPError.t()}
-  def websocket_stream(pid, path, headers) do
-    GenServer.call(pid, {:websocket_stream, path, headers})
   end
 
   @doc """
@@ -178,18 +126,13 @@ defmodule K8s.Client.Mint.HTTPAdapter do
     end
   end
 
-  @spec next_buffer(pid(), reference()) :: {:cont, binary()} | {:halt, binary()}
-  def next_buffer(pid, request_ref) do
-    GenServer.call(pid, {:next_buffer, request_ref}, :infinity)
-  end
+  # def stop(pid), do: GenServer.stop(pid, :normal)
+  # @spec stop(pid()) :: :ok
 
-  @spec stop(pid()) :: :ok
-  def stop(pid), do: GenServer.stop(pid, :normal)
-
-  @spec terminate_request(pid(), reference()) :: :ok
-  def terminate_request(pid, request_ref) do
-    GenServer.cast(pid, {:terminate_request, request_ref})
-  end
+  # @spec terminate_request(pid(), reference()) :: :ok
+  # def terminate_request(pid, request_ref) do
+  #  GenServer.cast(pid, {:terminate_request, request_ref})
+  # end
 
   @impl true
   def init({scheme, host, port, opts}) do
@@ -205,49 +148,58 @@ defmodule K8s.Client.Mint.HTTPAdapter do
   end
 
   @impl true
-  def handle_call({:request, method, path, headers, body}, from, state) do
-    make_request(state, method, path, headers, body, from, type: :sync, caller: from)
-  end
-
-  def handle_call({:stream, method, path, headers, body}, from, state) do
-    make_request(state, method, path, headers, body, from, type: :stream)
-  end
 
   def handle_call({:stream_to, method, path, headers, body, pool, stream_to}, from, state) do
-    make_request(state, method, path, headers, body, from,
-      type: :stream_to,
-      pool: pool,
-      stream_to: stream_to
-    )
-  end
+    caller_ref = from |> elem(0) |> Process.monitor()
 
-  def handle_call({:websocket_request, path, headers}, from, state) do
-    upgrade_to_websocket(
-      state,
-      path,
-      headers,
-      from,
-      WebSocketRequest.new(type: :sync, caller: from)
-    )
-  end
+    case Mint.HTTP.request(state.conn, method, path, headers, body) do
+      {:ok, conn, request_ref} ->
+        state =
+          put_in(
+            state.requests[request_ref],
+            HTTPRequest.new(pool: pool, stream_to: stream_to, caller_ref: caller_ref)
+          )
 
-  def handle_call({:websocket_stream, path, headers}, from, state) do
-    upgrade_to_websocket(state, path, headers, from, WebSocketRequest.new(type: :stream))
+        {:reply, :ok, struct!(state, conn: conn)}
+
+      {:error, conn, error} ->
+        state = struct!(state, conn: conn)
+
+        {:reply, {:error, HTTPError.from_exception(error)}, state}
+    end
   end
 
   def handle_call({:websocket_stream_to, path, headers, pool, stream_to}, from, state) do
-    upgrade_to_websocket(
-      state,
-      path,
-      headers,
-      from,
-      WebSocketRequest.new(type: :stream_to, pool: pool, stream_to: stream_to)
-    )
-  end
+    caller_ref = from |> elem(0) |> Process.monitor()
 
-  def handle_call({:next_buffer, request_ref}, from, state) do
-    state = put_in(state.requests[request_ref].waiting, from)
-    {:noreply, flush_buffer(state)}
+    with {:ok, conn} <- Mint.HTTP.set_mode(state.conn, :passive),
+         {:ok, conn, request_ref} <- Mint.WebSocket.upgrade(:wss, conn, path, headers),
+         {:ok, conn, response} <- WebSocketRequest.receive_upgrade_response(conn, request_ref),
+         {:ok, conn} <- Mint.HTTP.set_mode(conn, :active),
+         {:ok, conn, websocket} <-
+           Mint.WebSocket.new(conn, request_ref, response.status, response.headers) do
+      state =
+        put_in(
+          state.requests[request_ref],
+          WebSocketRequest.new(
+            websocket: websocket,
+            pool: pool,
+            stream_to: stream_to,
+            caller_ref: caller_ref
+          )
+        )
+
+      send(stream_to, {:open, true})
+      {:reply, {:ok, request_ref}, struct!(state, conn: conn)}
+    else
+      {:error, error} ->
+        GenServer.reply(from, {:error, HTTPError.from_exception(error)})
+        {:stop, :normal, state}
+
+      {:error, conn, error} ->
+        GenServer.reply(from, {:error, HTTPError.from_exception(error)})
+        {:stop, :normal, struct!(state, conn: conn)}
+    end
   end
 
   @impl true
@@ -263,11 +215,11 @@ defmodule K8s.Client.Mint.HTTPAdapter do
     end
   end
 
-  def handle_cast({:terminate_request, request_ref}, state) do
-    {request, state} = pop_in(state.requests[request_ref])
-    Process.demonitor(request.caller_ref)
-    {:noreply, state}
-  end
+  # def handle_cast({:terminate_request, request_ref}, state) do
+  #   {request, state} = pop_in(state.requests[request_ref])
+  #   Process.demonitor(request.caller_ref)
+  #   {:noreply, state}
+  # end
 
   @impl true
   def handle_info(message, %__MODULE__{conn: conn} = state)
@@ -330,7 +282,7 @@ defmodule K8s.Client.Mint.HTTPAdapter do
 
   @impl true
   def terminate(_reason, state) do
-    state = flush_buffer(state)
+    state = state
 
     state
     |> Map.get(:requests)
@@ -343,70 +295,6 @@ defmodule K8s.Client.Mint.HTTPAdapter do
     Mint.HTTP.close(state.conn)
     Logger.debug("Terminating HTTPAdapter GenServer #{inspect(self())}", library: :k8s)
     :ok
-  end
-
-  @spec make_request(
-          t(),
-          binary(),
-          binary(),
-          Mint.Types.headers(),
-          binary(),
-          GenServer.from(),
-          keyword()
-        ) ::
-          {:noreply, t()} | {:reply, :ok | {:ok, reference()} | {:error, HTTPError.t()}, t()}
-  defp make_request(state, method, path, headers, body, caller, extra) do
-    caller_ref = caller |> elem(0) |> Process.monitor()
-
-    case Mint.HTTP.request(state.conn, method, path, headers, body) do
-      {:ok, conn, request_ref} ->
-        state =
-          put_in(
-            state.requests[request_ref],
-            extra |> Keyword.put(:caller_ref, caller_ref) |> HTTPRequest.new()
-          )
-
-        case extra[:type] do
-          :sync -> {:noreply, struct!(state, conn: conn)}
-          :stream_to -> {:reply, :ok, struct!(state, conn: conn)}
-          :stream -> {:reply, {:ok, request_ref}, struct!(state, conn: conn)}
-        end
-
-      {:error, conn, error} ->
-        state = struct!(state, conn: conn)
-
-        {:reply, {:error, HTTPError.from_exception(error)}, state}
-    end
-  end
-
-  @spec upgrade_to_websocket(
-          t(),
-          binary(),
-          Mint.Types.headers(),
-          GenServer.from(),
-          WebSocketRequest.t()
-        ) ::
-          {:noreply, t()} | {:reply, {:error, HTTPError.t(), t()}}
-  defp upgrade_to_websocket(state, path, headers, caller, websocket_request) do
-    caller_ref = caller |> elem(0) |> Process.monitor()
-
-    case Mint.WebSocket.upgrade(:wss, state.conn, path, headers) do
-      {:ok, conn, request_ref} ->
-        state =
-          put_in(
-            state.requests[request_ref],
-            UpgradeRequest.new(
-              caller: caller,
-              caller_ref: caller_ref,
-              websocket_request: struct!(websocket_request, caller_ref: caller_ref)
-            )
-          )
-
-        {:noreply, struct!(state, conn: conn)}
-
-      {:error, conn, error} ->
-        {:reply, {:error, HTTPError.from_exception(error)}, struct!(state, conn: conn)}
-    end
   end
 
   @spec process_responses_or_frames(t(), [Mint.Types.response()]) :: {:noreply, t()}
@@ -424,16 +312,6 @@ defmodule K8s.Client.Mint.HTTPAdapter do
 
   defp process_responses_or_frames(state, responses) do
     process_responses(state, responses)
-  end
-
-  @spec flush_buffer(t()) :: t()
-  defp flush_buffer(state) do
-    update_in(
-      state.requests,
-      &Map.new(&1, fn {request_ref, request} ->
-        {request_ref, HTTPRequest.flush_buffer(request)}
-      end)
-    )
   end
 
   @spec process_frames(t(), reference(), list(Mint.WebSocket.frame())) :: {:noreply, t()}
@@ -456,8 +334,8 @@ defmodule K8s.Client.Mint.HTTPAdapter do
       end)
 
     case state do
-      {:stop, :normal, state} -> {:stop, :normal, flush_buffer(state)}
-      state -> {:noreply, flush_buffer(state)}
+      {:stop, :normal, state} -> {:stop, :normal, state}
+      state -> {:noreply, state}
     end
   end
 
@@ -467,48 +345,15 @@ defmodule K8s.Client.Mint.HTTPAdapter do
       responses
       |> Enum.map(&HTTPRequest.map_response/1)
       |> Enum.reduce(state, fn {mapped_response, request_ref}, state ->
-        if mapped_response == :done and match?(%UpgradeRequest{}, state.requests[request_ref]) do
-          create_websocket(state, request_ref)
-        else
-          {_, state} =
-            get_and_update_in(
-              state.requests[request_ref],
-              &HTTPRequest.put_response(&1, mapped_response)
-            )
+        {_, state} =
+          get_and_update_in(
+            state.requests[request_ref],
+            &HTTPRequest.put_response(&1, mapped_response)
+          )
 
-          state
-        end
+        state
       end)
 
-    {:noreply, flush_buffer(state)}
-  end
-
-  @spec create_websocket(t(), reference()) :: t()
-  defp create_websocket(state, request_ref) do
-    %UpgradeRequest{response: response, caller: caller, websocket_request: websocket_request} =
-      state.requests[request_ref]
-
-    case Mint.WebSocket.new(
-           state.conn,
-           request_ref,
-           response.status,
-           response.headers
-         ) do
-      {:ok, conn, websocket} ->
-        if is_nil(websocket_request.caller),
-          do: GenServer.reply(caller, {:ok, request_ref})
-
-        {_, websocket_request} =
-          websocket_request
-          |> struct!(websocket: websocket)
-          |> HTTPRequest.put_response({:open, true})
-
-        put_in(state.requests[request_ref], websocket_request)
-        |> struct!(conn: conn)
-
-      {:error, conn, error} ->
-        GenServer.reply(caller, {:error, HTTPError.from_exception(error)})
-        struct!(state, conn: conn)
-    end
+    {:noreply, state}
   end
 end

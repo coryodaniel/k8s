@@ -9,6 +9,8 @@ defmodule K8s.Client.Mint.WebSocket do
 
   require Mint.HTTP
 
+  @data_types [:data, :stdout, :stderr, :error]
+
   @type t :: %__MODULE__{
           conn: Mint.HTTP.t(),
           ref: Mint.Types.request_ref() | nil,
@@ -20,38 +22,44 @@ defmodule K8s.Client.Mint.WebSocket do
   @spec request(uri :: URI.t(), headers :: list(), http_opts :: keyword()) ::
           Provider.websocket_response_t()
   def request(uri, headers, http_opts) do
-    {opts, path, headers} = prepare_args(uri, headers, http_opts)
+    with {:ok, stream} <- stream(uri, headers, http_opts) do
+      response =
+        stream
+        |> Stream.reject(&(&1 == {:done, true}))
+        |> Enum.reduce(%{}, fn
+          {type, data}, response when type in @data_types ->
+            Map.update(response, type, [data], &[data | &1])
 
-    with {:ok, %{adapter: adapter_pid}} <- ConnectionRegistry.checkout({uri, opts}) do
-      HTTPAdapter.websocket_request(adapter_pid, path, headers)
+          {type, value}, response ->
+            Map.put(response, type, value)
+        end)
+
+      response =
+        @data_types
+        |> Enum.reduce(response, fn type, response ->
+          Map.update(response, type, nil, &(&1 |> Enum.reverse() |> IO.iodata_to_binary()))
+        end)
+        |> Map.reject(&(&1 |> elem(1) |> is_nil()))
+
+      {:ok, response}
     end
   end
 
   @spec stream(uri :: URI.t(), headers :: list(), http_opts :: keyword()) ::
           Provider.stream_response_t()
   def stream(uri, headers, http_opts) do
-    {opts, path, headers} = prepare_args(uri, headers, http_opts)
-
-    with {:ok, %{adapter: adapter_pid}} <- ConnectionRegistry.checkout({uri, opts}),
-         {:ok, request_ref} <- HTTPAdapter.websocket_stream(adapter_pid, path, headers) do
+    with {:ok, _} <- stream_to(uri, headers, http_opts, self()) do
       stream =
-        Stream.resource(
-          fn -> request_ref end,
-          fn
-            {:halt, nil} ->
-              {:halt, nil}
-
-            request_ref ->
-              case HTTPAdapter.next_buffer(adapter_pid, request_ref) do
-                {:cont, data} -> {data, request_ref}
-                {:halt, data} -> {data, {:halt, nil}}
-              end
-          end,
-          fn _ ->
-            HTTPAdapter.stop(adapter_pid)
+        Stream.unfold(:open, fn
+          :close ->
             nil
-          end
-        )
+
+          :open ->
+            receive do
+              {:close, data} -> {{:close, data}, :close}
+              other -> {other, :open}
+            end
+        end)
 
       {:ok, stream}
     end
