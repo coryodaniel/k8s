@@ -37,7 +37,7 @@ defmodule K8s.Client.Runner.StreamToIntegrationTest do
     assert_receive {:status, 200}
     assert_receive {:headers, _headers}
     assert_receive {:data, _data}
-    assert_receive {:done, true}
+    assert_receive :done
   end
 
   @tag :integration
