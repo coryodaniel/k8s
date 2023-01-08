@@ -79,7 +79,7 @@ defmodule K8s.Client.MintHTTPProvider do
 
     with {:ok, %{adapter: adapter_pid, pool: pool}} <- ConnectionRegistry.checkout({uri, opts}),
          {:ok, request_ref} <-
-           HTTPAdapter.stream(adapter_pid, method, path, headers, body, pool, stream_to) do
+           HTTPAdapter.request(adapter_pid, method, path, headers, body, pool, stream_to) do
       {:ok, request_ref, adapter_pid}
     end
   end
@@ -164,7 +164,7 @@ defmodule K8s.Client.MintHTTPProvider do
 
     with {:ok, %{adapter: adapter_pid, pool: pool}} <- ConnectionRegistry.checkout({uri, opts}),
          {:ok, request_ref} <-
-           HTTPAdapter.websocket_stream(adapter_pid, path, headers, pool, stream_to) do
+           HTTPAdapter.websocket_request(adapter_pid, path, headers, pool, stream_to) do
       {:ok, request_ref, adapter_pid}
     end
   end

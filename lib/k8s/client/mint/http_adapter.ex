@@ -1,59 +1,28 @@
 defmodule K8s.Client.Mint.HTTPAdapter do
   @moduledoc """
   The Mint client implementation. This module handles both, HTTP requests and
-  websocket connections and offers 3 functions for each: `request/5`, `stream/5`
-  and `stream_to/6` or respecively `websocket_request/3`, `websocket_stream/3`
-  and `websocket_stream_to/4`.
+  websocket connections.
 
   ## Processes
 
   The module creates a process per connection to the Kubernetes API server.
   It supports `HTTP/2` for HTTP requests, but not for websockets. So while
-  an open connection can process multiple `HTTP/2` requests, it can only
-  process one single websocket connection. Therefore, each websocket
-  connection is handled in its own process. For `HTTP/2` requests, the module
-  `K8s.Client.Mint.ConnectionRegistry` serves as registry to open connections
-  and register them.
+  an open connection can process multiple requests (if the server supports
+  `HTTP/2`), it can only process one single websocket connection.
+  Therefore, each websocket connection is handled in its own process.
 
   ## State
 
   The module keeps track of the `Mint.HTTP` connection struct and a map of
-  pending requests for that connection, indexed by the
-  `Mint.Types.request_ref()`. Depending on the type of the request, the
-  tracked request is either one of three structs:
-
-  * `K8s.Client.Mint.Request` - for `HTTP/2` requests
-  * `K8s.Client.Mint.UpgradeRequest` - for websocket upgrade requests
-  * `K8s.Client.Mint.WebSocketRequest` - open websocket connections
-
-  Besides some type specific fields, all of these structs maintain a `response`
-  field which is a map of response parts, indexed by type of the part (e.g.
-  `:headers`, `:status`, `:data`). In the case of websockets, the incoming
-  chunks are parsed and split by channel, so the type  will e `:stdout`,
-  `:stderr`, `:error`.
-
-  ## Request Types
-
-  As mentioned above, there's three ways to make a request.
+  pending requests (`K8s.Client.Mint.Request`) for that connection, indexed by the
+  `Mint.Types.request_ref()`.
 
   ### Requests
 
-  Requests are synchronous (blocking) calls to the GenServer. It's not until
-  the requeset is `:done` resp. the websocket is closed that the GenServer
-  will reply with the complete request's response map.
-
-  ### Streams
-
-  These functions immediately return an [Elixir Stream](https://hexdocs.pm/elixir/Stream.html).
-  Running the stream blocks until response parts are received and streams
-  them thereafter.
-
-  ### StreamTo
-
-  These functions take an extra `stream_to` argument and return a
-  `{:ok, send_to_websocket}` tuple. They stream the response parts to the
-  process defined by `stream_to`. `send_to_websocket` is a function and serves
-  as a way to send data through the websocket back to Kubernetes.
+  Requests are calls to the GenServer that immediately return while the GenServer
+  receives the response parts in the background. The way these response parts are
+  returned depends on the `state_to` argument passed to `request/7` resp.
+  `websocket_request/5`. See these function's docs for more details.
   """
   use GenServer, restart: :temporary
 
@@ -63,11 +32,21 @@ defmodule K8s.Client.Mint.HTTPAdapter do
   require Logger
   require Mint.HTTP
 
-  defstruct [:conn, requests: %{}]
-
   @type connection_args_t ::
           {scheme :: atom(), host :: binary(), port :: integer(), opts :: keyword()}
-  @type t :: %__MODULE__{}
+
+  @typedoc """
+  Describes the state of the connection.
+
+  - `:conn` - The current state of the `Mint` connection.
+  - `:requests` - The opened requests over this connection (Only `HTTP/2` connections will hold multiple entries in this field.)
+  """
+  @type t :: %__MODULE__{
+          conn: Mint.HTTP.t(),
+          requests: %{reference() => Request.t()}
+        }
+
+  defstruct [:conn, requests: %{}]
 
   @doc """
   Opens a connection to Kubernetes, defined by `uri` and `opts`,
@@ -78,21 +57,25 @@ defmodule K8s.Client.Mint.HTTPAdapter do
     GenServer.start_link(__MODULE__, conn_args)
   end
 
+  @doc """
+  Returns connection arguments for the given `URI` and HTTP options.
+  """
   @spec connection_args(URI.t(), keyword()) :: connection_args_t()
   def connection_args(uri, opts) do
     {String.to_atom(uri.scheme), uri.host, uri.port, opts}
   end
 
-  @spec recv(GenServer.server(), reference()) :: list()
-  def recv(pid, ref) do
-    GenServer.call(pid, {:recv, ref}, :infinity)
-  end
-
   @doc """
-  Same as `request/5` but streams the response chunks to the process
-  defined by `stream_to`
+  Starts a HTTP request. The way the response parts are returned depends on the
+  `stream_to` argument passed to it.
+
+    - `nil` - response parts are buffered. In order to receive them, the caller
+      needs to `recv/2` passing it the `request_ref` returned by this function.
+    - `pid` - response parts are sent to the process with the given `pid`.
+    - `{pid, reference}` - response parts are sent to the process with the given
+      `pid`. Messages are of the form `{reference, response_part}`.
   """
-  @spec stream(
+  @spec request(
           GenServer.server(),
           method :: binary(),
           path :: binary(),
@@ -101,28 +84,47 @@ defmodule K8s.Client.Mint.HTTPAdapter do
           pool :: pid() | nil,
           stream_to :: pid() | nil
         ) :: {:ok, reference()} | {:error, HTTPError.t()}
-  def stream(pid, method, path, headers, body, pool, stream_to) do
-    GenServer.call(pid, {:stream, method, path, headers, body, pool, stream_to})
+  def request(pid, method, path, headers, body, pool, stream_to) do
+    GenServer.call(pid, {:request, method, path, headers, body, pool, stream_to})
   end
 
   @doc """
-  Upgrades the connection to a websocket and streams received chunks to
-  the process defined by `stream_to`. In the case of a sucessful upgrade,
-  this function returns a `{:ok, send_to_websocket}` tuple where
-  `send_to_websocket` is a function that can be called to send data
-  to the websocket.
+  Upgrades to a Websocket connection. The way the frames are returned depends
+  on the `stream_to` argument passed to it.
+
+    - `nil` - frames are buffered. In order to receive them, the caller
+      needs to `recv/2` passing it the `request_ref` returned by this function.
+    - `pid` - frames are sent to the process with the given `pid`.
+    - `{pid, reference}` - frames are sent to the process with the given
+      `pid`. Messages are of the form `{reference, response_part}`.
   """
-  @spec websocket_stream(
+  @spec websocket_request(
           pid(),
           path :: binary(),
           Mint.Types.headers(),
           pool :: pid() | nil,
           stream_to :: pid() | nil
         ) :: {:ok, reference()} | {:error, HTTPError.t()}
-  def websocket_stream(pid, path, headers, pool, stream_to) do
-    GenServer.call(pid, {:websocket_stream, path, headers, pool, stream_to})
+  def websocket_request(pid, path, headers, pool, stream_to) do
+    GenServer.call(pid, {:websocket_request, path, headers, pool, stream_to})
   end
 
+  @doc """
+  Returns response parts / frames that were buffered by the process. The
+  `stream_to` must have been set to `nil` in `request/7` or
+  `websocket_request/5`.
+
+  If the buffer is empty, this call blocks until the next response part /
+  frame is received.
+  """
+  @spec recv(GenServer.server(), reference()) :: list()
+  def recv(pid, ref) do
+    GenServer.call(pid, {:recv, ref}, :infinity)
+  end
+
+  @doc """
+  Sends the given `data` throught the websocket specified by the `request_ref`.
+  """
   @spec websocket_send(
           GenServer.server(),
           reference(),
@@ -131,14 +133,6 @@ defmodule K8s.Client.Mint.HTTPAdapter do
   def websocket_send(pid, request_ref, data) do
     GenServer.cast(pid, {:websocket_send, request_ref, data})
   end
-
-  # def stop(pid), do: GenServer.stop(pid, :normal)
-  # @spec stop(pid()) :: :ok
-
-  # @spec terminate_request(pid(), reference()) :: :ok
-  # def terminate_request(pid, request_ref) do
-  #  GenServer.cast(pid, {:terminate_request, request_ref})
-  # end
 
   @impl true
   def init({scheme, host, port, opts}) do
@@ -155,7 +149,7 @@ defmodule K8s.Client.Mint.HTTPAdapter do
 
   @impl true
 
-  def handle_call({:stream, method, path, headers, body, pool, stream_to}, from, state) do
+  def handle_call({:request, method, path, headers, body, pool, stream_to}, from, state) do
     caller_ref = from |> elem(0) |> Process.monitor()
 
     case Mint.HTTP.request(state.conn, method, path, headers, body) do
@@ -175,7 +169,7 @@ defmodule K8s.Client.Mint.HTTPAdapter do
     end
   end
 
-  def handle_call({:websocket_stream, path, headers, pool, stream_to}, from, state) do
+  def handle_call({:websocket_request, path, headers, pool, stream_to}, from, state) do
     caller_ref = from |> elem(0) |> Process.monitor()
 
     with {:ok, conn} <- Mint.HTTP.set_mode(state.conn, :passive),

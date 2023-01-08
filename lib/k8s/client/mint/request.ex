@@ -1,22 +1,34 @@
 defmodule K8s.Client.Mint.Request do
   @moduledoc """
   Maintains the state of a HTTP or Websocket request.
-
-  ### Fields
-
-  - `:caller_ref` - Monitor reference of the calling process.
-  - `:stream_to` - StreamTo requests only: The process expecting response parts sent to.
-  - `:pool` - The PID of the pool so we can checkin after the last part is sent.
-  - `:websocket` - For WebSocket requests: The websocket state (`Mint.WebSocket.t()`).
   """
 
   alias K8s.Client.Mint.ConnectionRegistry
 
+  @typedoc """
+  Describes the mode the request is currently in.
+
+  - `:receiving` - The request is currently receiving response parts / frames
+  - `:closing` - Websocket requests only: The `:close` frame was received but the process wasn't terminated yet
+  - `:terminating` - HTTP requests only: The `:done` part was received but the request isn't cleaned up yet
+  - `:closed` - The websocket request is closed. The process is going to terminate any moment now
+  """
   @type request_modes :: :receiving | :closing | :terminating | :closed
 
+  @typedoc """
+  Defines the state of the request.
+
+  - `:caller_ref` - ,onitor reference of the calling process.
+  - `:stream_to` - the process expecting response parts sent to.
+  - `:pool` - the PID of the pool so we can checkin after the last part is sent.
+  - `:websocket` - for WebSocket requests: The websocket state (`Mint.WebSocket.t()`).
+  - `:mode` - defines what mode the request is currently in.
+  - `:buffer` - Holds the buffered response parts or frames that haven't been
+    sent to / received by the caller yet
+  """
   @type t :: %__MODULE__{
           caller_ref: reference(),
-          stream_to: pid() | nil,
+          stream_to: pid() | {pid(), reference()} | nil,
           pool: pid() | nil,
           websocket: Mint.WebSocket.t() | nil,
           mode: request_modes(),
