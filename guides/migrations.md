@@ -9,7 +9,7 @@ will have to change your mocks slightly.
 
 ### DynamicHTTPProvider
 
-The spec for `K8s.Client.Provider.request/5` and `K8s.Client.Provider.stream/5`
+The spec for `K8s.Client.Provider.request/N` and `K8s.Client.Provider.stream/N`
 were changed which reflects in your mock implementation if you're using
 `K8s.Client.DynamicHTTPProvider`. Concretely, the second variable is now of type
 `%URI{}` and contains the path and query_params.
@@ -76,20 +76,36 @@ Also, the `stream_to` option was removed. See below.
 Before `2.0.0`, you could pass the `stream_to` option to stream packets to a
 process. With the migration from HTTPoison to Mint, this option was removed.
 For `:connect` operations, `K8s.Client.stream_to/N` can be used as a replacement.
-Other operations will have to be streamed using `K8s.Client.stream/N`.
+Other operations will have to be streamed using `K8s.Client.stream/N` or go over
+`K8s.Client.Runner.Base.stream_to/N`.
 
-#### Example
+#### Examples
 
 ```elixir
 :ok =
   K8s.Client.watch("v1", "ConfigMap", namespace: "default")
   |> K8s.Client.put_conn(conn)
-  |> K8s.Client.stream_to(self())
+  |> K8s.Client.Runner.Base.stream_to(self())
 
 receive do
   event -> IO.inspect(event)
 end
 ```
+
+Pass a `{pid, reference}` tuple to get scoped messages:
+
+```elixir
+ref = make_ref()
+:ok =
+  K8s.Client.watch("v1", "ConfigMap", namespace: "default")
+  |> K8s.Client.put_conn(conn)
+  |> K8s.Client.Runner.Base.stream_to({self(), ref})
+
+receive do
+  {^ref, event} -> IO.inspect(event)
+end
+```
+
 
 ### Local Clusters and TLS Hostname Verification
 
