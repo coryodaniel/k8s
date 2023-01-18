@@ -88,17 +88,17 @@ defmodule K8s.Client.Mint.Request do
   end
 
   defp send_response(%__MODULE__{stream_to: {:reply, from}, buffer: [_ | _]} = request) do
-    GenServer.reply(from, request.buffer)
+    GenServer.reply(from, Enum.reverse(request.buffer))
     struct!(request, stream_to: nil, buffer: [])
   end
 
   defp send_response(%__MODULE__{stream_to: {pid, ref}} = request) do
-    Enum.each(request.buffer, &send(pid, {ref, &1}))
+    request.buffer |> Enum.reverse() |> Enum.each(&send(pid, {ref, &1}))
     struct!(request, buffer: [])
   end
 
   defp send_response(%__MODULE__{stream_to: pid} = request) do
-    Enum.each(request.buffer, &send(pid, &1))
+    request.buffer |> Enum.reverse() |> Enum.each(&send(pid, &1))
     struct!(request, buffer: [])
   end
 
