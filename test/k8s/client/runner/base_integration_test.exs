@@ -357,13 +357,15 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
   @tag :reliability
   test "concurrent requests succeed", %{conn: conn} do
     results =
-      Enum.map(0..100, fn _ ->
+      0..100
+      |> Task.async_stream(fn _ ->
         K8s.Client.list("v1", "pod")
         |> K8s.Operation.put_query_param(:limit, 100)
         |> K8s.Client.put_conn(conn)
         |> K8s.Client.run()
       end)
+      |> Enum.to_list()
 
-    assert Enum.all?(results, &match?({:ok, %{}}, &1))
+    assert Enum.all?(results, &match?({:ok, {:ok, %{}}}, &1))
   end
 end
