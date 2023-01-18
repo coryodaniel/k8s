@@ -352,4 +352,20 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
     assert {:error, error} = result
     assert error.message =~ "404"
   end
+
+  @tag :integration
+  @tag :reliability
+  test "concurrent requests succeed", %{
+    conn: conn
+  } do
+    results =
+      Enum.map(0..100, fn _ ->
+        K8s.Client.list("v1", :nodes)
+        |> K8s.Operation.put_query_param(:limit, 100)
+        |> K8s.Client.put_conn(conn)
+        |> K8s.Client.run()
+      end)
+
+    assert Enum.all?(results, &match?({:ok, %{}}, &1))
+  end
 end
