@@ -210,7 +210,8 @@ defmodule K8s.Client.MintHTTPProvider do
       {:error, error} ->
         Logger.error("The response body is supposed to be JSON but could not be decoded.",
           library: :k8s,
-          error: error
+          error: error,
+          body: body
         )
 
         nil
