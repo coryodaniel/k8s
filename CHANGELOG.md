@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+<!-- Add your changelog entry to the relevant subsection -->
+
+<!-- ### Added | Changed | Deprecated | Removed | Fixed | Security -->
+
+### Fixed
+
+- Unable to parse response (invalid JSON) ([#215](https://github.com/coryodaniel/k8s/pull/215))
+
+<!--------------------- Don't add new entries after this line --------------------->
+
 ## [2.0.0-rc.5] - 2023-01-08
 
 ### Changed
@@ -39,10 +51,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `K8s.Client.Mint.WebSocket` - Close websocket if process is terminated
 
 ## [2.0.0-rc.0] - 2022-12-14
-
-<!-- Add your changelog entry to the relevant subsection -->
-
-<!-- ### Added | Changed | Deprecated | Removed | Fixed | Security -->
 
 This version comes with some breaking changes. Please refer to the
 [migrations guide](./guides/migrations.md) for help on how to migrate your
@@ -85,8 +93,6 @@ projects to this version.
 ### Fixed
 
 - Update `PKI.cert_from_map/2` to support fully qualified domain names (FQDN) - Fix for `K8s.Conn.from_file/1` ([#164](https://github.com/coryodaniel/k8s/pull/164))
-
-<!--------------------- Don't add new entries after this line --------------------->
 
 ## [1.2.0] - 2022-12-07
 
