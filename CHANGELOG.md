@@ -11,11 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- ### Added | Changed | Deprecated | Removed | Fixed | Security -->
 
+<!--------------------- Don't add new entries after this line --------------------->
+
+## [2.0.0-rc.6] - 2023-01-19
+
 ### Fixed
 
 - Unable to parse response (invalid JSON) ([#215](https://github.com/coryodaniel/k8s/pull/215))
-
-<!--------------------- Don't add new entries after this line --------------------->
 
 ## [2.0.0-rc.5] - 2023-01-08
 
