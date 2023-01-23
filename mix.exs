@@ -37,7 +37,7 @@ defmodule K8s.MixProject do
     [
       {:castore, "~> 1.0"},
       {:yaml_elixir, "~> 2.8"},
-      {:httpoison, "~> 1.7"},
+      {:httpoison, "~> 2.0"},
       {:jason, "~> 1.0"},
       {:telemetry, "~> 1.0"},
 
