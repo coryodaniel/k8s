@@ -13,6 +13,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!--------------------- Don't add new entries after this line --------------------->
 
+## [2.0.0] - 2023-01-27
+
+This version comes with some breaking changes. Please refer to the
+[migrations guide](./guides/migrations.md) for help on how to migrate your
+projects to this version.
+
+### Added
+
+- `K8s.Selector.label_not/N`, `K8s.Selector.field/N` and `K8s.Selector.field_not/N` - Support for field selectors ([#117](https://github.com/coryodaniel/k8s/pull/117))
+- `K8s.Client.Provider.stream/5` callback was added to the behaviour
+- `K8s.Client.Runner.Base.stream/3`
+- `K8s.Client.Provider.stream_to/6` callback was added to the behaviour
+- `K8s.Client.Runner.Base.stream_to/4`
+- `K8s.Client.MintHTTPProvider` - The mint client implementation
+- `K8s.Client.HTTPTestHelper` - to be used in tests (resides in `lib/` so it can be used by dependents)
+- Open `:connect` operations (connections) now accept messages to be sent to pods if using `K8s.Client.stream_to/N`
+- `K8s.Client.put_conn/2` to add pielining support to the Client API
+
+### Changed
+
+- `K8s.Client.Provider` behaviour was adapted to the new internal architecture
+- `K8s.Client.watch/N` now returns a `:watch` or `:watch_all_namespaces` operation to be passed to `K8s.Client.stream/N`
+- `Websockex` was replaced by [`Mint.WebSocket`](https://hexdocs.pm/mint_web_socket/Mint.WebSocket.html)
+
+### Removed
+
+- `K8s.Client.HTTPProvider` was removed in favor of `K8s.Client.MintHTTPProvider`
+- The `:stream_to` in `http_opts` was removed in favor of `K8s.Client.stream_to/N` and `K8s.Client.stream/N`.
+- `K8s.Client.DynamicWebSocketProvider` was removed. Use `K8s.Client.DynamcHTTPProvider.websocket*` functions instead .
+
+### Breaking changes
+
+- Tests using the `DynamicHTTPProvider` which work with `watch_and_stream` are going to need to be changed. The HTTP mocks now need to implement the `stream/5` callback. (See `K8s.Client.Runner.Watch.StreamTest` on this branch for examples)d.
+- `K8s.Client.DynamicWebSocketProvider` was removed in favor of `K8s.Client.DynamcHTTPProvider.websocket*` functions.
+- The `:stream_to` in `http_opts` is not supported anymore. Use `K8s.Client.stream/N` and `K8s.Client.stream_to/N` instead.
+- Errors are encapsulated in `K8s.Client.HTTPError`
+- `headers/1` callback was removed from `K8s.Client.Provider` behaviour.
+- `K8s.Client.HTTPProvider` (HTTPoison implementation) was removed.
+- `K8s.Client.watch/N` now returns a `:watch` or `:watch_all_namespaces` operation to be passed to `K8s.Client.stream/N`
+
+### Fixed
+
+- Update `PKI.cert_from_map/2` to support fully qualified domain names (FQDN) - Fix for `K8s.Conn.from_file/1` ([#164](https://github.com/coryodaniel/k8s/pull/164))
+
 ## [2.0.0-rc.6] - 2023-01-19
 
 ### Fixed
