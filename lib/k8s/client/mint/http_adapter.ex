@@ -148,20 +148,30 @@ defmodule K8s.Client.Mint.HTTPAdapter do
   end
 
   @impl true
-
   def handle_call({:request, method, path, headers, body, pool, stream_to}, from, state) do
     caller_ref = from |> elem(0) |> Process.monitor()
 
-    case Mint.HTTP.request(state.conn, method, path, headers, body) do
-      {:ok, conn, request_ref} ->
-        state =
-          put_in(
-            state.requests[request_ref],
-            Request.new(pool: pool, stream_to: stream_to, caller_ref: caller_ref)
-          )
+    # stream body if there is one.
+    {body, pending_request_body} =
+      case body do
+        nil -> {body, body}
+        body -> {:stream, String.to_charlist(body)}
+      end
 
-        {:reply, {:ok, request_ref}, struct!(state, conn: conn)}
-
+    with {:ok, conn, request_ref} <- Mint.HTTP.request(state.conn, method, path, headers, body),
+         {:request, request} <-
+           {:request,
+            Request.new(
+              request_ref: request_ref,
+              pool: pool,
+              stream_to: stream_to,
+              caller_ref: caller_ref,
+              pending_request_body: pending_request_body
+            )},
+         {:ok, request, conn} <- Request.stream_request_body(request, conn) do
+      state = put_in(state.requests[request_ref], request) |> struct!(conn: conn)
+      {:reply, {:ok, request_ref}, state}
+    else
       {:error, conn, error} ->
         state = struct!(state, conn: conn)
 
@@ -182,6 +192,7 @@ defmodule K8s.Client.Mint.HTTPAdapter do
         put_in(
           state.requests[request_ref],
           Request.new(
+            request_ref: request_ref,
             websocket: websocket,
             pool: pool,
             stream_to: stream_to,
@@ -228,27 +239,28 @@ defmodule K8s.Client.Mint.HTTPAdapter do
     end
   end
 
-  # def handle_cast({:terminate_request, request_ref}, state) do
-  #   {request, state} = pop_in(state.requests[request_ref])
-  #   Process.demonitor(request.caller_ref)
-  #   {:noreply, state}
-  # end
-
   @impl true
   def handle_info(message, %__MODULE__{conn: conn} = state)
       when Mint.HTTP.is_connection_message(conn, message) do
-    case Mint.WebSocket.stream(state.conn, message) do
-      {:ok, conn, responses} ->
-        state
-        |> struct!(conn: conn)
-        |> process_responses_or_frames(responses)
-
+    with {:ok, conn, responses} <- Mint.WebSocket.stream(state.conn, message),
+         {:ok, state} <- stream_pending_request_bodies(struct!(state, conn: conn)) do
+      process_responses_or_frames(state, responses)
+    else
       {:error, conn, %Mint.TransportError{reason: :closed}, []} ->
         Logger.debug("The connection was closed.", library: :k8s)
 
         # We could terminate the process here. But there might still be chunks
         # in the buffer, so we don't.
         {:noreply, struct!(state, conn: conn)}
+
+      {:error, conn, error} ->
+        Logger.error(
+          "An error occurred when streaming the request body: #{Exception.message(error)}",
+          error: error,
+          library: :k8s
+        )
+
+        struct!(state, conn: conn)
 
       {:error, conn, error, responses} ->
         Logger.error("An error occurred when streaming the response: #{Exception.message(error)}",
@@ -297,8 +309,7 @@ defmodule K8s.Client.Mint.HTTPAdapter do
   def terminate(_reason, state) do
     state = state
 
-    state
-    |> Map.get(:requests)
+    state.requests
     |> Enum.filter(fn {_ref, request} -> !is_nil(request.websocket) end)
     |> Enum.each(fn {request_ref, request} ->
       {:ok, _websocket, data} = Mint.WebSocket.encode(request.websocket, :close)
@@ -308,6 +319,35 @@ defmodule K8s.Client.Mint.HTTPAdapter do
     Mint.HTTP.close(state.conn)
     Logger.debug("Terminating HTTPAdapter GenServer #{inspect(self())}", library: :k8s)
     :ok
+  end
+
+  @spec stream_pending_request_bodies(t()) ::
+          {:ok, t()} | {:error, Mint.HTTP.t(), Mint.Types.error()}
+  defp stream_pending_request_bodies(state) do
+    stream_pending_request_bodies(state, Map.values(state.requests))
+  end
+
+  @spec stream_pending_request_bodies(t(), [Request.t()]) ::
+          {:ok, t()} | {:error, Mint.HTTP.t(), Mint.Types.error()}
+  defp stream_pending_request_bodies(state, []) do
+    {:ok, state}
+  end
+
+  defp stream_pending_request_bodies(state, [request | rest]) do
+    case Request.stream_request_body(
+           request,
+           state.conn
+         ) do
+      {:ok, request, conn} ->
+        state =
+          put_in(state.requests[request.request_ref], request)
+          |> struct!(conn: conn)
+
+        stream_pending_request_bodies(state, rest)
+
+      {:error, conn, error} ->
+        {:error, conn, error}
+    end
   end
 
   @spec process_responses_or_frames(t(), [Mint.Types.response()]) :: {:noreply, t()}

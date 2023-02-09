@@ -8,37 +8,55 @@ defmodule K8s.Client.Mint.Request do
   @typedoc """
   Describes the mode the request is currently in.
 
+  - `::pending` - The request is still streaming its body to the server
   - `:receiving` - The request is currently receiving response parts / frames
   - `:closing` - Websocket requests only: The `:close` frame was received but the process wasn't terminated yet
   - `:terminating` - HTTP requests only: The `:done` part was received but the request isn't cleaned up yet
   - `:closed` - The websocket request is closed. The process is going to terminate any moment now
   """
-  @type request_modes :: :receiving | :closing | :terminating | :closed
+  @type request_modes :: :pending | :receiving | :closing | :terminating | :closed
 
   @typedoc """
   Defines the state of the request.
 
-  - `:caller_ref` - ,onitor reference of the calling process.
+  - `:request_ref` - Mint request reference
+  - `:caller_ref` - Monitor reference of the calling process.
   - `:stream_to` - the process expecting response parts sent to.
   - `:pool` - the PID of the pool so we can checkin after the last part is sent.
   - `:websocket` - for WebSocket requests: The websocket state (`Mint.WebSocket.t()`).
   - `:mode` - defines what mode the request is currently in.
   - `:buffer` - Holds the buffered response parts or frames that haven't been
     sent to / received by the caller yet
+  - `:pending_request_body` - Part of the request body that has not been sent yet.
   """
   @type t :: %__MODULE__{
+          request_ref: Mint.Types.request_ref(),
           caller_ref: reference(),
           stream_to: pid() | {pid(), reference()} | nil,
           pool: pid() | nil,
           websocket: Mint.WebSocket.t() | nil,
           mode: request_modes(),
-          buffer: list()
+          buffer: list(),
+          pending_request_body: charlist()
         }
 
-  defstruct [:caller_ref, :stream_to, :pool, :websocket, mode: :receiving, buffer: []]
+  defstruct [
+    :request_ref,
+    :caller_ref,
+    :stream_to,
+    :pool,
+    :websocket,
+    :pending_request_body,
+    mode: :pending,
+    buffer: []
+  ]
 
   @spec new(keyword()) :: t()
-  def new(fields), do: struct!(__MODULE__, fields)
+  def new(fields) do
+    mode = if is_nil(fields[:pending_request_body]), do: :receiving, else: :pending
+    fields = Keyword.put(fields, :mode, mode)
+    struct!(__MODULE__, fields)
+  end
 
   @spec put_response(t(), :done | {atom(), any()}) :: :pop | {t() | :stop, t()}
   def put_response(request, response) do
@@ -154,5 +172,45 @@ defmodule K8s.Client.Mint.Request do
           {:halt, {:error, conn, error}}
       end
     end)
+  end
+
+  @spec stream_request_body(t(), Mint.HTTP.t()) ::
+          {:ok, t(), Mint.HTTP.t()} | {:error, Mint.HTTP.t(), Mint.Types.error()}
+  def stream_request_body(%__MODULE__{mode: mode} = req, conn) when mode != :pending,
+    do: {:ok, req, conn}
+
+  def stream_request_body(request, conn) do
+    %__MODULE__{request_ref: request_ref, pending_request_body: pending_request_body} = request
+
+    {chunk, remaining_request_body} =
+      case Mint.HTTP.protocol(conn) do
+        :http1 ->
+          {pending_request_body, []}
+
+        :http2 ->
+          chunk_size = chunk_size(request, conn)
+          Enum.split(pending_request_body, chunk_size)
+      end
+
+    with {:ok, conn} <- Mint.HTTP.stream_request_body(conn, request_ref, chunk),
+         {:remaining_request_body, conn, []} <-
+           {:remaining_request_body, conn, remaining_request_body},
+         {:ok, conn} <- Mint.HTTP.stream_request_body(conn, request_ref, :eof) do
+      {:ok, struct!(request, mode: :receiving, pending_request_body: nil), conn}
+    else
+      {:remaining_request_body, conn, remaining_request_body} ->
+        {:ok, struct!(request, pending_request_body: remaining_request_body), conn}
+
+      {:error, conn, error} ->
+        {:error, conn, error}
+    end
+  end
+
+  @spec chunk_size(t(), Mint.HTTP.t()) :: non_neg_integer()
+  defp chunk_size(request, conn) do
+    min(
+      Mint.HTTP2.get_window_size(conn, {:request, request.request_ref}),
+      Mint.HTTP2.get_window_size(conn, :connection)
+    )
   end
 end
