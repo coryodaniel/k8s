@@ -21,5 +21,5 @@ defmodule K8s.Middleware.Request.EncodeBody do
 
   @spec encode(any(), atom()) :: {:ok, binary} | {:error, any}
   defp encode(body, http_method) when http_method in [:put, :patch, :post], do: Jason.encode(body)
-  defp encode(_, _), do: {:ok, ""}
+  defp encode(_, _), do: {:ok, nil}
 end
