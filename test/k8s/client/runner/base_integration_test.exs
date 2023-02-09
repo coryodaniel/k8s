@@ -377,7 +377,6 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
   end
 
   @tag :integration
-  @tag :wip
   test "requests with big bodies succeed", %{conn: conn, labels: labels} do
     data = for nr <- 1..55_763, into: %{}, do: {"key#{nr}", "value"}
 
