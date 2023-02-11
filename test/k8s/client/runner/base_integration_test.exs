@@ -390,7 +390,7 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
         namespace: default
         name: big-cm
         annotations:
-          key: value
+          key: value-😀
       """
       |> Map.put("data", data)
       |> put_in(~w(metadata labels), labels)
