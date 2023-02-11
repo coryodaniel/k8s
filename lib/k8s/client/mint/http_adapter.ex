@@ -27,6 +27,7 @@ defmodule K8s.Client.Mint.HTTPAdapter do
   use GenServer, restart: :temporary
 
   alias K8s.Client.HTTPError
+  alias K8s.Client.Mint.DialyzerHacks
   alias K8s.Client.Mint.Request
 
   require Logger
@@ -150,15 +151,19 @@ defmodule K8s.Client.Mint.HTTPAdapter do
   @impl true
   def handle_call({:request, method, path, headers, body, pool, stream_to}, from, state) do
     caller_ref = from |> elem(0) |> Process.monitor()
+    conn = state.conn
 
-    # stream body if there is one.
+    # For HTTP2, if the body is larger than the connection window, we've got to
+    # stream it to the server.
     {body, pending_request_body} =
-      case body do
-        nil -> {body, body}
-        body -> {:stream, String.to_charlist(body)}
+      cond do
+        Mint.HTTP.protocol(conn) == :http1 -> {body, nil}
+        is_nil(body) -> {nil, nil}
+        byte_size(body) <= DialyzerHacks.get_window_size(conn, :connection) -> {body, nil}
+        :otherwise -> {:stream, body}
       end
 
-    with {:ok, conn, request_ref} <- Mint.HTTP.request(state.conn, method, path, headers, body),
+    with {:ok, conn, request_ref} <- Mint.HTTP.request(conn, method, path, headers, body),
          {:request, request} <-
            {:request,
             Request.new(

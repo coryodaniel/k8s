@@ -38,7 +38,7 @@ defmodule K8s.Client.Mint.Request do
           websocket: Mint.WebSocket.t() | nil,
           mode: request_modes(),
           buffer: list(),
-          pending_request_body: charlist()
+          pending_request_body: binary()
         }
 
   defstruct [
@@ -181,20 +181,15 @@ defmodule K8s.Client.Mint.Request do
     do: {:ok, req, conn}
 
   def stream_request_body(request, conn) do
-    %__MODULE__{request_ref: request_ref, pending_request_body: pending_request_body} = request
+    chunk_size = chunk_size(request, conn)
 
-    {chunk, remaining_request_body} =
-      case Mint.HTTP.protocol(conn) do
-        :http1 ->
-          {pending_request_body, []}
-
-        :http2 ->
-          chunk_size = chunk_size(request, conn)
-          Enum.split(pending_request_body, chunk_size)
-      end
+    %__MODULE__{
+      request_ref: request_ref,
+      pending_request_body: <<chunk::binary-size(chunk_size), remaining_request_body::binary>>
+    } = request
 
     with {:ok, conn} <- Mint.HTTP.stream_request_body(conn, request_ref, chunk),
-         {:remaining_request_body, conn, []} <-
+         {:remaining_request_body, conn, ""} <-
            {:remaining_request_body, conn, remaining_request_body},
          {:ok, conn} <- Mint.HTTP.stream_request_body(conn, request_ref, :eof) do
       {:ok, struct!(request, mode: :receiving, pending_request_body: nil), conn}
@@ -209,11 +204,10 @@ defmodule K8s.Client.Mint.Request do
 
   @spec chunk_size(t(), Mint.HTTP.t()) :: non_neg_integer()
   defp chunk_size(request, conn) do
-    http2_conn = DialyzerHacks.make_http2(conn)
-
-    min(
-      Mint.HTTP2.get_window_size(http2_conn, {:request, request.request_ref}),
-      Mint.HTTP2.get_window_size(http2_conn, :connection)
-    )
+    Enum.min([
+      DialyzerHacks.get_window_size(conn, {:request, request.request_ref}),
+      DialyzerHacks.get_window_size(conn, :connection),
+      byte_size(request.pending_request_body)
+    ])
   end
 end

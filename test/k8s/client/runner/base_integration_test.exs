@@ -380,8 +380,7 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
   test "requests with big bodies succeed", %{conn: conn, labels: labels} do
     data = for nr <- 1..55_763, into: %{}, do: {"key#{nr}", "value"}
 
-    # The body size of this ConfigMap is exactly 1_048_577 bytes so 1 byte
-    # larger than the window size (1_048_576).
+    # The body size of this ConfigMap is larger than the window size.
     cm =
       ~y"""
       apiVersion: v1
