@@ -27,8 +27,8 @@ defmodule K8s.Client.Mint.HTTPAdapter do
   use GenServer, restart: :temporary
 
   alias K8s.Client.HTTPError
-  alias K8s.Client.Mint.DialyzerHacks
   alias K8s.Client.Mint.Request
+  alias K8s.Client.Mint.RequestWindow
 
   require Logger
   require Mint.HTTP
@@ -159,7 +159,7 @@ defmodule K8s.Client.Mint.HTTPAdapter do
       cond do
         Mint.HTTP.protocol(conn) == :http1 -> {body, nil}
         is_nil(body) -> {nil, nil}
-        byte_size(body) <= DialyzerHacks.get_window_size(conn, :connection) -> {body, nil}
+        byte_size(body) <= RequestWindow.window_size(conn, :new) -> {body, nil}
         :otherwise -> {:stream, body}
       end
 

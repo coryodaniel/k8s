@@ -4,7 +4,7 @@ defmodule K8s.Client.Mint.Request do
   """
 
   alias K8s.Client.Mint.ConnectionRegistry
-  alias K8s.Client.Mint.DialyzerHacks
+  alias K8s.Client.Mint.RequestWindow
 
   @typedoc """
   Describes the mode the request is currently in.
@@ -205,8 +205,7 @@ defmodule K8s.Client.Mint.Request do
   @spec chunk_size(t(), Mint.HTTP.t()) :: non_neg_integer()
   defp chunk_size(request, conn) do
     Enum.min([
-      DialyzerHacks.get_window_size(conn, {:request, request.request_ref}),
-      DialyzerHacks.get_window_size(conn, :connection),
+      RequestWindow.window_size(conn, request.request_ref),
       byte_size(request.pending_request_body)
     ])
   end
