@@ -4,7 +4,6 @@ defmodule K8s.Client.Mint.Request do
   """
 
   alias K8s.Client.Mint.ConnectionRegistry
-  alias K8s.Client.Mint.DialyzerHacks
 
   @typedoc """
   Describes the mode the request is currently in.
@@ -205,9 +204,24 @@ defmodule K8s.Client.Mint.Request do
   @spec chunk_size(t(), Mint.HTTP.t()) :: non_neg_integer()
   defp chunk_size(request, conn) do
     Enum.min([
-      DialyzerHacks.get_window_size(conn, {:request, request.request_ref}),
-      DialyzerHacks.get_window_size(conn, :connection),
+      get_window_size(conn, {:request, request.request_ref}),
+      get_window_size(conn, :connection),
       byte_size(request.pending_request_body)
     ])
+  end
+
+  @spec get_window_size(
+          Mint.HTTP.t() | Mint.HTTP2.t(),
+          :connection | {:request, Mint.Types.request_ref()}
+        ) :: non_neg_integer
+  defp get_window_size(conn, connection_or_request) do
+    # This is necessary becuase conn types in Mint are opaque and dialyzer
+    # would raise if we call Mint.HTTP2.get_window_size() directly with a
+    # Mint.HTTP.t() conn.
+    #
+    # See [elixir-mint/mint#380](https://github.com/elixir-mint/mint/issues/380) for
+    # the discussion on it.
+
+    Mint.HTTP2.get_window_size(conn, connection_or_request)
   end
 end
