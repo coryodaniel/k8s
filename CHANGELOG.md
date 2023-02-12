@@ -7,15 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-### Fixed
-
-- Requests with large bodies are failing - [#221](https://github.com/coryodaniel/k8s/pull/221), [#220](https://github.com/coryodaniel/k8s/issues/220)
-
 <!-- Add your changelog entry to the relevant subsection -->
 
 <!-- ### Added | Changed | Deprecated | Removed | Fixed | Security -->
 
 <!--------------------- Don't add new entries after this line --------------------->
+
+## [2.0.1] - 2023-02-12
+
+### Fixed
+
+- Requests with large bodies are failing - [#221](https://github.com/coryodaniel/k8s/pull/221), [#220](https://github.com/coryodaniel/k8s/issues/220)
 
 ## [2.0.0] - 2023-01-27
 
