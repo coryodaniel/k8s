@@ -1,4 +1,5 @@
-KUBECONFIG_PATH?=./integration.yaml
+K3D_KUBECONFIG_PATH?=./integration.k3d.yaml
+KIND_KUBECONFIG_PATH?=./integration.kind.yaml
 
 .PHONY: help
 help: ## Show this help
@@ -8,7 +9,7 @@ help:
 .PHONY: clean
 clean: ## Remove build/doc dirs
 	rm -rf {_build,cover,deps,doc}
-	rm -f integration.yaml
+	rm -f integration*.yaml
 
 .PHONY: all
 all: ## Run format, credo, dialyzer, and test all supported k8s versions
@@ -22,35 +23,45 @@ all:
 	mix inch
 
 CLUSTER_NAME=k8s-ex
-k3d.integration.yaml: ## Create a k3d cluster
+integration.k3d.yaml: ## Create a k3d cluster
 	- k3d cluster delete ${CLUSTER_NAME}
 	k3d cluster create ${CLUSTER_NAME} --servers 1 --wait
-	k3d kubeconfig get ${CLUSTER_NAME} > ${KUBECONFIG_PATH}
+	k3d kubeconfig get ${CLUSTER_NAME} > ${K3D_KUBECONFIG_PATH}
 	sleep 5
 
-kind.integration.yaml: ## Create a k3d cluster
-	- kind delete cluster --kubeconfig ${KUBECONFIG_PATH} --name "kind-${CLUSTER_NAME}"
-	kind create cluster --kubeconfig ${KUBECONFIG_PATH} --wait 600s --name "kind-${CLUSTER_NAME}"
+integration.kind.yaml: ## Create a k3d cluster
+	- kind delete cluster --kubeconfig ${KIND_KUBECONFIG_PATH} --name "${CLUSTER_NAME}"
+	kind create cluster --kubeconfig ${KIND_KUBECONFIG_PATH} --wait 600s --name "${CLUSTER_NAME}"
 
-.PHONY: k3d.test.integration
-k3d.test.integration: k3d.integration.yaml
-k3d.test.integration: ## Run integration tests using k3d `make cluster`
-	TEST_WAIT_TIMEOUT=1000 TEST_KUBECONFIG=${KUBECONFIG_PATH} mix test --only integration
+.PHONY: integration.k3d
+integration.k3d: integration.k3d.yaml
+integration.k3d: ## Run integration tests using k3d `make cluster`
+	TEST_WAIT_TIMEOUT=1000 TEST_KUBECONFIG=${K3D_KUBECONFIG_PATH} mix test --only integration
 
-.PHONY: kind.test.integration
-kind.test.integration: kind.integration.yaml
-kind.test.integration: ## Run integration tests using k3d `make cluster`
-	TEST_WAIT_TIMEOUT=1000 TEST_KUBECONFIG=${KUBECONFIG_PATH} mix test --only integration
+.PHONY: integration.kind
+integration.kind: integration.kind.yaml
+integration.kind: ## Run integration tests using k3d `make cluster`
+	TEST_WAIT_TIMEOUT=1000 TEST_KUBECONFIG=${KIND_KUBECONFIG_PATH} mix test --only integration
+
+.PHONY: test.k3d
+test.k3d: integration.k3d.yaml
+test.k3d: ## Run integration tests using k3d `make cluster`
+	TEST_WAIT_TIMEOUT=1000 TEST_KUBECONFIG=${K3D_KUBECONFIG_PATH} mix test --include integration
+
+.PHONY: test.kind
+test.kind: integration.kind.yaml
+test.kind: ## Run integration tests using k3d `make cluster`
+	TEST_WAIT_TIMEOUT=1000 TEST_KUBECONFIG=${KIND_KUBECONFIG_PATH} mix test --include integration
 
 .PHONY: test
-test: k3d.test.integration k3d.delete kind.test.integration kind.delete
+test: test.k3d test.kind
 test: ## Run all tests
 	echo "Done"
 
 .PHONY: test.watch
-test.watch: k3d.integration.yaml
+test.watch: integration.k3d.yaml
 test.watch: ## Run all tests with mix.watch
-	TEST_KUBECONFIG=${KUBECONFIG_PATH} mix test.watch --include integration
+	TEST_KUBECONFIG=${K3D_KUBECONFIG_PATH} mix test.watch --include integration
 
 .PHONY: k3d.delete
 k3d.delete: ## Delete k3d cluster
@@ -62,8 +73,8 @@ k3d.create: ## Created k3d cluster
 
 .PHONY: kind.delete
 kind.delete: ## Delete kind cluster
-	- kind delete cluster --kubeconfig ${KUBECONFIG_PATH} --name "kind-${CLUsTER_NAME}"
+	- kind delete cluster --kubeconfig ${KIND_KUBECONFIG_PATH} --name "${CLUSTER_NAME}"
 
 .PHONY: kind.create
 kind.create: ## Created kind cluster
-	kind create cluster --kubeconfig ${KUBECONFIG_PATH} --wait 600s --name "kind-${CLUSTER_NAME}"
+	kind create cluster --kubeconfig ${K3D_KUBECONFIG_PATH} --wait 600s --name "${CLUSTER_NAME}"
