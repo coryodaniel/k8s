@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Fixed
+
+- Requests with large bodies are failing - [#221](https://github.com/coryodaniel/k8s/pull/221), [#220](https://github.com/coryodaniel/k8s/issues/220)
+
 <!-- Add your changelog entry to the relevant subsection -->
 
 <!-- ### Added | Changed | Deprecated | Removed | Fixed | Security -->

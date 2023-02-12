@@ -5,7 +5,7 @@ defmodule K8s.Test.IntegrationHelper do
   def conn do
     {:ok, conn} =
       "TEST_KUBECONFIG"
-      |> System.get_env("./integration.yaml")
+      |> System.get_env("./integration.k3d.yaml")
       |> K8s.Conn.from_file()
 
     struct!(conn,

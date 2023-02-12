@@ -60,7 +60,7 @@ defmodule K8s.Discovery.Driver.HTTP do
         uri = conn.url |> Path.join(path) |> URI.parse()
         headers = K8s.Client.Provider.headers(request_options)
         opts = [ssl: request_options.ssl_options]
-        conn.http_provider.request(:get, uri, "", headers, opts)
+        conn.http_provider.request(:get, uri, nil, headers, opts)
 
       error ->
         error

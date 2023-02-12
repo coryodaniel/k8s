@@ -2,11 +2,18 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
   use ExUnit.Case, async: true
   import K8s.Test.IntegrationHelper
 
+  import YamlElixir.Sigil
+
   setup_all do
     conn = conn()
 
     on_exit(fn ->
       K8s.Client.delete_all("v1", "Pod", namespace: "default")
+      |> K8s.Selector.label({"k8s-ex-test", "base"})
+      |> K8s.Client.put_conn(conn)
+      |> K8s.Client.run()
+
+      K8s.Client.delete_all("v1", "ConfigMap", namespace: "default")
       |> K8s.Selector.label({"k8s-ex-test", "base"})
       |> K8s.Client.put_conn(conn)
       |> K8s.Client.run()
@@ -367,5 +374,29 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
       |> Enum.to_list()
 
     assert Enum.all?(results, &match?({:ok, {:ok, %{}}}, &1))
+  end
+
+  @tag :integration
+  test "requests with big bodies succeed", %{conn: conn, labels: labels} do
+    data = for nr <- 1..55_763, into: %{}, do: {"key#{nr}", "value"}
+
+    # The body size of this ConfigMap is larger than the window size.
+    cm =
+      ~y"""
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        namespace: default
+        name: big-cm
+        annotations:
+          key: value-😀
+      """
+      |> Map.put("data", data)
+      |> put_in(~w(metadata labels), labels)
+
+    assert {:ok, _} =
+             K8s.Client.create(cm)
+             |> K8s.Client.put_conn(conn)
+             |> K8s.Client.run()
   end
 end

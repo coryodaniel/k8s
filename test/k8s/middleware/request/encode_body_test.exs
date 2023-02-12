@@ -14,7 +14,7 @@ defmodule K8s.Middleware.Request.EncodeBodyTest do
     request = %K8s.Middleware.Request{body: data, method: :get}
     {:ok, %{body: body}} = K8s.Middleware.Request.EncodeBody.call(request)
 
-    assert body == ""
+    assert body == nil
   end
 
   test "returns an error when the body cannot be encoded" do
