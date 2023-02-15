@@ -30,7 +30,9 @@ defmodule K8s.Conn.Auth.Azure do
         _
       ) do
     if parse_expires(expires_on) <= DateTime.utc_now() do
-      # TODO current we don't have access to the credential file, so we wont be able to write the refresh token back into this, hence we will request a new token on every request when the original has expired
+      # TODO current we don't have access to the credential file,
+      # so we wont be able to write the refresh token back into this,
+      # hence we will request a new token on every request when the original has expired
       {:ok,
        %__MODULE__{
          token: refresh_token(tenant, refresh_token, client_id)
@@ -45,6 +47,7 @@ defmodule K8s.Conn.Auth.Azure do
 
   def create(_, _), do: :skip
 
+  @spec parse_expires(String.t()) :: DateTime.t()
   defp parse_expires(expires_on) do
     case Integer.parse(expires_on) do
       {expires_on, _} -> DateTime.from_unix!(expires_on)
@@ -63,6 +66,7 @@ defmodule K8s.Conn.Auth.Azure do
     end
   end
 
+  @spec refresh_token(String.t(), String.t(), String.t()) :: String.t()
   defp refresh_token(
          tenant,
          refresh_token,
