@@ -63,7 +63,7 @@ defmodule K8s.Client.Mint.ConnectionRegistry do
             library: :k8s
           )
 
-          :ok = GenServer.cast(__MODULE__, {:remove, key})
+          GenServer.cast(__MODULE__, {:remove, key})
           checkout({uri, opts})
         end
 
@@ -138,7 +138,7 @@ defmodule K8s.Client.Mint.ConnectionRegistry do
   end
 
   def handle_info(other, state) do
-    Logger.debug(log_prefix("other message receoved: #{inspect(other)}"), library: :k8s)
+    Logger.debug(log_prefix("other message received: #{inspect(other)}"), library: :k8s)
     {:noreply, state}
   end
 
