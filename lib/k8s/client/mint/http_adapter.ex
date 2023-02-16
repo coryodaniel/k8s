@@ -233,16 +233,13 @@ defmodule K8s.Client.Mint.HTTPAdapter do
   end
 
   def handle_call({:recv, request_ref}, from, state) do
-    case get_and_update_in(
-           state.requests[request_ref],
-           &Request.recv(&1, from)
-         ) do
-      {:stop, state} ->
-        {:stop, :normal, state}
+    {_, state} =
+      get_and_update_in(
+        state.requests[request_ref],
+        &Request.recv(&1, from)
+      )
 
-      {_, state} ->
-        {:noreply, state}
-    end
+    {:noreply, state}
   end
 
   @impl true
@@ -269,7 +266,7 @@ defmodule K8s.Client.Mint.HTTPAdapter do
         Logger.debug("The connection was closed.", library: :k8s)
 
         # We could terminate the process here. But there might still be chunks
-        # in the buffer, so we let the heartbeat take care of that.
+        # in the buffer, so we let the healthcheck take care of that.
         {:noreply, struct!(state, conn: conn)}
 
       {:error, conn, error} ->
@@ -332,9 +329,13 @@ defmodule K8s.Client.Mint.HTTPAdapter do
   end
 
   # This is called regularly to check whether the connection is still open. If
-  # it's not open, this process is considered garbage and is stopped.
+  # it's not open, and all buffers are emptied, this process is considered
+  # garbage and is stopped.
   def handle_info(:healthcheck, state) do
-    if Mint.HTTP.open?(state.conn) do
+    any_non_empty_buffers? =
+      Enum.any?(state.requests, fn {_, request} -> request.buffer != [] end)
+
+    if Mint.HTTP.open?(state.conn) or any_non_empty_buffers? do
       Process.send_after(self(), :healthcheck, @healthcheck_freq * 1_000)
       {:noreply, state}
     else
@@ -424,24 +425,17 @@ defmodule K8s.Client.Mint.HTTPAdapter do
     state =
       frames
       |> Enum.map(&Request.map_frame/1)
-      |> Enum.reduce_while(state, fn mapped_frame, state ->
-        case get_and_update_in(
-               state.requests[request_ref],
-               &Request.put_response(&1, mapped_frame)
-             ) do
-          {:stop, state} ->
-            # StreamTo requests need to be stopped from inside the GenServer.
-            {:halt, {:stop, :normal, state}}
+      |> Enum.reduce(state, fn mapped_frame, state ->
+        {_, state} =
+          get_and_update_in(
+            state.requests[request_ref],
+            &Request.put_response(&1, mapped_frame)
+          )
 
-          {_, state} ->
-            {:cont, state}
-        end
+        state
       end)
 
-    case state do
-      {:stop, :normal, state} -> {:stop, :normal, state}
-      state -> {:noreply, state}
-    end
+    {:noreply, state}
   end
 
   @spec process_responses(t(), [Mint.Types.response()]) :: {:noreply, t()}
