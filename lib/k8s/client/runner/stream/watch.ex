@@ -6,8 +6,9 @@ defmodule K8s.Client.Runner.Stream.Watch do
   alias K8s.Client.Runner.Base
 
   require Logger
+  import K8s.Sys.Logger, only: [log_prefix: 1]
 
-  @log_prefix "#{__MODULE__} - " |> String.replace_leading("Elixir.", "")
+  @time_before_retry 5
 
   @type t :: %__MODULE__{
           conn: K8s.Conn.t(),
@@ -40,15 +41,23 @@ defmodule K8s.Client.Runner.Stream.Watch do
     do_resource(conn, struct!(operation, verb: :list), http_opts, nil)
   end
 
-  @spec do_resource(K8s.Conn.t(), K8s.Operation.t(), keyword(), nil | binary()) ::
+  @spec do_resource(
+          K8s.Conn.t(),
+          K8s.Operation.t(),
+          keyword(),
+          nil | binary(),
+          retries :: non_neg_integer()
+        ) ::
           {:ok, Enumerable.t()} | K8s.Client.Provider.error_t()
-  defp do_resource(conn, operation, http_opts, nil) do
+  defp do_resource(conn, operation, http_opts, resource_version, retries \\ 0)
+
+  defp do_resource(conn, operation, http_opts, nil, retries) do
     with {:ok, resource_version} <- get_resource_version(conn, operation) do
-      do_resource(conn, operation, http_opts, resource_version)
+      do_resource(conn, operation, http_opts, resource_version, retries)
     end
   end
 
-  defp do_resource(conn, operation, http_opts, resource_version) do
+  defp do_resource(conn, operation, http_opts, resource_version, retries) do
     with http_opts <- put_in(http_opts, [:params, :resourceVersion], resource_version),
          {:ok, stream} <- Base.stream(conn, operation, http_opts) do
       stream =
@@ -68,6 +77,22 @@ defmodule K8s.Client.Runner.Stream.Watch do
         )
 
       {:ok, stream}
+    else
+      error when retries > 0 ->
+        Logger.warn(
+          log_prefix(
+            "Error when starting stream. Waiting #{@time_before_retry}s before retrying. #{retries} retries left."
+          ),
+          library: :k8s,
+          error: error
+        )
+
+        Process.sleep(@time_before_retry * 1_000)
+        do_resource(conn, operation, http_opts, resource_version, retries - 1)
+
+      error ->
+        Logger.warn(log_prefix("Error when starting stream."), library: :k8s, error: error)
+        error
     end
   end
 
@@ -76,15 +101,36 @@ defmodule K8s.Client.Runner.Stream.Watch do
   defp reduce(_, :halt), do: {:halt, nil}
 
   defp reduce(:done, state) do
+    Logger.debug(
+      log_prefix("Watcher termineated the request. Starting a new watch request."),
+      library: :k8s
+    )
+
     {:ok, stream} =
-      do_resource(state.conn, state.operation, state.http_opts, state.resource_version)
+      do_resource(state.conn, state.operation, state.http_opts, state.resource_version, 5)
+
+    {stream, state}
+  end
+
+  defp reduce({:error, reason}, state) do
+    Logger.warn(
+      log_prefix(
+        "Error #{inspect(reason)} received from the watcher. Waiting #{@time_before_retry} before restarting the watcher"
+      ),
+      library: :k8s
+    )
+
+    Process.sleep(@time_before_retry * 1_000)
+
+    {:ok, stream} =
+      do_resource(state.conn, state.operation, state.http_opts, state.resource_version, 5)
 
     {stream, state}
   end
 
   defp reduce({:status, 410}, state) do
     Logger.warn(
-      @log_prefix <> "410 Gone received from watcher - resetting the resource version",
+      log_prefix("410 Gone received from watcher - resetting the resource version"),
       library: :k8s
     )
 
@@ -95,7 +141,7 @@ defmodule K8s.Client.Runner.Stream.Watch do
 
   defp reduce({:status, status}, _state) do
     Logger.warn(
-      @log_prefix <> "Erronous async status #{status} received from watcher - aborting the watch",
+      log_prefix("Erronous async status #{status} received from watcher - aborting the watch"),
       library: :k8s
     )
 
@@ -112,7 +158,7 @@ defmodule K8s.Client.Runner.Stream.Watch do
          state
        ) do
     Logger.debug(
-      @log_prefix <> "#{message} - resetting the resource version",
+      log_prefix("#{message} - resetting the resource version"),
       library: :k8s,
       object: object
     )
@@ -123,8 +169,9 @@ defmodule K8s.Client.Runner.Stream.Watch do
 
   defp process_object(%{"object" => %{"message" => message} = object}, state) do
     Logger.error(
-      @log_prefix <>
-        "Erronous event received from watcher: #{message} - resetting the resource version",
+      log_prefix(
+        "Erronous event received from watcher: #{message} - resetting the resource version"
+      ),
       library: :k8s,
       object: object
     )
@@ -135,7 +182,7 @@ defmodule K8s.Client.Runner.Stream.Watch do
 
   defp process_object(%{"type" => "BOOKMARK", "object" => object}, state) do
     Logger.debug(
-      @log_prefix <> "Bookmark received",
+      log_prefix("Bookmark received"),
       library: :k8s,
       object: object
     )

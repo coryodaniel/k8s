@@ -12,9 +12,8 @@ defmodule K8s.Client.Mint.Request do
   - `:receiving` - The request is currently receiving response parts / frames
   - `:closing` - Websocket requests only: The `:close` frame was received but the process wasn't terminated yet
   - `:terminating` - HTTP requests only: The `:done` part was received but the request isn't cleaned up yet
-  - `:closed` - The websocket request is closed. The process is going to terminate any moment now
   """
-  @type request_modes :: :pending | :receiving | :closing | :terminating | :closed
+  @type request_modes :: :pending | :receiving | :closing | :terminating
 
   @typedoc """
   Defines the state of the request.
@@ -58,7 +57,7 @@ defmodule K8s.Client.Mint.Request do
     struct!(__MODULE__, fields)
   end
 
-  @spec put_response(t(), :done | {atom(), any()}) :: :pop | {t() | :stop, t()}
+  @spec put_response(t(), :done | {atom(), any()}) :: :pop | {t(), t()}
   def put_response(request, response) do
     request
     |> struct!(buffer: [response | request.buffer])
@@ -67,7 +66,7 @@ defmodule K8s.Client.Mint.Request do
     |> maybe_terminate_request()
   end
 
-  @spec recv(t(), GenServer.from()) :: :pop | {t() | :stop, t()}
+  @spec recv(t(), GenServer.from()) :: :pop | {t(), t()}
   def recv(request, from) do
     request
     |> struct!(stream_to: {:reply, from})
@@ -88,9 +87,8 @@ defmodule K8s.Client.Mint.Request do
 
   defp update_mode(request, _), do: request
 
-  @spec maybe_terminate_request(t()) :: {t() | :stop, t()} | :pop
-  def maybe_terminate_request(%__MODULE__{mode: :closing, buffer: []} = request),
-    do: {:stop, struct!(request, mode: :closed)}
+  @spec maybe_terminate_request(t()) :: {t(), t()} | :pop
+  def maybe_terminate_request(%__MODULE__{mode: :closing, buffer: []}), do: :pop
 
   def maybe_terminate_request(%__MODULE__{mode: :terminating, buffer: []} = request) do
     Process.demonitor(request.caller_ref)

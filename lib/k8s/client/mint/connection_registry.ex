@@ -15,6 +15,9 @@ defmodule K8s.Client.Mint.ConnectionRegistry do
   alias K8s.Client.HTTPError
   alias K8s.Client.Mint.HTTPAdapter
 
+  require Logger
+  import K8s.Sys.Logger, only: [log_prefix: 1]
+
   @poolboy_config [
     worker_module: K8s.Client.Mint.HTTPAdapter,
     size: 10,
@@ -35,27 +38,6 @@ defmodule K8s.Client.Mint.ConnectionRegistry do
   end
 
   @doc """
-  Gets a `HTTPAdapter` process from the registry and runs the given `callback`
-  function, passing it the adapter's PID.
-
-  If the process returned by the registry is a pool, it runs the given
-  `callback` in a `:poolboy` transaction.
-  """
-  @spec run(uriopts(), (pid() -> any())) :: any()
-  def run({uri, opts}, callback) do
-    case GenServer.call(__MODULE__, {:get_or_open, HTTPAdapter.connection_args(uri, opts)}) do
-      {:ok, {:singleton, adapter_pid}} ->
-        callback.(adapter_pid)
-
-      {:ok, {:adapter_pool, pool_pid}} ->
-        :poolboy.transaction(pool_pid, callback)
-
-      {:error, error} ->
-        {:error, error}
-    end
-  end
-
-  @doc """
   ets a `HTTPAdapter` process from the registry.
 
   If the returned process is an adapter pool, an adapter is checked out from
@@ -66,9 +48,24 @@ defmodule K8s.Client.Mint.ConnectionRegistry do
   """
   @spec checkout(uriopts()) :: {:ok, adapter_pool_t()} | {:error, HTTPError.t()}
   def checkout({uri, opts}) do
-    case GenServer.call(__MODULE__, {:get_or_open, HTTPAdapter.connection_args(uri, opts)}) do
+    key = HTTPAdapter.connection_args(uri, opts)
+
+    case GenServer.call(__MODULE__, {:get_or_open, key}, :infinity) do
       {:ok, {:singleton, pid}} ->
-        {:ok, %{adapter: pid, pool: nil}}
+        # Check if the connection is open for writing.
+        if HTTPAdapter.open?(pid, :write) do
+          {:ok, %{adapter: pid, pool: nil}}
+        else
+          # The connection is closed for writing and needs to be removed from
+          # the registry
+          Logger.debug(
+            log_prefix("Connection is not open for writing. Removing it."),
+            library: :k8s
+          )
+
+          GenServer.cast(__MODULE__, {:remove, key})
+          checkout({uri, opts})
+        end
 
       {:ok, {:adapter_pool, pool_pid}} ->
         try do
@@ -99,40 +96,51 @@ defmodule K8s.Client.Mint.ConnectionRegistry do
   end
 
   @impl true
-  def handle_call({:get_or_open, key}, _from, {adapters, refs}) do
-    if Map.has_key?(adapters, key) do
-      {:reply, Map.fetch(adapters, key), {adapters, refs}}
+  def handle_call({:get_or_open, key}, _from, {adapters, refs}) when is_map_key(adapters, key) do
+    {:reply, Map.fetch(adapters, key), {adapters, refs}}
+  end
+
+  def handle_call({:get_or_open, key}, from, {adapters, refs}) do
+    {scheme, host, port, opts} = key
+
+    # Connect to the server to see if the server supports HTTP/2
+    with {:ok, conn} <- Mint.HTTP.connect(scheme, host, port, opts),
+         {type, adapter_spec} <- get_adapter_spec(conn, key),
+         {:ok, adapter} <-
+           DynamicSupervisor.start_child(K8s.Client.Mint.ConnectionSupervisor, adapter_spec) do
+      Mint.HTTP.close(conn)
+      ref = Process.monitor(adapter)
+      refs = Map.put(refs, ref, key)
+      adapters = Map.put(adapters, key, {type, adapter})
+      GenServer.reply(from, {:ok, {type, adapter}})
+      {:reply, {:ok, {type, adapter}}, {adapters, refs}}
     else
-      {scheme, host, port, opts} = key
+      {:error, %HTTPError{} = error} ->
+        {:reply, {:error, error}, {adapters, refs}}
 
-      # Connect to the server to see if the server supports HTTP/2
-      with {:ok, conn} <- Mint.HTTP.connect(scheme, host, port, opts),
-           {type, adapter_spec} <- get_adapter_spec(conn, key),
-           {:ok, adapter} <-
-             DynamicSupervisor.start_child(K8s.Client.Mint.ConnectionSupervisor, adapter_spec) do
-        Mint.HTTP.close(conn)
-        ref = Process.monitor(adapter)
-        refs = Map.put(refs, ref, key)
-        adapters = Map.put(adapters, key, {type, adapter})
-        {:reply, {:ok, {type, adapter}}, {adapters, refs}}
-      else
-        {:error, %HTTPError{} = error} ->
-          {:error, error}
-
-        {:error, error} ->
-          {:reply, {:error, HTTPError.from_exception(error)}, {adapters, refs}}
-      end
+      {:error, error} ->
+        {:reply, {:error, HTTPError.from_exception(error)}, {adapters, refs}}
     end
   end
 
   @impl true
-  def handle_info({:DOWN, ref, :process, _pid, _reason}, {adapters, refs}) do
+  def handle_cast({:remove, key}, {adapters, refs}) do
+    adapters = Map.delete(adapters, key)
+    {:noreply, {adapters, refs}}
+  end
+
+  @impl true
+  def handle_info({:DOWN, ref, :process, pid, _reason}, {adapters, refs}) do
+    Logger.debug(log_prefix("DOWN of process #{inspect(pid)} received."), library: :k8s)
     {key, refs} = Map.pop(refs, ref)
     adapters = Map.delete(adapters, key)
     {:noreply, {adapters, refs}}
   end
 
-  def handle_info(_, state), do: {:noreply, state}
+  def handle_info(other, state) do
+    Logger.debug(log_prefix("other message received: #{inspect(other)}"), library: :k8s)
+    {:noreply, state}
+  end
 
   @spec get_adapter_spec(Mint.HTTP.t(), HTTPAdapter.connection_args_t()) ::
           {adapter_type_t(), :supervisor.child_spec()}
