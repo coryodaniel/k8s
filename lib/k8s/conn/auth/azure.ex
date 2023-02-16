@@ -3,6 +3,7 @@ defmodule K8s.Conn.Auth.Azure do
   `auth-provider` for azure
   """
   alias K8s.Conn.RequestOptions
+  alias K8s.Conn.Error
   @behaviour K8s.Conn.Auth
 
   defstruct [:token]
@@ -18,10 +19,10 @@ defmodule K8s.Conn.Auth.Azure do
           "auth-provider" => %{
             "config" => %{
               "access-token" => token,
-              "tenant-id" => tenant,
+              "tenant-id" => _tenant,
               "expires-on" => expires_on,
-              "refresh-token" => refresh_token,
-              "client-id" => client_id,
+              "refresh-token" => _refresh_token,
+              "client-id" => _client_id,
               "apiserver-id" => _apiserver_id
             },
             "name" => "azure"
@@ -30,18 +31,9 @@ defmodule K8s.Conn.Auth.Azure do
         _
       ) do
     if parse_expires(expires_on) <= DateTime.utc_now() do
-      # TODO current we don't have access to the credential file,
-      # so we wont be able to write the refresh token back into this,
-      # hence we will request a new token on every request when the original has expired
-      {:ok,
-       %__MODULE__{
-         token: refresh_token(tenant, refresh_token, client_id)
-       }}
+      {:error, %Error{message: "Azure token expired please refresh manually"}}
     else
-      {:ok,
-       %__MODULE__{
-         token: token
-       }}
+      {:ok, %__MODULE__{token: token}}
     end
   end
 
@@ -64,29 +56,5 @@ defmodule K8s.Conn.Auth.Azure do
          ssl_options: []
        }}
     end
-  end
-
-  @spec refresh_token(String.t(), String.t(), String.t()) :: String.t()
-  defp refresh_token(
-         tenant,
-         refresh_token,
-         client_id
-       ) do
-    payload =
-      URI.encode_query(%{
-        "client_id" => client_id,
-        "grant_type" => "refresh_token",
-        "refresh_token" => refresh_token
-      })
-
-    HTTPoison.post!(
-      "https://login.microsoftonline.com/#{tenant}/oauth2/v2.0/token",
-      payload,
-      %{
-        "Content-Type" => "application/x-www-form-urlencoded"
-      }
-    ).body
-    |> Jason.decode!()
-    |> Map.get("access_token")
   end
 end
