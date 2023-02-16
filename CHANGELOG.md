@@ -7,15 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-### Fixed
-
-- Resume watch when API server has gone away - [#226](https://github.com/coryodaniel/k8s/pull/226), [#222](https://github.com/coryodaniel/k8s/issues/222)
-
 <!-- Add your changelog entry to the relevant subsection -->
 
 <!-- ### Added | Changed | Deprecated | Removed | Fixed | Security -->
 
 <!--------------------- Don't add new entries after this line --------------------->
+
+## [2.0.2] - 2023-02-16
+
+### Fixed
+
+- Resume watch when API server has gone away - [#226](https://github.com/coryodaniel/k8s/pull/226), [#222](https://github.com/coryodaniel/k8s/issues/222)
 
 ## [2.0.1] - 2023-02-12
 
