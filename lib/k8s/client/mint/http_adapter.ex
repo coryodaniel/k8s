@@ -29,8 +29,12 @@ defmodule K8s.Client.Mint.HTTPAdapter do
   alias K8s.Client.HTTPError
   alias K8s.Client.Mint.Request
 
+  import K8s.Sys.Logger, only: [log_prefix: 1]
   require Logger
   require Mint.HTTP
+
+  # healthcheck frequency in seconds
+  @healthcheck_freq 30
 
   @type connection_args_t ::
           {scheme :: atom(), host :: binary(), port :: integer(), opts :: keyword()}
@@ -63,6 +67,13 @@ defmodule K8s.Client.Mint.HTTPAdapter do
   @spec connection_args(URI.t(), keyword()) :: connection_args_t()
   def connection_args(uri, opts) do
     {String.to_atom(uri.scheme), uri.host, uri.port, opts}
+  end
+
+  @spec open?(GenServer.server(), :read | :write | :read_write) :: boolean()
+  def open?(pid, type \\ :read_write) do
+    GenServer.call(pid, {:open?, type})
+  catch
+    :exit, _ -> false
   end
 
   @doc """
@@ -138,16 +149,21 @@ defmodule K8s.Client.Mint.HTTPAdapter do
   def init({scheme, host, port, opts}) do
     case Mint.HTTP.connect(scheme, host, port, opts) do
       {:ok, conn} ->
+        Process.send_after(self(), :healthcheck, @healthcheck_freq * 1_000)
         state = %__MODULE__{conn: conn}
         {:ok, state}
 
       {:error, error} ->
-        Logger.error("Failed initializing HTTPAdapter GenServer", library: :k8s)
+        Logger.error(log_prefix("Failed initializing HTTPAdapter GenServer"), library: :k8s)
         {:stop, HTTPError.from_exception(error)}
     end
   end
 
   @impl true
+  def handle_call({:open?, type}, _from, state) do
+    {:reply, Mint.HTTP.open?(state.conn, type), state}
+  end
+
   def handle_call({:request, method, path, headers, body, pool, stream_to}, from, state) do
     caller_ref = from |> elem(0) |> Process.monitor()
     conn = state.conn
@@ -249,16 +265,11 @@ defmodule K8s.Client.Mint.HTTPAdapter do
          {:ok, state} <- stream_pending_request_bodies(struct!(state, conn: conn)) do
       process_responses_or_frames(state, responses)
     else
-      {:error, conn, %Mint.TransportError{reason: :closed}, []} ->
-        Logger.debug("The connection was closed.", library: :k8s)
-
-        # We could terminate the process here. But there might still be chunks
-        # in the buffer, so we don't.
-        {:noreply, struct!(state, conn: conn)}
-
       {:error, conn, error} ->
-        Logger.error(
-          "An error occurred when streaming the request body: #{Exception.message(error)}",
+        Logger.warn(
+          log_prefix(
+            "An error occurred when streaming the request body: #{Exception.message(error)}"
+          ),
           error: error,
           library: :k8s
         )
@@ -266,7 +277,10 @@ defmodule K8s.Client.Mint.HTTPAdapter do
         struct!(state, conn: conn)
 
       {:error, conn, error, responses} ->
-        Logger.error("An error occurred when streaming the response: #{Exception.message(error)}",
+        Logger.warn(
+          log_prefix(
+            "An error occurred when streaming the response: #{Exception.message(error)}"
+          ),
           error: error,
           library: :k8s
         )
@@ -297,7 +311,9 @@ defmodule K8s.Client.Mint.HTTPAdapter do
     case state do
       {:stop, state} ->
         Logger.debug(
-          "Received :DOWN signal from parent process. Terminating HTTPAdapter #{inspect(self())}.",
+          log_prefix(
+            "Received :DOWN signal from parent process. Terminating HTTPAdapter #{inspect(self())}."
+          ),
           library: :k8s
         )
 
@@ -308,19 +324,45 @@ defmodule K8s.Client.Mint.HTTPAdapter do
     end
   end
 
+  # This is called regularly to check whether the connection is still open. If
+  # it's not open, this process is considered garbage and is stopped.
+  def handle_info(:healthcheck, state) do
+    if Mint.HTTP.open?(state.conn) do
+      Process.send_after(self(), :healthcheck, @healthcheck_freq * 1_000)
+      {:noreply, state}
+    else
+      Logger.warn(
+        log_prefix("Connection closed for reading and writing - stopping this process."),
+        library: :k8s
+      )
+
+      {:stop, :closed, state}
+    end
+  end
+
   @impl true
-  def terminate(_reason, state) do
+  def terminate(reason, state) do
     state = state
 
     state.requests
-    |> Enum.filter(fn {_ref, request} -> !is_nil(request.websocket) end)
-    |> Enum.each(fn {request_ref, request} ->
-      {:ok, _websocket, data} = Mint.WebSocket.encode(request.websocket, :close)
-      Mint.WebSocket.stream_request_body(state.conn, request_ref, data)
+    |> Enum.each(fn
+      {_request_ref, request} when is_nil(request.websocket) ->
+        Request.put_response(
+          request,
+          {:error, reason}
+        )
+
+      {request_ref, request} ->
+        {:ok, _websocket, data} = Mint.WebSocket.encode(request.websocket, :close)
+        Mint.WebSocket.stream_request_body(state.conn, request_ref, data)
     end)
 
     Mint.HTTP.close(state.conn)
-    Logger.debug("Terminating HTTPAdapter GenServer #{inspect(self())}", library: :k8s)
+
+    Logger.debug(log_prefix("Terminating HTTPAdapter GenServer #{inspect(self())}"),
+      library: :k8s
+    )
+
     :ok
   end
 

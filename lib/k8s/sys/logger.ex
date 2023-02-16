@@ -3,6 +3,15 @@ defmodule K8s.Sys.Logger do
 
   require Logger
 
+  defmacro log_prefix(stmt) do
+    prefix = __CALLER__.module |> Module.split() |> Enum.join(".")
+    prefix = prefix <> " "
+
+    quote do
+      unquote(prefix) <> unquote(stmt)
+    end
+  end
+
   @doc """
   Attaches telemetry events to the Elixir Logger
   """
