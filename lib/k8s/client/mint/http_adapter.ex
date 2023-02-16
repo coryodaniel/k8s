@@ -265,6 +265,13 @@ defmodule K8s.Client.Mint.HTTPAdapter do
          {:ok, state} <- stream_pending_request_bodies(struct!(state, conn: conn)) do
       process_responses_or_frames(state, responses)
     else
+      {:error, conn, %Mint.TransportError{reason: :closed}, []} ->
+        Logger.debug("The connection was closed.", library: :k8s)
+
+        # We could terminate the process here. But there might still be chunks
+        # in the buffer, so we let the heartbeat take care of that.
+        {:noreply, struct!(state, conn: conn)}
+
       {:error, conn, error} ->
         Logger.warn(
           log_prefix(
