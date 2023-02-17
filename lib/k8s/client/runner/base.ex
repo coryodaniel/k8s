@@ -80,6 +80,15 @@ defmodule K8s.Client.Runner.Base do
   {:ok, conn} = K8s.Conn.from_file("test/support/kube-config.yaml")
   {:ok, result} = K8s.Client.Runner.Base.run(conn, operation)
   ```
+
+  Setting custom http headers.  Existing headers will be overridden
+
+  ```elixir
+  {:ok, conn} = K8s.Conn.from_file("test/support/kube-config.yaml")
+  operation = K8s.Client.list("v1", "Pod", namespace: :all)
+  http_opts = [headers: ["Foo": "Bar"]]
+  {:ok, %{"items" => pods}} = K8s.Client.run(conn, operation, http_opts)
+  ```
   """
   @spec run(Operation.t()) :: result_t
   def run(%Operation{conn: %Conn{} = conn} = operation),
@@ -205,6 +214,7 @@ defmodule K8s.Client.Runner.Base do
         :apply -> ["Content-Type": "application/apply-patch+yaml"]
         _ -> ["Content-Type": "application/json"]
       end
+      |> Keyword.merge(Keyword.get(http_opts, :headers, []))
 
     operation_query_params = build_query_params(operation)
     http_opts_params = Keyword.get(http_opts, :params, [])

@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- ### Added | Changed | Deprecated | Removed | Fixed | Security -->
 
+### Added
+
+- `K8s.Client.Runner.Base.run/3` and `K8s.Client.run/3` - Support for custom http headers via http_opts - [#228](https://github.com/coryodaniel/k8s/pull/228)
+
 <!--------------------- Don't add new entries after this line --------------------->
 
 ## [2.0.3] - 2023-02-17
