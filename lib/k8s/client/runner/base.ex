@@ -205,6 +205,7 @@ defmodule K8s.Client.Runner.Base do
         :apply -> ["Content-Type": "application/apply-patch+yaml"]
         _ -> ["Content-Type": "application/json"]
       end
+      |> Keyword.merge(operation.header_params)
 
     operation_query_params = build_query_params(operation)
     http_opts_params = Keyword.get(http_opts, :params, [])
