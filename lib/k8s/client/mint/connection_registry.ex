@@ -100,7 +100,7 @@ defmodule K8s.Client.Mint.ConnectionRegistry do
     {:reply, Map.fetch(adapters, key), {adapters, refs}}
   end
 
-  def handle_call({:get_or_open, key}, from, {adapters, refs}) do
+  def handle_call({:get_or_open, key}, _from, {adapters, refs}) do
     {scheme, host, port, opts} = key
 
     # Connect to the server to see if the server supports HTTP/2
@@ -112,7 +112,6 @@ defmodule K8s.Client.Mint.ConnectionRegistry do
       ref = Process.monitor(adapter)
       refs = Map.put(refs, ref, key)
       adapters = Map.put(adapters, key, {type, adapter})
-      GenServer.reply(from, {:ok, {type, adapter}})
       {:reply, {:ok, {type, adapter}}, {adapters, refs}}
     else
       {:error, %HTTPError{} = error} ->

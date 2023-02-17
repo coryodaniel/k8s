@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!--------------------- Don't add new entries after this line --------------------->
 
+## [2.0.3] - 2023-02-17
+
+### Fixed
+
+- A regression introduced in 2.0.2: superfluous call to `Genserver.reply()` was removed.
+
 ## [2.0.2] - 2023-02-16
 
 ### Fixed
