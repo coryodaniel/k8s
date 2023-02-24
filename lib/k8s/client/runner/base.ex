@@ -200,6 +200,9 @@ defmodule K8s.Client.Runner.Base do
     req = %Request{conn: conn, method: operation.method, body: body}
 
     headers =
+      # This functionality is duplicated in Operation.build/6, however, we are leaving it in
+      # to prevent a breaking change in the case an operation was being created without using
+      # Operation.build/6
       case operation.verb do
         :patch -> ["Content-Type": "application/merge-patch+json"]
         :apply -> ["Content-Type": "application/apply-patch+yaml"]

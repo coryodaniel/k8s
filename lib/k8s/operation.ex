@@ -3,7 +3,10 @@ defmodule K8s.Operation do
 
   alias K8s.{Operation, Selector}
   alias K8s.Operation.Error
-  @derive {Jason.Encoder, except: [:path_params]}
+  @derive {Jason.Encoder, except: [:path_params, :header_params]}
+
+  @typedoc "Acceptable patch types"
+  @type patch_type :: :strategic_merge | :merge | :json_merge | :apply
 
   @allow_http_body [:put, :patch, :post]
   @selector :labelSelector
@@ -18,6 +21,13 @@ defmodule K8s.Operation do
     update: :put,
     patch: :patch,
     apply: :patch
+  }
+
+  @patch_type_header_map %{
+    merge: ["Content-Type": "application/merge-patch+json"],
+    strategic_merge: ["Content-Type": "application/strategic-merge-patch+json"],
+    json_merge: ["Content-Type": "application/json-patch+json"],
+    apply: ["Content-Type": "application/apply-patch+yaml"]
   }
 
   defstruct method: nil,
@@ -195,7 +205,19 @@ defmodule K8s.Operation do
           []
       end
 
-    header_params = Keyword.get(opts, :header_params, [])
+    header_params =
+      case {verb, Keyword.get(opts, :patch_type, :not_set)} do
+        {:patch, merge_patch_types} when merge_patch_types in [:merge, :not_set] ->
+          @patch_type_header_map[:merge]
+        {:patch, :strategic_merge} ->
+          @patch_type_header_map[:strategic_merge]
+        {:patch, :json_merge} ->
+          @patch_type_header_map[:json_merge]
+        {:apply, apply_patch_types} when apply_patch_types in [:apply, :not_set] ->
+          @patch_type_header_map[:apply]
+        _ -> ["Content-Type": "application/json"]
+      end
+      |> Keyword.merge(Keyword.get(opts, :header_params, []))
 
     %__MODULE__{
       method: http_method,
