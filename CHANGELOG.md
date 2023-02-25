@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- ### Added | Changed | Deprecated | Removed | Fixed | Security -->
 
+### Added
+
+- Added further PATCH mechanisms - [#229](https://github.com/coryodaniel/k8s/pull/229)
+
 <!--------------------- Don't add new entries after this line --------------------->
 
 ## [2.0.3] - 2023-02-17
