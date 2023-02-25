@@ -11,12 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- ### Added | Changed | Deprecated | Removed | Fixed | Security -->
 
+<!--------------------- Don't add new entries after this line --------------------->
+
+## [2.1.0] - 2023-02-25
+
 ### Added
 
 - Added further PATCH mechanisms - [#229](https://github.com/coryodaniel/k8s/pull/229)
 - Add `opts` to `K8s.Conn.from_file/N` and `K8s.Conn.from_service_account/N` in order to be able to pass `:insecure_skip_tls_verify` option directly. - [#230](https://github.com/coryodaniel/k8s/issues/230), [#203](https://github.com/coryodaniel/k8s/issues/203)
-
-<!--------------------- Don't add new entries after this line --------------------->
 
 ## [2.0.3] - 2023-02-17
 
