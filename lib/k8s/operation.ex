@@ -23,11 +23,11 @@ defmodule K8s.Operation do
     apply: :patch
   }
 
-  @patch_type_header_map %{
-    merge: ["Content-Type": "application/merge-patch+json"],
-    strategic_merge: ["Content-Type": "application/strategic-merge-patch+json"],
-    json_merge: ["Content-Type": "application/json-patch+json"],
-    apply: ["Content-Type": "application/apply-patch+yaml"]
+  @patch_type_content_types %{
+    merge: "application/merge-patch+json",
+    strategic_merge: "application/strategic-merge-patch+json",
+    json_merge: "application/json-patch+json",
+    apply: "application/apply-patch+yaml"
   }
 
   defstruct method: nil,
@@ -178,7 +178,21 @@ defmodule K8s.Operation do
       }
   """
   @spec build(atom, binary, name_t(), keyword(), map() | nil, keyword()) :: __MODULE__.t()
-  def build(verb, api_version, name_or_kind, path_params, data \\ nil, opts \\ []) do
+  def build(verb, api_version, name_or_kind, path_params, data \\ nil, opts \\ [])
+
+  def build(:apply, api_version, name_or_kind, path_params, data, opts) do
+    # This is considered deprecated and is only left for BC.
+    build(
+      :patch,
+      api_version,
+      name_or_kind,
+      path_params,
+      data,
+      Keyword.put(opts, :patch_type, :apply)
+    )
+  end
+
+  def build(verb, api_version, name_or_kind, path_params, data, opts) do
     http_method = @verb_map[verb] || verb
     patch_type = Keyword.get(opts, :patch_type, :not_set)
 
@@ -190,7 +204,7 @@ defmodule K8s.Operation do
 
     query_params =
       cond do
-        verb === :apply || (verb === :patch && patch_type === :apply) ->
+        verb === :patch && patch_type === :apply ->
           [
             fieldManager: Keyword.get(opts, :field_manager, "elixir"),
             force: Keyword.get(opts, :force, true)
@@ -206,27 +220,17 @@ defmodule K8s.Operation do
           []
       end
 
-    header_params =
-      case {verb, patch_type} do
-        {:patch, merge_patch_types} when merge_patch_types in [:merge, :not_set] ->
-          @patch_type_header_map[:merge]
-
-        {:patch, :strategic_merge} ->
-          @patch_type_header_map[:strategic_merge]
-
-        {:patch, :json_merge} ->
-          @patch_type_header_map[:json_merge]
-
-        {:patch, :apply} ->
-          @patch_type_header_map[:apply]
-
-        {:apply, apply_patch_types} when apply_patch_types in [:apply, :not_set] ->
-          @patch_type_header_map[:apply]
-
-        _ ->
-          ["Content-Type": "application/json"]
+    content_type =
+      if verb === :patch do
+        Map.get(@patch_type_content_types, patch_type, "application/json")
+      else
+        "application/json"
       end
-      |> Keyword.merge(Keyword.get(opts, :header_params, []))
+
+    header_params =
+      opts
+      |> Keyword.get(:header_params, [])
+      |> Keyword.put(:"Content-Type", content_type)
 
     %__MODULE__{
       method: http_method,
