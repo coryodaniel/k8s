@@ -449,7 +449,15 @@ defmodule K8s.Client do
       }
   """
   @spec patch(map()) :: Operation.t()
-  def patch(%{} = resource), do: Operation.build(:patch, resource, patch_type: :merge)
+  def patch(%{} = resource),
+    do: Operation.build(:patch, resource, patch_type: :merge)
+
+  @spec patch(map(), patch_type_or_resource :: atom() | map()) :: Operation.t()
+  def patch(%{} = resource, patch_type) when is_atom(patch_type),
+    do: Operation.build(:patch, resource, patch_type: patch_type)
+
+  def patch(%{} = resource, subresource) when is_map(resource),
+    do: patch(resource, subresource, :merge)
 
   @doc """
   Returns a `PATCH` operation to patch the given subresource given a resource's details and a subresource map.
@@ -476,7 +484,7 @@ defmodule K8s.Client do
           "metadata" => %{"namespace" => ns, "name" => name}
         },
         %{"kind" => subkind} = subresource,
-        patch_type \\ :merge
+        patch_type
       ) do
     Operation.build(
       :patch,
