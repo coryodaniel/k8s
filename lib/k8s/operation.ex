@@ -210,15 +210,21 @@ defmodule K8s.Operation do
       case {verb, patch_type} do
         {:patch, merge_patch_types} when merge_patch_types in [:merge, :not_set] ->
           @patch_type_header_map[:merge]
+
         {:patch, :strategic_merge} ->
           @patch_type_header_map[:strategic_merge]
+
         {:patch, :json_merge} ->
           @patch_type_header_map[:json_merge]
+
         {:patch, :apply} ->
           @patch_type_header_map[:apply]
+
         {:apply, apply_patch_types} when apply_patch_types in [:apply, :not_set] ->
           @patch_type_header_map[:apply]
-        _ -> ["Content-Type": "application/json"]
+
+        _ ->
+          ["Content-Type": "application/json"]
       end
       |> Keyword.merge(Keyword.get(opts, :header_params, []))
 

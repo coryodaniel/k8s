@@ -99,7 +99,12 @@ defmodule K8s.Client do
   def apply(resource, mgmt_params \\ []) do
     field_manager = Keyword.get(mgmt_params, :field_manager, @mgmt_param_defaults[:field_manager])
     force = Keyword.get(mgmt_params, :force, @mgmt_param_defaults[:force])
-    Operation.build(:patch, resource, field_manager: field_manager, force: force, patch_type: :apply)
+
+    Operation.build(:patch, resource,
+      field_manager: field_manager,
+      force: force,
+      patch_type: :apply
+    )
   end
 
   @doc """
@@ -449,9 +454,16 @@ defmodule K8s.Client do
   @doc """
   Returns a `PATCH` operation to patch the given subresource given a resource's details and a subresource map.
   """
-  @spec patch(binary, Operation.name_t(), Keyword.t(), map(), patch_type :: Operation.patch_type()) :: Operation.t()
+  @spec patch(
+          binary,
+          Operation.name_t(),
+          Keyword.t(),
+          map(),
+          patch_type :: Operation.patch_type()
+        ) :: Operation.t()
   def patch(api_version, kind, path_params, subresource, patch_type \\ :merge),
-    do: Operation.build(:patch, api_version, kind, path_params, subresource, patch_type: patch_type)
+    do:
+      Operation.build(:patch, api_version, kind, path_params, subresource, patch_type: patch_type)
 
   @doc """
   Returns a `PATCH` operation to patch the given subresource given a resource map and a subresource map.
