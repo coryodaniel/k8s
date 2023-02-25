@@ -38,7 +38,7 @@ defmodule K8s.Operation do
             conn: nil,
             path_params: [],
             query_params: [],
-            header_params: []
+            header_params: ["Content-Type": "application/json"]
 
   @typedoc "`K8s.Operation` name. May be an atom, string, or tuple of `{resource, subresource}`."
   @type name_t :: binary() | atom() | {binary(), binary()}
@@ -51,7 +51,7 @@ defmodule K8s.Operation do
   * `verb` - Kubernetes [REST API verb](https://kubernetes.io/docs/reference/access-authn-authz/authorization/#determine-the-request-verb) (`deletecollection`, `update`, `create`, `watch`, etc)
   * `path_params` - Parameters to interpolate into the Kubernetes REST URL
   * `query_params` - Query parameters. Merged w/ params provided to any `K8s.Client.Runner`. `K8s.Client.Runner` options win.
-  * `header_params` - Header parameters. Merged w/ default headers depending on the operation.
+  * `header_params` - Header parameters.
 
   `name` would be `deployments` in the case of a deployment, but may be `deployments/status` or `deployments/scale` for Status and Scale subresources.
 
@@ -67,7 +67,7 @@ defmodule K8s.Operation do
     name: "deployments/scale",
     data: %{"apiVersion" => "v1", "kind" => "Scale"}, # `data` is of kind "Scale"
     path_params: [name: "nginx", namespace: "default"],
-    header_params: ["Custom": "Header"]
+    header_params: ["Content-Type": "application/json"]
   }
   ```
 
@@ -81,7 +81,7 @@ defmodule K8s.Operation do
     name: "deployments/status",
     data: %{"apiVersion" => "apps/v1", "kind" => "Deployment"}, # `data` is of kind "Deployment"
     path_params: [name: "nginx", namespace: "default"],
-    header_params: ["Custom": "Header"]
+    header_params: ["Content-Type": "application/json"]
   }
   ```
   """
@@ -180,6 +180,7 @@ defmodule K8s.Operation do
   @spec build(atom, binary, name_t(), keyword(), map() | nil, keyword()) :: __MODULE__.t()
   def build(verb, api_version, name_or_kind, path_params, data \\ nil, opts \\ []) do
     http_method = @verb_map[verb] || verb
+    patch_type = Keyword.get(opts, :patch_type, :not_set)
 
     http_body =
       case http_method do
@@ -188,31 +189,33 @@ defmodule K8s.Operation do
       end
 
     query_params =
-      case verb do
-        :apply ->
+      cond do
+        verb === :apply || (verb === :patch && patch_type === :apply) ->
           [
             fieldManager: Keyword.get(opts, :field_manager, "elixir"),
             force: Keyword.get(opts, :force, true)
           ]
 
-        :connect ->
+        verb === :connect ->
           [stdin: true, stdout: true, stderr: true, tty: false]
           |> Keyword.merge(
             Keyword.take(opts, [:stdin, :stdout, :stderr, :tty, :command, :container])
           )
 
-        _ ->
+        true ->
           []
       end
 
     header_params =
-      case {verb, Keyword.get(opts, :patch_type, :not_set)} do
+      case {verb, patch_type} do
         {:patch, merge_patch_types} when merge_patch_types in [:merge, :not_set] ->
           @patch_type_header_map[:merge]
         {:patch, :strategic_merge} ->
           @patch_type_header_map[:strategic_merge]
         {:patch, :json_merge} ->
           @patch_type_header_map[:json_merge]
+        {:patch, :apply} ->
+          @patch_type_header_map[:apply]
         {:apply, apply_patch_types} when apply_patch_types in [:apply, :not_set] ->
           @patch_type_header_map[:apply]
         _ -> ["Content-Type": "application/json"]
@@ -330,19 +333,4 @@ defmodule K8s.Operation do
   """
   @spec put_conn(t(), K8s.Conn.t()) :: t()
   def put_conn(operation, conn), do: struct!(operation, conn: conn)
-
-  @doc """
-  Adds a header param to an operation
-
-  ## Examples
-    Using a `keyword` list of params:
-      iex> operation = %K8s.Operation{}
-      ...> K8s.Operation.put_header_param(operation, :"Custom-Header", "SomeValue")
-      %K8s.Operation{header_params: ["Custom-Header": "SomeValue"]}
-  """
-  @spec put_header_param(t(), String.t() | atom(), String.t()) :: t()
-  def put_header_param(%Operation{header_params: params} = op, key, value) when is_list(params) do
-    new_params = Keyword.put(params, key, value)
-    %Operation{op | header_params: new_params}
-  end
 end

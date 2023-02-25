@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added operation header_params - [#229](https://github.com/coryodaniel/k8s/pull/229)
+- Added further PATCH mechanisms - [#229](https://github.com/coryodaniel/k8s/pull/229)
 
 <!--------------------- Don't add new entries after this line --------------------->
 

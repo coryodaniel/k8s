@@ -86,19 +86,20 @@ defmodule K8s.Client do
       ...> K8s.Client.apply(deployment, field_manager: "my-operator", force: true)
       %K8s.Operation{
         method: :patch,
-        verb: :apply,
+        verb: :patch,
         api_version: "apps/v1",
         name: "Deployment",
         path_params: [namespace: "test", name: "nginx"],
         data: K8s.Resource.from_file!("test/support/manifests/nginx-deployment.yaml"),
-        query_params: [fieldManager: "my-operator", force: true]
+        query_params: [fieldManager: "my-operator", force: true],
+        header_params: ["Content-Type": "application/apply-patch+yaml"],
       }
   """
   @spec apply(map(), keyword()) :: Operation.t()
   def apply(resource, mgmt_params \\ []) do
     field_manager = Keyword.get(mgmt_params, :field_manager, @mgmt_param_defaults[:field_manager])
     force = Keyword.get(mgmt_params, :force, @mgmt_param_defaults[:force])
-    Operation.build(:apply, resource, field_manager: field_manager, force: force, patch_type: :apply)
+    Operation.build(:patch, resource, field_manager: field_manager, force: force, patch_type: :apply)
   end
 
   @doc """
@@ -111,12 +112,13 @@ defmodule K8s.Client do
       ...> K8s.Client.apply("v1", "pods/status", [namespace: "default", name: "nginx"], pod_with_status_subresource, field_manager: "my-operator", force: true)
       %K8s.Operation{
         method: :patch,
-        verb: :apply,
+        verb: :patch,
         api_version: "v1",
         name: "pods/status",
         path_params: [namespace: "default", name: "nginx"],
         data: K8s.Resource.from_file!("test/support/manifests/nginx-pod.yaml") |> Map.put("status", %{"message" => "some message"}),
-        query_params: [fieldManager: "my-operator", force: true]
+        query_params: [fieldManager: "my-operator", force: true],
+        header_params: ["Content-Type": "application/apply-patch+yaml"]
       }
   """
   @spec apply(binary, Operation.name_t(), Keyword.t(), map(), keyword()) :: Operation.t()
@@ -130,7 +132,7 @@ defmodule K8s.Client do
     field_manager = Keyword.get(mgmt_params, :field_manager, @mgmt_param_defaults[:field_manager])
     force = Keyword.get(mgmt_params, :force, @mgmt_param_defaults[:force])
 
-    Operation.build(:apply, api_version, kind, path_params, subresource,
+    Operation.build(:patch, api_version, kind, path_params, subresource,
       field_manager: field_manager,
       force: force,
       patch_type: :apply
@@ -437,7 +439,8 @@ defmodule K8s.Client do
         api_version: "apps/v1",
         name: "Deployment",
         path_params: [namespace: "test", name: "nginx"],
-        data: K8s.Resource.from_file!("test/support/manifests/nginx-deployment.yaml")
+        data: K8s.Resource.from_file!("test/support/manifests/nginx-deployment.yaml"),
+        header_params: ["Content-Type": "application/merge-patch+json"]
       }
   """
   @spec patch(map()) :: Operation.t()

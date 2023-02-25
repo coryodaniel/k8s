@@ -199,17 +199,7 @@ defmodule K8s.Client.Runner.Base do
   defp new_request(%Conn{} = conn, url, %Operation{} = operation, body, http_opts) do
     req = %Request{conn: conn, method: operation.method, body: body}
 
-    headers =
-      # This functionality is duplicated in Operation.build/6, however, we are leaving it in
-      # to prevent a breaking change in the case an operation was being created without using
-      # Operation.build/6
-      case operation.verb do
-        :patch -> ["Content-Type": "application/merge-patch+json"]
-        :apply -> ["Content-Type": "application/apply-patch+yaml"]
-        _ -> ["Content-Type": "application/json"]
-      end
-      |> Keyword.merge(operation.header_params)
-
+    headers = operation.header_params
     operation_query_params = build_query_params(operation)
     http_opts_params = Keyword.get(http_opts, :params, [])
     merged_params = Keyword.merge(operation_query_params, http_opts_params)
