@@ -6,10 +6,9 @@ defmodule K8s.Test.IntegrationHelper do
     {:ok, conn} =
       "TEST_KUBECONFIG"
       |> System.get_env("./integration.k3d.yaml")
-      |> K8s.Conn.from_file()
+      |> K8s.Conn.from_file(insecure_skip_tls_verify: true)
 
     struct!(conn,
-      insecure_skip_tls_verify: true,
       discovery_driver: K8s.Discovery.Driver.HTTP,
       discovery_opts: [],
       http_provider: K8s.Client.MintHTTPProvider

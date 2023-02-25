@@ -76,6 +76,8 @@ defmodule K8s.Conn do
          {:ok, user} <- find_configuration(config["users"], user_name, "user"),
          cluster_name <- opts[:cluster] || context["cluster"],
          {:ok, cluster} <- find_configuration(config["clusters"], cluster_name, "cluster"),
+         insecure_skip_tls_verify <-
+           Keyword.get(opts, :insecure_skip_tls_verify, cluster["insecure-skip-tls-verify"]),
          {:ok, cert} <- PKI.cert_from_map(cluster, base_path) do
       conn = %Conn{
         cluster_name: cluster_name,
@@ -83,7 +85,7 @@ defmodule K8s.Conn do
         url: cluster["server"],
         ca_cert: cert,
         auth: get_auth(user, base_path),
-        insecure_skip_tls_verify: cluster["insecure-skip-tls-verify"]
+        insecure_skip_tls_verify: insecure_skip_tls_verify
       }
 
       {:ok, maybe_update_defaults(conn, config)}
@@ -99,22 +101,36 @@ defmodule K8s.Conn do
 
   [kubernetes.io :: Accessing the API from a Pod](https://kubernetes.io/docs/tasks/access-application-cluster/access-cluster/#accessing-the-api-from-a-pod)
   """
-  @spec from_service_account :: {:ok, t()} | {:error, :enoent | K8s.Conn.Error.t()}
+  @spec from_service_account() ::
+          {:ok, t()} | {:error, :enoent | K8s.Conn.Error.t()}
   def from_service_account do
-    from_service_account(@default_service_account_path)
+    from_service_account(@default_service_account_path, [])
   end
 
-  @spec from_service_account(String.t()) :: {:ok, t()} | {:error, :enoent | K8s.Conn.Error.t()}
-  def from_service_account(service_account_path) do
+  @spec from_service_account(opts_or_sa_path :: String.t() | Keyword.t()) ::
+          {:ok, t()} | {:error, :enoent | K8s.Conn.Error.t()}
+  def from_service_account(opts) when is_list(opts) do
+    from_service_account(@default_service_account_path, opts)
+  end
+
+  def from_service_account(service_account_path) when is_binary(service_account_path) do
+    from_service_account(service_account_path, [])
+  end
+
+  @spec from_service_account(service_account_path :: String.t(), opts :: Keyword.t()) ::
+          {:ok, t()} | {:error, :enoent | K8s.Conn.Error.t()}
+  def from_service_account(service_account_path, opts \\ []) do
     cert_path = Path.join(service_account_path, "ca.crt")
     token_path = Path.join(service_account_path, "token")
+    insecure_skip_tls_verify = Keyword.get(opts, :insecure_skip_tls_verify, false)
 
     with {:ok, token} <- File.read(token_path),
          {:ok, ca_cert} <- PKI.cert_from_pem(cert_path) do
       conn = %Conn{
         url: kubernetes_service_url(),
         ca_cert: ca_cert,
-        auth: %K8s.Conn.Auth.Token{token: token}
+        auth: %K8s.Conn.Auth.Token{token: token},
+        insecure_skip_tls_verify: insecure_skip_tls_verify
       }
 
       {:ok, conn}
