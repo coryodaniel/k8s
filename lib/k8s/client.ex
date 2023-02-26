@@ -452,7 +452,7 @@ defmodule K8s.Client do
   def patch(%{} = resource),
     do: Operation.build(:patch, resource, patch_type: :merge)
 
-  @spec patch(map(), patch_type_or_resource :: atom() | map()) :: Operation.t()
+  @spec patch(map(), patch_type_or_resource :: Operation.patch_type() | map()) :: Operation.t()
   def patch(%{} = resource, patch_type) when is_atom(patch_type),
     do: Operation.build(:patch, resource, patch_type: patch_type)
 
