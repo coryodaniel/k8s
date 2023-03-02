@@ -293,6 +293,14 @@ defmodule K8s.Client.Runner.Stream.WatchTest do
           }
         }),
         HTTPTestHelper.stream_object(%{
+          "type" => "MODIFIED",
+          "object" => %{
+            "apiVersion" => "apps/v1",
+            "kind" => "ReplicaSet",
+            "message" => "some message"
+          }
+        }),
+        HTTPTestHelper.stream_object(%{
           "type" => "ERROR",
           "object" => %{
             "message" => "Some error"
@@ -535,10 +543,11 @@ defmodule K8s.Client.Runner.Stream.WatchTest do
 
         events =
           stream
-          |> Stream.take(4)
+          |> Stream.take(6)
           |> Enum.to_list()
 
-        assert ["ADDED", "DELETED", "ADDED", "DELETED"] == Enum.map(events, & &1["type"])
+        assert ["ADDED", "MODIFIED", "DELETED", "ADDED", "MODIFIED", "DELETED"] ==
+                 Enum.map(events, & &1["type"])
       end
 
       assert capture_log(test) =~ "Erronous event received"
