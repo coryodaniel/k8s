@@ -167,19 +167,6 @@ defmodule K8s.Client.Runner.Stream.Watch do
     {[], new_state}
   end
 
-  defp process_object(%{"object" => %{"message" => message} = object}, state) do
-    Logger.error(
-      log_prefix(
-        "Erronous event received from watcher: #{message} - resetting the resource version"
-      ),
-      library: :k8s,
-      object: object
-    )
-
-    new_state = struct!(state, resource_version: nil)
-    {[], new_state}
-  end
-
   defp process_object(%{"type" => "BOOKMARK", "object" => object}, state) do
     Logger.debug(
       log_prefix("Bookmark received"),
@@ -192,15 +179,30 @@ defmodule K8s.Client.Runner.Stream.Watch do
 
   defp process_object(
          %{"object" => %{"metadata" => %{"resourceVersion" => resource_version}}},
-         state
-       )
-       when resource_version == state.resource_version do
+         %{resource_version: resource_version} = state
+       ) do
+    # resource version already obeserved.
     {[], state}
   end
 
-  defp process_object(%{"object" => object} = new_event, state) do
+  defp process_object(%{"object" => %{"kind" => _} = object} = new_event, state) do
+    # Emit new event
     new_state = struct!(state, resource_version: object["metadata"]["resourceVersion"])
     {[new_event], new_state}
+  end
+
+  defp process_object(%{"object" => %{"message" => message} = object}, state) do
+    # Objects with only the "message" field but no "kind" are cosidered errors.
+    Logger.error(
+      log_prefix(
+        "Erronous event received from watcher: #{message} - resetting the resource version"
+      ),
+      library: :k8s,
+      object: object
+    )
+
+    new_state = struct!(state, resource_version: nil)
+    {[], new_state}
   end
 
   @spec get_resource_version(K8s.Conn.t(), K8s.Operation.t()) :: {:ok, binary} | Base.error_t()
