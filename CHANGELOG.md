@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- ### Added | Changed | Deprecated | Removed | Fixed | Security -->
 
+### Fixed
+
+- Watcher reset resource version for objects with a "message" field. - [#232](https://github.com/coryodaniel/k8s/issues/232), [#231](https://github.com/coryodaniel/k8s/issues/231)
+
 <!--------------------- Don't add new entries after this line --------------------->
 
 ## [2.1.0] - 2023-02-25
