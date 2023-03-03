@@ -39,6 +39,7 @@ defmodule K8s.MixProject do
       {:castore, "~> 0.1"},
       {:yaml_elixir, "~> 2.8"},
       {:jason, "~> 1.0"},
+      {:mint, "~> 1.0"},
       {:mint_web_socket, "~> 1.0"},
       {:poolboy, "~> 1.5"},
       {:telemetry, "~> 1.0"},
