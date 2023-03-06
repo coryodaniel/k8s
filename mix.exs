@@ -36,7 +36,7 @@ defmodule K8s.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:castore, "~> 0.1"},
+      {:castore, "~> 1.0"},
       {:yaml_elixir, "~> 2.8"},
       {:jason, "~> 1.0"},
       {:mint, "~> 1.0"},
