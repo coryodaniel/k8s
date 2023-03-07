@@ -194,7 +194,7 @@ defmodule K8s.Client.MintHTTPProvider do
   @spec get_content_type(keyword()) :: binary | nil
   defp get_content_type(headers) do
     case List.keyfind(headers, "content-type", 0) do
-      {_key, content_type} -> content_type
+      {_key, content_type} -> content_type |> String.split(";") |> List.first()
       _ -> nil
     end
   end

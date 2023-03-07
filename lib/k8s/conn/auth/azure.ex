@@ -2,8 +2,10 @@ defmodule K8s.Conn.Auth.Azure do
   @moduledoc """
   `auth-provider` for azure
   """
-  alias K8s.Conn.RequestOptions
   alias K8s.Conn.Error
+  alias K8s.Conn.RequestOptions
+
+  require Logger
   @behaviour K8s.Conn.Auth
 
   defstruct [:token]
@@ -19,19 +21,23 @@ defmodule K8s.Conn.Auth.Azure do
           "auth-provider" => %{
             "config" => %{
               "access-token" => token,
-              "tenant-id" => _tenant,
+              "tenant-id" => tenant,
               "expires-on" => expires_on,
-              "refresh-token" => _refresh_token,
-              "client-id" => _client_id,
-              "apiserver-id" => _apiserver_id
+              "refresh-token" => refresh_token,
+              "client-id" => client_id,
+              "apiserver-id" => apiserver_id
             },
             "name" => "azure"
           }
         },
         _
       ) do
-    if parse_expires(expires_on) <= DateTime.utc_now() do
-      {:error, %Error{message: "Azure token expired please refresh manually"}}
+    if DateTime.diff(DateTime.utc_now(), parse_expires(expires_on)) >= 0 do
+      Logger.info(
+        "Azure token expired, using refresh token get new access, this will stop working when refresh token expires"
+      )
+
+      {:ok, %__MODULE__{token: refresh_token(tenant, refresh_token, client_id, apiserver_id)}}
     else
       {:ok, %__MODULE__{token: token}}
     end
@@ -45,6 +51,29 @@ defmodule K8s.Conn.Auth.Azure do
       {expires_on, _} -> DateTime.from_unix!(expires_on)
       :error -> DateTime.from_iso8601(expires_on)
     end
+  end
+
+  @spec refresh_token(String.t(), String.t(), String.t(), String.t()) :: String.t()
+  defp refresh_token(tenant, refresh_token, client_id, _apiserver_id) do
+    payload =
+      URI.encode_query(%{
+        "client_id" => client_id,
+        "grant_type" => "refresh_token",
+        "refresh_token" => refresh_token
+      })
+
+    {:ok, res} =
+      K8s.Client.MintHTTPProvider.request(
+        :post,
+        URI.new!("https://login.microsoftonline.com/#{tenant}/oauth2/v2.0/token"),
+        payload,
+        %{
+          "Content-Type" => "application/x-www-form-urlencoded"
+        },
+        ssl: []
+      )
+
+    res["access_token"]
   end
 
   defimpl RequestOptions, for: __MODULE__ do

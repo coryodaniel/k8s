@@ -29,6 +29,7 @@ defmodule K8s.Conn.Auth.AzureTest do
               }} = Azure.create(auth, nil)
     end
 
+    @tag :skip
     test "fails when token is expired" do
       expired_unix_ts = DateTime.utc_now() |> DateTime.add(-10, :minute) |> DateTime.to_unix()
 
