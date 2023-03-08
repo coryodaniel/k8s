@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- ### Added | Changed | Deprecated | Removed | Fixed | Security -->
 
+### Added
+- Azure auth provider #225
+
 <!--------------------- Don't add new entries after this line --------------------->
 
 ## [2.1.1] - 2023-03-02
