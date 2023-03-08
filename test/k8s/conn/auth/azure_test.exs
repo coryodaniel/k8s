@@ -28,30 +28,6 @@ defmodule K8s.Conn.Auth.AzureTest do
                 token: "xxx"
               }} = Azure.create(auth, nil)
     end
-
-    @tag :skip
-    test "fails when token is expired" do
-      expired_unix_ts = DateTime.utc_now() |> DateTime.add(-10, :minute) |> DateTime.to_unix()
-
-      auth = %{
-        "auth-provider" => %{
-          "config" => %{
-            "access-token" => "xxx",
-            "apiserver-id" => "service_id",
-            "client-id" => "client_id",
-            "expires-on" => "#{expired_unix_ts}",
-            "refresh-token" => "yyy",
-            "tenant-id" => "tenant"
-          },
-          "name" => "azure"
-        }
-      }
-
-      assert {:error,
-              %K8s.Conn.Error{
-                message: "Azure token expired please refresh manually"
-              }} = Azure.create(auth, nil)
-    end
   end
 
   test "creates http request signing options" do

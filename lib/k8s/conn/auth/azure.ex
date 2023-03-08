@@ -2,7 +2,6 @@ defmodule K8s.Conn.Auth.Azure do
   @moduledoc """
   `auth-provider` for azure
   """
-  alias K8s.Conn.Error
   alias K8s.Conn.RequestOptions
 
   require Logger
@@ -54,7 +53,7 @@ defmodule K8s.Conn.Auth.Azure do
   end
 
   @spec refresh_token(String.t(), String.t(), String.t(), String.t()) :: String.t()
-  defp refresh_token(tenant, refresh_token, client_id, _apiserver_id) do
+  def refresh_token(tenant, refresh_token, client_id, _apiserver_id) do
     payload =
       URI.encode_query(%{
         "client_id" => client_id,
@@ -67,13 +66,16 @@ defmodule K8s.Conn.Auth.Azure do
         :post,
         URI.new!("https://login.microsoftonline.com/#{tenant}/oauth2/v2.0/token"),
         payload,
-        %{
-          "Content-Type" => "application/x-www-form-urlencoded"
-        },
+        [
+          {
+            "Content-Type",
+            "application/x-www-form-urlencoded"
+          }
+        ],
         ssl: []
       )
 
-    res["access_token"]
+    Map.get(res, "access_token")
   end
 
   defimpl RequestOptions, for: __MODULE__ do
