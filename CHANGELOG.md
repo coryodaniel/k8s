@@ -12,7 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- ### Added | Changed | Deprecated | Removed | Fixed | Security -->
 
 ### Added
-- Azure auth provider #225
+
+- `K8s.Conn.Auth.Azure` - Azure auth provider added by @hanspagh - [#162](https://github.com/coryodaniel/k8s/issues/162), [#225](https://github.com/coryodaniel/k8s/issues/225)
 
 <!--------------------- Don't add new entries after this line --------------------->
 
