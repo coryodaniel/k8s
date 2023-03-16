@@ -86,7 +86,9 @@ defmodule K8s.Conn.Auth.Exec do
   @spec generate_token(t) ::
           {:ok, binary} | {:error, Jason.DecodeError.t() | Error.t()}
   def generate_token(config) do
-    with {cmd_response, 0} <- System.cmd(config.command, config.args, env: config.env),
+
+    with args <- config.args || [],
+         {cmd_response, 0} <- System.cmd(config.command, args, env: config.env),
          {:ok, data} <- Jason.decode(cmd_response),
          {:ok, token} when not is_nil(token) <- parse_cmd_response(data) do
       {:ok, token}
