@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- ### Added | Changed | Deprecated | Removed | Fixed | Security -->
 
+### Fixed
+
+- `K8s.Conn.Auth.Exec` - Define default value for `:args` - [#240](https://github.com/coryodaniel/k8s/pull/240)
+
 ### Added
 
 - `K8s.Conn.Auth.Azure` - Azure auth provider added by @hanspagh - [#162](https://github.com/coryodaniel/k8s/issues/162), [#225](https://github.com/coryodaniel/k8s/issues/225)

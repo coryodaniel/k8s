@@ -34,7 +34,7 @@ defmodule K8s.Conn.Auth.Exec do
   alias __MODULE__
   alias K8s.Conn.Error
 
-  defstruct [:command, :env, :args]
+  defstruct [:command, :env, args: []]
 
   @type t :: %__MODULE__{
           command: String.t(),
@@ -46,23 +46,21 @@ defmodule K8s.Conn.Auth.Exec do
   @spec create(map() | any, String.t() | any) :: {:ok, t} | {:error, Error.t()} | :skip
   def create(%{"exec" => %{"command" => command} = config}, _) do
     # Optional:
-    args = Map.get(config, "args", [])
-    env = Map.get(config, "env", [])
+    args = config["args"] |> List.wrap()
+    env = config["env"] |> List.wrap() |> format_env()
 
     {:ok,
      %__MODULE__{
        command: command,
-       env: format_env(env),
+       env: env,
        args: args
      }}
   end
 
   def create(_, _), do: :skip
 
-  @spec format_env(nil | map) :: {binary, any}
-  defp format_env(nil), do: %{}
-  defp format_env(env) when is_list(env), do: Enum.into(env, %{}, &format_env/1)
-  defp format_env(%{"name" => key, "value" => value}), do: {key, value}
+  @spec format_env(list()) :: map()
+  defp format_env(env), do: Map.new(env, &{&1["name"], &1["value"]})
 
   defimpl K8s.Conn.RequestOptions, for: K8s.Conn.Auth.Exec do
     @doc "Generates HTTP Authorization options for auth-provider authentication"
