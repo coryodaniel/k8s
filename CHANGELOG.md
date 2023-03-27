@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!--------------------- Don't add new entries after this line --------------------->
 
+## [1.2.1] - 2023-03-27
+
+### Chores
+
+Several dependency updates. This will be the last update on the 1.x stream.
+
 ## [1.2.0] - 2022-12-07
 
 ### Added
