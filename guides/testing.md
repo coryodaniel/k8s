@@ -81,5 +81,5 @@ test                           Run all tests
 
 ### Integration environment variables
 
-- `TEST_KUBECONFIG` path to kubeconfig file for integration tests, default: "./integration.yaml"
+- `KUBECONFIG` path to kubeconfig file for integration tests, default: "./integration.yaml"
 - `TEST_WAIT_TIMEOUT` number of seconds to timeout running Wait integration tests, default: 5
