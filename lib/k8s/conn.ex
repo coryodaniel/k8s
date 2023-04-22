@@ -1,6 +1,37 @@
 defmodule K8s.Conn do
-  @moduledoc """
-  Handles authentication and connection configuration details for a Kubernetes cluster.
+  @moduledoc ~S"""
+  Handles authentication and connection configuration details for a Kubernetes
+  cluster. The `%K8s.Conn{}` struct is required in order to run any object
+  against the cluster. Use any of the functions defined in this module to create
+  a `%K8s.Conn{}` struct and pass it to the functions of `K8s.Client`.
+
+  ## Example
+
+  ```
+  {:ok, conn} = K8s.Config.from_file("~/.kube/config")
+
+  {:ok, default_ns} =
+    K8s.Client.get("v1", "Namespace", name: "default")
+    |> K8s.Client.put_conn(conn)
+    |> K8s.Client.run()
+  ```
+
+  Alternatively, you can pass `conn` to `K8s.Client.run()`.
+
+  ```
+  {:ok, conn} = K8s.Config.from_file("~/.kube/config")
+  op = K8s.Client.get("v1", "Namespace", name: "default")
+  {:ok, default_ns} = K8s.Client.run(op, conn)
+  ```
+
+  ## Scenarios
+
+  * If your cluster connection is defined in a file, e.g. `~/.kube/config`, use
+    `K8s.Conn.from_file/2`.
+  * If running in a pod inside the cluster you're connecting to, use
+    `K8s.Conn.from_service_account/2`
+  * If an environment variable points to a config file, use
+    `K8s.Conn.from_env/2`
   """
 
   alias __MODULE__
@@ -9,6 +40,7 @@ defmodule K8s.Conn do
   require Logger
 
   @default_service_account_path "/var/run/secrets/kubernetes.io/serviceaccount"
+  @default_env_variable "KUBECONFIG"
 
   @auth_providers [
     K8s.Conn.Auth.Certificate,
@@ -31,7 +63,7 @@ defmodule K8s.Conn do
             http_provider: K8s.default_http_provider(),
             cacertfile: K8s.default_cacertfile()
 
-  @typedoc """
+  @typedoc ~S"""
   * `cluster_name` - The cluster name if read from a kubeconfig file
   * `user_name` - The user name if read from a kubeconfig file
   * `url` - The Kubernetes API URL
@@ -50,18 +82,41 @@ defmodule K8s.Conn do
           cacertfile: String.t()
         }
 
-  @doc """
+  @doc ~S"""
   Reads configuration details from a kubernetes config file.
 
-  Defaults to `current-context`.
+  If you run your code on your machine, you most likely have a config file at
+  `~/.kube/config`. If you created a local cluster using `kind`, `k3d` or
+  similar, a context entry is either added to that config file or you saved it
+  to a specific location upon cluster creation. Either way, this function reads
+  the config from any of these files.
+
+  ### Example
+
+  Using the currently selected context:
+
+  ```
+  {:ok, conn} = K8s.Config.from_file("~/.kube/config")
+  ```
+
+  Pass the context and allow insecure TLS verification :
+
+  ```
+  {:ok, conn} =
+    K8s.Config.from_file("~/.kube/config",
+      context: "my-kind-cluster",
+      insecure_skip_tls_verify: true
+    )
+  ```
 
   ### Options
 
-  * `context` sets an alternate context
-  * `cluster` set or override the cluster read from the context
-  * `user` set or override the user read from the context
-  * `discovery_driver` module name to use for discovery
-  * `discovery_opts` options for discovery module
+  * `:context` - sets an alternate context - defaults to `current-context`.
+  * `:cluster` - set or override the cluster read from the context
+  * `:user`-  set or override the user read from the context
+  * `:discovery_driver` - module name to use for discovery
+  * `:discovery_opts` - options for discovery module
+  * `:insecure_skip_tls_verify` - Skip TLS verification
   """
   @spec from_file(binary, keyword) ::
           {:ok, __MODULE__.t()} | {:error, :enoent | K8s.Conn.Error.t()}
@@ -76,9 +131,10 @@ defmodule K8s.Conn do
          {:ok, user} <- find_configuration(config["users"], user_name, "user"),
          cluster_name <- opts[:cluster] || context["cluster"],
          {:ok, cluster} <- find_configuration(config["clusters"], cluster_name, "cluster"),
-         insecure_skip_tls_verify <-
-           Keyword.get(opts, :insecure_skip_tls_verify, cluster["insecure-skip-tls-verify"]),
          {:ok, cert} <- PKI.cert_from_map(cluster, base_path) do
+      insecure_skip_tls_verify =
+        Keyword.get(opts, :insecure_skip_tls_verify, cluster["insecure-skip-tls-verify"])
+
       conn = %Conn{
         cluster_name: cluster_name,
         user_name: user_name,
@@ -88,38 +144,62 @@ defmodule K8s.Conn do
         insecure_skip_tls_verify: insecure_skip_tls_verify
       }
 
-      {:ok, maybe_update_defaults(conn, config)}
+      {:ok, maybe_update_defaults(conn, opts)}
     else
       error -> error
     end
   end
 
-  @doc """
-  Generates configuration from kubernetes service account.
+  @doc ~S"""
+  Generates the configuration from a Kubernetes service account.
 
-  ## Links
+  This is used when running in a Pod inside the cluster you're accessing. Make
+  sure to setup RBAC for the service account running the Pod.
 
-  [kubernetes.io :: Accessing the API from a Pod](https://kubernetes.io/docs/tasks/access-application-cluster/access-cluster/#accessing-the-api-from-a-pod)
+  Documentation: [kubernetes.io :: Accessing the API from a
+  Pod](https://kubernetes.io/docs/tasks/access-application-cluster/access-cluster/#accessing-the-api-from-a-pod)
+
+  ### Options
+
+  * `:insecure_skip_tls_verify` - Skip TLS verification
+
+  ### Example
+
+  Using the currently selected context:
+
+  ```
+  {:ok, conn} = K8s.Config.from_service_account()
+  ```
+
+  You can set a specific path to the service account token file:
+
+  ```
+  {:ok, conn} =
+    K8s.Config.from_service_account("/path/to/token",
+      insecure_skip_tls_verify: true
+    )
+  ```
+
+  Allow insecure TLS verification:
+
+  ```
+  {:ok, conn} =
+    K8s.Config.from_service_account(
+      insecure_skip_tls_verify: true
+    )
+  ```
+
+  ```
+  {:ok, conn} =
+    K8s.Config.from_service_account(
+      "/path/to/token",
+      insecure_skip_tls_verify: true
+    )
+  ```
   """
-  @spec from_service_account() ::
-          {:ok, t()} | {:error, :enoent | K8s.Conn.Error.t()}
-  def from_service_account do
-    from_service_account(@default_service_account_path, [])
-  end
-
-  @spec from_service_account(opts_or_sa_path :: String.t() | Keyword.t()) ::
-          {:ok, t()} | {:error, :enoent | K8s.Conn.Error.t()}
-  def from_service_account(opts) when is_list(opts) do
-    from_service_account(@default_service_account_path, opts)
-  end
-
-  def from_service_account(service_account_path) when is_binary(service_account_path) do
-    from_service_account(service_account_path, [])
-  end
-
   @spec from_service_account(service_account_path :: String.t(), opts :: Keyword.t()) ::
           {:ok, t()} | {:error, :enoent | K8s.Conn.Error.t()}
-  def from_service_account(service_account_path, opts \\ []) do
+  def from_service_account(service_account_path, opts) do
     cert_path = Path.join(service_account_path, "ca.crt")
     token_path = Path.join(service_account_path, "token")
     insecure_skip_tls_verify = Keyword.get(opts, :insecure_skip_tls_verify, false)
@@ -139,6 +219,78 @@ defmodule K8s.Conn do
     end
   end
 
+  @doc false
+  @spec from_service_account(opts_or_sa_path :: String.t() | Keyword.t()) ::
+          {:ok, t()} | {:error, :enoent | K8s.Conn.Error.t()}
+  def from_service_account(opts) when is_list(opts) do
+    from_service_account(@default_service_account_path, opts)
+  end
+
+  @doc false
+  def from_service_account(service_account_path) when is_binary(service_account_path) do
+    from_service_account(service_account_path, [])
+  end
+
+  @doc false
+  @spec from_service_account() ::
+          {:ok, t()} | {:error, :enoent | K8s.Conn.Error.t()}
+  def from_service_account do
+    from_service_account(@default_service_account_path, [])
+  end
+
+  @doc ~S"""
+  Generates the configuration from a file whose location is defined by the
+  given `env_var`. Defaults to `KUBECONFIG`.
+
+  ### Options
+
+  See `from_file/2`.
+
+  ### Examples
+
+  if `KUBECONFIG` is set:
+
+  ```
+  {:ok, conn} = K8s.Config.from_env()
+  ```
+
+  Pass the env variable name:
+
+  ```
+  {:ok, conn} = K8s.Config.from_env("TEST_KUBECONFIG")
+  ```
+
+  Pass the env variable name and options:
+
+  ```
+  {:ok, conn} = K8s.Config.from_env("TEST_KUBECONFIG", insecure_skip_tls_verify: true)
+  ```
+  """
+  @spec from_env(env_variable :: binary(), opts :: keyword()) ::
+          {:ok, t()} | {:error, :enoent | K8s.Conn.Error.t()}
+  def from_env(env_variable, opts) do
+    case System.get_env(env_variable) do
+      nil ->
+        {:error, %K8s.Conn.Error{message: ~s(Env variable "#{env_variable}" not found)}}
+
+      config_file ->
+        from_file(config_file, opts)
+    end
+  end
+
+  @doc false
+  @spec from_env(opts :: binary() | keyword()) ::
+          {:ok, t()} | {:error, :enoent | K8s.Conn.Error.t()}
+  def from_env(env_var_or_opts) when is_list(env_var_or_opts),
+    do: from_env(@default_env_variable, env_var_or_opts)
+
+  @doc false
+  def from_env(env_var_or_opts) when is_binary(env_var_or_opts), do: from_env(env_var_or_opts, [])
+
+  @doc false
+  @spec from_env() :: {:ok, t()} | {:error, :enoent | K8s.Conn.Error.t()}
+  def from_env, do: from_env(@default_env_variable, [])
+
   @spec find_configuration([map()], String.t(), String.t()) ::
           {:ok, map()} | {:error, K8s.Conn.Error.t()}
   defp find_configuration(items, name, type) do
@@ -155,15 +307,9 @@ defmodule K8s.Conn do
     end
   end
 
-  @spec maybe_update_defaults(Conn.t(), map()) :: Conn.t()
-  defp maybe_update_defaults(%Conn{} = conn, config) do
-    defaults = [:discovery_driver, :discovery_opts, :http_provider]
-
-    Enum.reduce(defaults, conn, fn k, conn ->
-      conn_value = Map.get(conn, k)
-      config_value = Map.get(config, k)
-      %{conn | k => config_value || conn_value}
-    end)
+  @spec maybe_update_defaults(Conn.t(), keyword()) :: Conn.t()
+  defp maybe_update_defaults(conn, opts) do
+    struct!(conn, Keyword.take(opts, [:discovery_driver, :discovery_opts, :http_provider]))
   end
 
   @doc false

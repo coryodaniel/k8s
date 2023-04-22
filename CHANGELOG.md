@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- ### Added | Changed | Deprecated | Removed | Fixed | Security -->
 
+### Added
+
+- `K8s.Conn.from_env/2` - Generates configuration from a file defined by an env variable. - [#251](https://github.com/coryodaniel/k8s/pull/251)
+- `K8s.Conn` - Better hexdocs
+
 <!--------------------- Don't add new entries after this line --------------------->
 
 ## [2.2.0] - 2023-03-27

@@ -1,6 +1,6 @@
 # Connections (`K8s.Conn`)
 
-A connection (`K8s.Conn`) is the encapsulation of cluster information and authentication. They can be built using two helper functions (`K8s.Conn.from_file/2`, `K8s.Conn.from_service_account/1`) or by programmatically.
+A connection (`K8s.Conn`) is the encapsulation of cluster information and authentication. They can be built using two helper functions (`K8s.Conn.from_file/2`, `K8s.Conn.from_service_account/2`) or by programmatically.
 
 ## Building Connections
 
@@ -14,7 +14,7 @@ There are a few helper functions for creating `K8s.Conn`s, but they can also be 
 {:ok, conn} = K8s.Conn.from_file("/path/to/kube/config", context: "your-context-name-here")
 ```
 
-**Using `K8s.Conn.from_service_account/1`:**
+**Using `K8s.Conn.from_service_account/2`:**
 
 If a path isn't provided for the service account, the default path is used `/var/run/secrets/kubernetes.io/serviceaccount`.
 
