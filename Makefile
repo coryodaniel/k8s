@@ -35,32 +35,32 @@ integration.kind.yaml:
 .PHONY: integration.k3d
 integration.k3d: integration.k3d.yaml
 integration.k3d: ## Run integration tests using k3d `make cluster`
-	TEST_WAIT_TIMEOUT=1000 TEST_KUBECONFIG=${K3D_KUBECONFIG_PATH} mix test --only integration
+	TEST_WAIT_TIMEOUT=1000 KUBECONFIG=${K3D_KUBECONFIG_PATH} mix test --only integration
 
 .PHONY: integration.kind
 integration.kind: integration.kind.yaml
 integration.kind: ## Run integration tests using k3d `make cluster`
-	TEST_WAIT_TIMEOUT=1000 TEST_KUBECONFIG=${KIND_KUBECONFIG_PATH} mix test --only integration
+	TEST_WAIT_TIMEOUT=1000 KUBECONFIG=${KIND_KUBECONFIG_PATH} mix test --only integration
 
 .PHONY: test.k3d
 test.k3d: integration.k3d.yaml
 test.k3d: ## Run integration tests using k3d `make cluster`
-	TEST_WAIT_TIMEOUT=1000 TEST_KUBECONFIG=${K3D_KUBECONFIG_PATH} mix test --include integration
+	TEST_WAIT_TIMEOUT=1000 KUBECONFIG=${K3D_KUBECONFIG_PATH} mix test --include integration
 
 .PHONY: test.kind
 test.kind: integration.kind.yaml
 test.kind: ## Run integration tests using k3d `make cluster`
-	TEST_WAIT_TIMEOUT=1000 TEST_KUBECONFIG=${KIND_KUBECONFIG_PATH} mix test --include integration
+	TEST_WAIT_TIMEOUT=1000 KUBECONFIG=${KIND_KUBECONFIG_PATH} mix test --include integration
 
 .PHONY: test.k3d.watch
 test.k3d.watch: integration.k3d.yaml
 test.k3d.watch: ## Run all tests with mix.watch
-	TEST_KUBECONFIG=${K3D_KUBECONFIG_PATH} mix test.watch --include integration
+	KUBECONFIG=${K3D_KUBECONFIG_PATH} mix test.watch --include integration
 
 .PHONY: test.kind.watch
 test.kind.watch: integration.kind.yaml
 test.kind.watch: ## Run all tests with mix.watch
-	TEST_KUBECONFIG=${KIND_KUBECONFIG_PATH} mix test.watch --include integration
+	KUBECONFIG=${KIND_KUBECONFIG_PATH} mix test.watch --include integration
 
 .PHONY: create.k3d
 create.k3d: ## Created k3d cluster

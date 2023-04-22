@@ -78,6 +78,42 @@ defmodule K8s.ConnTest do
       assert conn.auth.key
     end
 
+    test "using an alternate discovery_driver" do
+      {:ok, conn} = K8s.Conn.from_file("test/support/kube-config.yaml")
+      assert K8s.Discovery.Driver.File = conn.discovery_driver
+
+      {:ok, conn} =
+        K8s.Conn.from_file("test/support/kube-config.yaml",
+          discovery_driver: K8s.Discovery.Driver.HTTP
+        )
+
+      assert K8s.Discovery.Driver.HTTP = conn.discovery_driver
+    end
+
+    test "using an alternate http_provider" do
+      {:ok, conn} = K8s.Conn.from_file("test/support/kube-config.yaml")
+      assert K8s.Client.DynamicHTTPProvider = conn.http_provider
+
+      {:ok, conn} =
+        K8s.Conn.from_file("test/support/kube-config.yaml",
+          http_provider: K8s.Client.MintHTTPProvider
+        )
+
+      assert K8s.Client.MintHTTPProvider = conn.http_provider
+    end
+
+    test "using alternate discovery_opts" do
+      {:ok, conn} = K8s.Conn.from_file("test/support/kube-config.yaml")
+      assert [config: "test/support/discovery/example.json"] = conn.discovery_opts
+
+      {:ok, conn} =
+        K8s.Conn.from_file("test/support/kube-config.yaml",
+          discovery_opts: :foo
+        )
+
+      assert :foo = conn.discovery_opts
+    end
+
     test "loading a token user" do
       {:ok, conn} = K8s.Conn.from_file("test/support/kube-config.yaml", user: "token-user")
       assert %Token{} = conn.auth
@@ -100,7 +136,7 @@ defmodule K8s.ConnTest do
     end
   end
 
-  describe "use_service_account/1" do
+  describe "from_service_account/2" do
     test "builds a Conn from a directory of serviceaccount related files" do
       System.put_env("KUBERNETES_SERVICE_HOST", "kewlhost")
       System.put_env("KUBERNETES_SERVICE_PORT", "1337")
@@ -112,6 +148,13 @@ defmodule K8s.ConnTest do
       assert conn.url == "https://kewlhost:1337"
       assert conn.ca_cert
       assert conn.auth.token
+    end
+  end
+
+  describe "from_env/2" do
+    test "returns error if env var does not exist" do
+      assert {:error, error} = K8s.Conn.from_env("NON_EXISTENT")
+      assert Exception.message(error) =~ "not declared"
     end
   end
 
