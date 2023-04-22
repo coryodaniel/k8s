@@ -151,6 +151,13 @@ defmodule K8s.ConnTest do
     end
   end
 
+  describe "from_env/2" do
+    test "returns error if env var does not exist" do
+      assert {:error, error} = K8s.Conn.from_env("NON_EXISTENT")
+      assert Exception.message(error) =~ "not declared"
+    end
+  end
+
   describe "generating RequestOptions" do
     test "generates headers for the given auth provider" do
       opts = [user: "token-user", cluster: "insecure-cluster"]

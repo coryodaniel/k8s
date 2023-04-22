@@ -271,7 +271,7 @@ defmodule K8s.Conn do
   def from_env(env_variable, opts) do
     case System.get_env(env_variable) do
       nil ->
-        {:error, %K8s.Conn.Error{message: ~s(Env variable "#{env_variable}" not found)}}
+        {:error, %K8s.Conn.Error{message: ~s(Env variable "#{env_variable}" not declared)}}
 
       config_file ->
         from_file(config_file, opts)
