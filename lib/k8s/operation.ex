@@ -30,6 +30,21 @@ defmodule K8s.Operation do
     apply: "application/apply-patch+yaml"
   }
 
+  @exec_default_params [stdin: true, stdout: true, stderr: true, tty: false]
+  @exec_allowed_connect_params [:stdin, :stdout, :stderr, :tty, :command, :container]
+
+  @log_allowed_connect_params [
+    :container,
+    :follow,
+    :insecureSkipTLSVerifyBackend,
+    :limitBytes,
+    :pretty,
+    :previous,
+    :sinceSeconds,
+    :tailLines,
+    :timestamps
+  ]
+
   defstruct method: nil,
             verb: nil,
             api_version: nil,
@@ -192,6 +207,7 @@ defmodule K8s.Operation do
     )
   end
 
+  # credo:disable-for-next-line Credo.Check.Refactor.CyclomaticComplexity
   def build(verb, api_version, name_or_kind, path_params, data, opts) do
     http_method = @verb_map[verb] || verb
     patch_type = Keyword.get(opts, :patch_type, :not_set)
@@ -204,17 +220,19 @@ defmodule K8s.Operation do
 
     query_params =
       cond do
-        verb === :patch && patch_type === :apply ->
+        verb === :patch and patch_type === :apply ->
           [
             fieldManager: Keyword.get(opts, :field_manager, "elixir"),
             force: Keyword.get(opts, :force, true)
           ]
 
-        verb === :connect ->
-          [stdin: true, stdout: true, stderr: true, tty: false]
-          |> Keyword.merge(
-            Keyword.take(opts, [:stdin, :stdout, :stderr, :tty, :command, :container])
-          )
+        verb === :connect and name_or_kind === "pods/exec" ->
+          @exec_default_params
+          |> Keyword.merge(opts)
+          |> Keyword.take(@exec_allowed_connect_params)
+
+        verb === :connect and name_or_kind === "pods/log" ->
+          Keyword.take(opts, @log_allowed_connect_params)
 
         true ->
           []

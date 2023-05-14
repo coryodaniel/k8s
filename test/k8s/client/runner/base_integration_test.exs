@@ -257,7 +257,7 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
     end
 
     @tag :integration
-    test "creating a operation without correct kind `pod/exec` should return an error", %{
+    test "creating a operation without correct kind should return an error", %{
       conn: conn
     } do
       operation =
@@ -271,7 +271,7 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
 
   @tag :integration
   @tag :websocket
-  test "runs :connect operations and returns stdout", %{
+  test "runs :connect operations for pods/exec and returns stdout", %{
     conn: conn,
     labels: labels,
     test_id: test_id
@@ -301,6 +301,42 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
       |> K8s.Client.run()
 
     assert response.stdout =~ "ok"
+  end
+
+  @tag :integration
+  @tag :websocket
+  @tail_lines 5
+  test "runs :connect operations for pods/log and returns stdout", %{
+    conn: conn,
+    labels: labels,
+    test_id: test_id
+  } do
+    {:ok, created_pod} =
+      build_pod("k8s-ex-#{test_id}", labels)
+      |> K8s.Client.create()
+      |> K8s.Client.put_conn(conn)
+      |> K8s.Client.run()
+
+    {:ok, _} =
+      K8s.Client.wait_until(conn, K8s.Client.get(created_pod),
+        find: ["status", "containerStatuses", Access.filter(&(&1["ready"] == true))],
+        eval: &match?([_ | _], &1),
+        timeout: 60
+      )
+
+    {:ok, response} =
+      K8s.Client.connect(
+        created_pod["apiVersion"],
+        "pods/log",
+        [namespace: K8s.Resource.namespace(created_pod), name: K8s.Resource.name(created_pod)],
+        tailLines: @tail_lines
+      )
+      |> K8s.Client.put_conn(conn)
+      |> K8s.Client.run()
+
+    assert String.printable?(response.stdout)
+    lines = String.split(response.stdout, "\n", trim: true)
+    assert @tail_lines == length(lines)
   end
 
   @tag :integration
