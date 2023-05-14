@@ -306,7 +306,7 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
   @tag :integration
   @tag :websocket
   @tag :wip
-  @tailLines 5
+  @tail_lines 5
   test "runs :connect operations for pods/log and returns stdout", %{
     conn: conn,
     labels: labels,
@@ -330,14 +330,14 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
         created_pod["apiVersion"],
         "pods/log",
         [namespace: K8s.Resource.namespace(created_pod), name: K8s.Resource.name(created_pod)],
-        tailLines: @tailLines
+        tailLines: @tail_lines
       )
       |> K8s.Client.put_conn(conn)
       |> K8s.Client.run()
 
     assert String.printable?(response.stdout)
     lines = String.split(response.stdout, "\n", trim: true)
-    assert @tailLines == length(lines)
+    assert @tail_lines == length(lines)
   end
 
   @tag :integration

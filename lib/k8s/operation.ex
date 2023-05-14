@@ -30,6 +30,22 @@ defmodule K8s.Operation do
     apply: "application/apply-patch+yaml"
   }
 
+  @allowed_connect_params [
+    :command,
+    :container,
+    :follow,
+    :limitBytes,
+    :pretty,
+    :previous,
+    :sinceSeconds,
+    :stderr,
+    :stdin,
+    :stdout,
+    :tailLines,
+    :timestamps,
+    :tty
+  ]
+
   defstruct method: nil,
             verb: nil,
             api_version: nil,
@@ -212,9 +228,7 @@ defmodule K8s.Operation do
 
         verb === :connect ->
           [stdin: true, stdout: true, stderr: true, tty: false]
-          |> Keyword.merge(
-            Keyword.take(opts, [:stdin, :stdout, :stderr, :tty, :command, :container])
-          )
+          |> Keyword.merge(Keyword.take(opts, @allowed_connect_params))
 
         true ->
           []
