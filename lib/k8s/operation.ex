@@ -30,20 +30,19 @@ defmodule K8s.Operation do
     apply: "application/apply-patch+yaml"
   }
 
-  @allowed_connect_params [
-    :command,
+  @exec_default_params [stdin: true, stdout: true, stderr: true, tty: false]
+  @exec_allowed_connect_params [:stdin, :stdout, :stderr, :tty, :command, :container]
+
+  @log_allowed_connect_params [
     :container,
     :follow,
+    :insecureSkipTLSVerifyBackend,
     :limitBytes,
     :pretty,
     :previous,
     :sinceSeconds,
-    :stderr,
-    :stdin,
-    :stdout,
     :tailLines,
-    :timestamps,
-    :tty
+    :timestamps
   ]
 
   defstruct method: nil,
@@ -226,9 +225,13 @@ defmodule K8s.Operation do
             force: Keyword.get(opts, :force, true)
           ]
 
-        verb === :connect ->
-          [stdin: true, stdout: true, stderr: true, tty: false]
-          |> Keyword.merge(Keyword.take(opts, @allowed_connect_params))
+        verb === :connect and name_or_kind == "pods/exec" ->
+          @exec_default_params
+          |> Keyword.merge(opts)
+          |> Keyword.take(@exec_allowed_connect_params)
+
+        verb === :connect and name_or_kind == "pods/log" ->
+          Keyword.take(opts, @log_allowed_connect_params)
 
         true ->
           []

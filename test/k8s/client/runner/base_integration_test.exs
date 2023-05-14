@@ -257,7 +257,7 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
     end
 
     @tag :integration
-    test "creating a operation without correct kind `pod/exec` should return an error", %{
+    test "creating a operation without correct kind should return an error", %{
       conn: conn
     } do
       operation =
@@ -305,7 +305,6 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
 
   @tag :integration
   @tag :websocket
-  @tag :wip
   @tail_lines 5
   test "runs :connect operations for pods/log and returns stdout", %{
     conn: conn,
