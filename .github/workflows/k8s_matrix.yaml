@@ -12,7 +12,7 @@ jobs:
     strategy:
       matrix:
         k8s_version: [v1.22.17, v1.23.17, v1.24.12, v1.25.8, v1.26.3, v1.27.1]
-        otp: [26.x]
+        otp: [25.x]
         elixir: [1.14.x]
     steps:
       - uses: engineerd/setup-kind@v0.5.0
