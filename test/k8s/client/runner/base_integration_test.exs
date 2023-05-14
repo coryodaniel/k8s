@@ -336,7 +336,7 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
       |> K8s.Client.run()
 
     assert String.printable?(response.stdout)
-    lines = String.split(response.stdout)
+    lines = String.split(response.stdout, "\n", trim: true)
     assert @tailLines == length(lines)
   end
 
