@@ -207,6 +207,7 @@ defmodule K8s.Operation do
     )
   end
 
+  # credo:disable-for-next-line Credo.Check.Refactor.CyclomaticComplexity
   def build(verb, api_version, name_or_kind, path_params, data, opts) do
     http_method = @verb_map[verb] || verb
     patch_type = Keyword.get(opts, :patch_type, :not_set)
@@ -219,18 +220,18 @@ defmodule K8s.Operation do
 
     query_params =
       cond do
-        verb === :patch && patch_type === :apply ->
+        verb === :patch and patch_type === :apply ->
           [
             fieldManager: Keyword.get(opts, :field_manager, "elixir"),
             force: Keyword.get(opts, :force, true)
           ]
 
-        verb === :connect and name_or_kind == "pods/exec" ->
+        verb === :connect and name_or_kind === "pods/exec" ->
           @exec_default_params
           |> Keyword.merge(opts)
           |> Keyword.take(@exec_allowed_connect_params)
 
-        verb === :connect and name_or_kind == "pods/log" ->
+        verb === :connect and name_or_kind === "pods/log" ->
           Keyword.take(opts, @log_allowed_connect_params)
 
         true ->
