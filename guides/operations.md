@@ -177,11 +177,12 @@ conn
 |> Enum.into([])
 ```
 
-## Connect to pods and execute commands
+## Connect to `pods/exec` subresource and execute commands
 
-The `:connect` operation is used to connect to pods and execute commands.
-A `:connect` operation is created with `K8s.Client.connect/N`. Be sure to pass
-the command you want to run in the options.
+Use the `:connect` operation to connect to the `pods/exec` subresource and
+execute commands. A `:connect` operation is created with `K8s.Client.connect/N`.
+When connecting to `pods/exec`, be sure to pass the command you want to run in
+the options.
 
 ### Waiting for command termination
 
@@ -262,4 +263,40 @@ commands). See the example below.
   )
 
   {:ok, response} = K8s.Client.run(conn, op)
+```
+
+## Connect to `pods/log` subresource to read logs from Pods
+
+Use the `:connect` operation to connect to the `pods/log` subresource. A
+`:connect` operation is created with `K8s.Client.connect/N`.
+
+### Options
+
+Refer to the [Kubernetes
+documentation](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#read-log-pod-v1-core)
+for documentation on these options.
+
+- `container`
+- `follow` - Use with `K8s.Client.stream/N` or `K8s.Client.stream_to/N`.
+- `insecureSkipTLSVerifyBackend`
+- `limitBytes`
+- `pretty`
+- `previous`
+- `sinceSeconds`
+- `tailLines`
+- `timestamps`
+
+```elixir
+  {:ok, conn} = K8s.Conn.from_file("~/.kube/config")
+
+  {:ok, stream} = K8s.Client.connect(
+    "v1",
+    "pods/log",
+    [namespace: "default", name: "nginx-8f458dc5b-zwmkb"],
+    command: ["/bin/sh", "-c", "nginx -t"],
+    container: "main",
+    follow: true
+  )
+  |> K8s.Client.put_conn(conn)
+  |> K8s.Client.stream()
 ```
