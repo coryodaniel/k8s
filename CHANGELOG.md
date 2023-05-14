@@ -11,13 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- ### Added | Changed | Deprecated | Removed | Fixed | Security -->
 
+<!--------------------- Don't add new entries after this line --------------------->
+
+## [2.3.0] - 2023-05-14
+
 ### Added
 
 - `K8s.Client.connect/4` - Support connecting to `pods/log` subresource. - [#254](https://github.com/coryodaniel/k8s/issues/254), [#255](https://github.com/coryodaniel/k8s/issues/255)
 - `K8s.Conn.from_env/2` - Generates configuration from a file defined by an env variable. - [#251](https://github.com/coryodaniel/k8s/pull/251)
 - `K8s.Conn` - Better hexdocs
-
-<!--------------------- Don't add new entries after this line --------------------->
 
 ## [2.2.0] - 2023-03-27
 
