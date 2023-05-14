@@ -132,7 +132,7 @@ defmodule K8s.Client.Mint.Request do
   def map_frame({:binary, <<1, msg::binary>>}), do: {:stdout, msg}
   def map_frame({:binary, <<2, msg::binary>>}), do: {:stderr, msg}
   def map_frame({:binary, <<3, msg::binary>>}), do: {:error, msg}
-  def map_frame({:binary, <<msg::binary>>}), do: {:stdout, msg}
+  def map_frame({:binary, msg}), do: {:stdout, msg}
 
   @spec map_outgoing_frame({:stdin, binary()} | {:close, integer(), binary()} | :close | :exit) ::
           {:ok, :close | {:text, binary} | {:close, integer(), binary()}}
