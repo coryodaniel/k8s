@@ -64,7 +64,7 @@ To see advanced examples of usage, check out these examples in the test suite:
 
 - [client/runner/base](../test/k8s/client/runner/base_test.exs)
 - [client/runner/stream](../test/k8s/client/runner/stream_test.exs)
-- [client/runner/watch](../test/k8s/client/runner/watch_test.exs)
+- [client/runner/watch](../test/k8s/client/runner/stream/watch_test.exs)
 - [discovery](../test/k8s/discovery_test.exs)
 
 ## Integration Testing
