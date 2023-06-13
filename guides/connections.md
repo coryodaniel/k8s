@@ -6,6 +6,22 @@ A connection (`K8s.Conn`) is the encapsulation of cluster information and authen
 
 There are a few helper functions for creating `K8s.Conn`s, but they can also be created by using a struct.
 
+**Using `K8s.Conn.from_env/2`:**
+
+`K8s.Conn.from_env/2` takes an env variable name as binary (defaults to `KUBECONFIG`). Bonny reads its value and forwards the call to `K8s.Conn.from_file/2`.
+The options passed as second argument are the same as for `K8s.Conn.from_file/2`.
+
+```elixir
+# Reads KUBECONFIG env varable:
+{:ok, conn} = K8s.Conn.from_env()
+```
+
+To pass the env variable explicitely and specify options:
+
+```elixir
+{:ok, conn} = K8s.Conn.from_env("K8S_CONFIG_FILE", insecure_skip_tls_verify: true)
+```
+
 **Using `K8s.Conn.from_file/2`:**
 
 `K8s.Conn.from_file/2` accepts a keyword list as the second argument for selecting a `cluster`, `user`, and/or `context` from your kubeconfig file.

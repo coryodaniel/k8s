@@ -8,7 +8,7 @@ defmodule K8s.Conn do
   ## Example
 
   ```
-  {:ok, conn} = K8s.Config.from_file("~/.kube/config")
+  {:ok, conn} = K8s.Conn.from_file("~/.kube/config")
 
   {:ok, default_ns} =
     K8s.Client.get("v1", "Namespace", name: "default")
@@ -19,7 +19,7 @@ defmodule K8s.Conn do
   Alternatively, you can pass `conn` to `K8s.Client.run()`.
 
   ```
-  {:ok, conn} = K8s.Config.from_file("~/.kube/config")
+  {:ok, conn} = K8s.Conn.from_file("~/.kube/config")
   op = K8s.Client.get("v1", "Namespace", name: "default")
   {:ok, default_ns} = K8s.Client.run(op, conn)
   ```
@@ -96,14 +96,14 @@ defmodule K8s.Conn do
   Using the currently selected context:
 
   ```
-  {:ok, conn} = K8s.Config.from_file("~/.kube/config")
+  {:ok, conn} = K8s.Conn.from_file("~/.kube/config")
   ```
 
   Pass the context and allow insecure TLS verification :
 
   ```
   {:ok, conn} =
-    K8s.Config.from_file("~/.kube/config",
+    K8s.Conn.from_file("~/.kube/config",
       context: "my-kind-cluster",
       insecure_skip_tls_verify: true
     )
@@ -168,14 +168,14 @@ defmodule K8s.Conn do
   Using the currently selected context:
 
   ```
-  {:ok, conn} = K8s.Config.from_service_account()
+  {:ok, conn} = K8s.Conn.from_service_account()
   ```
 
   You can set a specific path to the service account token file:
 
   ```
   {:ok, conn} =
-    K8s.Config.from_service_account("/path/to/token",
+    K8s.Conn.from_service_account("/path/to/token",
       insecure_skip_tls_verify: true
     )
   ```
@@ -184,14 +184,14 @@ defmodule K8s.Conn do
 
   ```
   {:ok, conn} =
-    K8s.Config.from_service_account(
+    K8s.Conn.from_service_account(
       insecure_skip_tls_verify: true
     )
   ```
 
   ```
   {:ok, conn} =
-    K8s.Config.from_service_account(
+    K8s.Conn.from_service_account(
       "/path/to/token",
       insecure_skip_tls_verify: true
     )
@@ -251,19 +251,19 @@ defmodule K8s.Conn do
   if `KUBECONFIG` is set:
 
   ```
-  {:ok, conn} = K8s.Config.from_env()
+  {:ok, conn} = K8s.Conn.from_env()
   ```
 
   Pass the env variable name:
 
   ```
-  {:ok, conn} = K8s.Config.from_env("TEST_KUBECONFIG")
+  {:ok, conn} = K8s.Conn.from_env("TEST_KUBECONFIG")
   ```
 
   Pass the env variable name and options:
 
   ```
-  {:ok, conn} = K8s.Config.from_env("TEST_KUBECONFIG", insecure_skip_tls_verify: true)
+  {:ok, conn} = K8s.Conn.from_env("TEST_KUBECONFIG", insecure_skip_tls_verify: true)
   ```
   """
   @spec from_env(env_variable :: binary(), opts :: keyword()) ::
