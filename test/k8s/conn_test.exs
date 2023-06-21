@@ -167,7 +167,7 @@ defmodule K8s.ConnTest do
                RequestOptions.generate(conn)
 
       assert [Authorization: _bearer_token] = headers
-      assert [verify: :verify_none, cacertfile: '/etc/ssl/cert.pem'] = ssl_options
+      assert [verify: :verify_none, cacertfile: ~c"/etc/ssl/cert.pem"] = ssl_options
     end
 
     test "generates ssl_options for the given auth provider" do
@@ -179,7 +179,7 @@ defmodule K8s.ConnTest do
 
       assert headers == []
 
-      assert [cert: _, key: _, verify: :verify_none, cacertfile: '/etc/ssl/cert.pem'] =
+      assert [cert: _, key: _, verify: :verify_none, cacertfile: ~c"/etc/ssl/cert.pem"] =
                ssl_options
     end
 
@@ -203,7 +203,7 @@ defmodule K8s.ConnTest do
 
       assert headers == []
 
-      assert [cert: _, key: _, verify: :verify_none, cacertfile: '/etc/ssl/cert.pem'] =
+      assert [cert: _, key: _, verify: :verify_none, cacertfile: ~c"/etc/ssl/cert.pem"] =
                ssl_options
     end
   end

@@ -15,8 +15,6 @@ jobs:
     strategy:
       matrix:
         k8s_version: [v1.27.1]
-        elixir: [1.14.x]
-        otp: [26.x]
     steps:
       - uses: actions/checkout@v3.5.3
 
@@ -29,8 +27,10 @@ jobs:
       - name: Setup elixir
         uses: erlef/setup-beam@v1
         with:
-          elixir-version: ${{matrix.elixir}}
-          otp-version: ${{matrix.otp}}
+          version-file: .tool-versions
+          version-type: strict
+          install-rebar: true
+          install-hex: true
 
       - name: Retrieve Build Cache
         uses: actions/cache@v3

@@ -12,8 +12,6 @@ jobs:
     strategy:
       matrix:
         k8s_version: [v1.22.17, v1.23.17, v1.24.12, v1.25.8, v1.26.3, v1.27.1]
-        otp: [26.x]
-        elixir: [1.14.x]
     steps:
       - uses: engineerd/setup-kind@v0.5.0
         id: kind
@@ -23,22 +21,24 @@ jobs:
       - uses: actions/checkout@v3.5.3
       - uses: erlef/setup-beam@v1
         with:
-          otp-version: ${{matrix.otp}}
-          elixir-version: ${{matrix.elixir}}
+          version-file: .tool-versions
+          version-type: strict
+          install-rebar: true
+          install-hex: true
 
       - name: Retrieve Build Cache
         uses: actions/cache@v3
         id: build-folder-cache
         with:
           path: _build
-          key: ${{ runner.os }}-${{ matrix.otp }}-${{ matrix.elixir }}-build-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
+          key: ${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-build-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
 
       - name: Retrieve Mix Dependencies Cache
         uses: actions/cache@v3
         id: mix-cache
         with:
           path: deps
-          key: ${{ runner.os }}-${{ matrix.otp }}-${{ matrix.elixir }}-mix-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
+          key: ${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-mix-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
 
       - run: mix local.rebar --force
       - run: mix local.hex --force

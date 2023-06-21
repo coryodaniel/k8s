@@ -270,7 +270,7 @@ defmodule K8s.Client.Mint.HTTPAdapter do
         {:noreply, struct!(state, conn: conn)}
 
       {:error, conn, error} ->
-        Logger.warn(
+        Logger.warning(
           log_prefix(
             "An error occurred when streaming the request body: #{Exception.message(error)}"
           ),
@@ -281,7 +281,7 @@ defmodule K8s.Client.Mint.HTTPAdapter do
         struct!(state, conn: conn)
 
       {:error, conn, error, responses} ->
-        Logger.warn(
+        Logger.warning(
           log_prefix(
             "An error occurred when streaming the response: #{Exception.message(error)}"
           ),
@@ -339,7 +339,7 @@ defmodule K8s.Client.Mint.HTTPAdapter do
       Process.send_after(self(), :healthcheck, @healthcheck_freq * 1_000)
       {:noreply, state}
     else
-      Logger.warn(
+      Logger.warning(
         log_prefix("Connection closed for reading and writing - stopping this process."),
         library: :k8s
       )
