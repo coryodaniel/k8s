@@ -79,7 +79,7 @@ defmodule K8s.Client.Runner.Stream.Watch do
       {:ok, stream}
     else
       error when retries > 0 ->
-        Logger.warn(
+        Logger.warning(
           log_prefix(
             "Error when starting stream. Waiting #{@time_before_retry}s before retrying. #{retries} retries left."
           ),
@@ -91,7 +91,7 @@ defmodule K8s.Client.Runner.Stream.Watch do
         do_resource(conn, operation, http_opts, resource_version, retries - 1)
 
       error ->
-        Logger.warn(log_prefix("Error when starting stream."), library: :k8s, error: error)
+        Logger.warning(log_prefix("Error when starting stream."), library: :k8s, error: error)
         error
     end
   end
@@ -113,7 +113,7 @@ defmodule K8s.Client.Runner.Stream.Watch do
   end
 
   defp reduce({:error, reason}, state) do
-    Logger.warn(
+    Logger.warning(
       log_prefix(
         "Error #{inspect(reason)} received from the watcher. Waiting #{@time_before_retry} before restarting the watcher"
       ),
@@ -129,7 +129,7 @@ defmodule K8s.Client.Runner.Stream.Watch do
   end
 
   defp reduce({:status, 410}, state) do
-    Logger.warn(
+    Logger.warning(
       log_prefix("410 Gone received from watcher - resetting the resource version"),
       library: :k8s
     )
@@ -140,7 +140,7 @@ defmodule K8s.Client.Runner.Stream.Watch do
   end
 
   defp reduce({:status, status}, _state) do
-    Logger.warn(
+    Logger.warning(
       log_prefix("Erronous async status #{status} received from watcher - aborting the watch"),
       library: :k8s
     )
