@@ -25,10 +25,10 @@ defmodule K8s.Client.Runner.WaitTest do
       assert msg == ":eval is required"
     end
 
-    test "returns an error the operation is not a GET" do
+    test "returns an error the operation is not a GET or DELETE" do
       operation = operation(:post)
       {:error, %{message: msg}} = Wait.run(operation, %K8s.Conn{}, find: ["foo"])
-      assert Regex.match?(~r/Only HTTP GET operations are supported/, msg)
+      assert Regex.match?(~r/Only HTTP GET and DELETE operations are supported/, msg)
     end
 
     test "returns an :ok tuple when the primitive conditions are met" do
