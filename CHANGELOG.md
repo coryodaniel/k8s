@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!--------------------- Don't add new entries after this line --------------------->
 
+## [2.4.0] - 2023-07-07
+
 ### Added
 
 - `K8s.Client.wait_until/2` - Allow passing DELETE operations in order to wait for deletion.
