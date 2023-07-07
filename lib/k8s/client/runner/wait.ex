@@ -35,11 +35,12 @@ defmodule K8s.Client.Runner.Wait do
   ```
   """
   @spec run(Operation.t(), keyword()) ::
-          {:ok, map()} | {:error, :timeout | Error.t()}
+          {:ok, :deleted} | {:ok, map()} | {:error, :timeout | Error.t()}
+
   def run(%Operation{conn: %Conn{} = conn} = op, opts), do: run(conn, op, opts)
 
   @spec run(Conn.t(), Operation.t(), keyword()) ::
-          {:ok, map()} | {:error, :timeout | Error.t()}
+          {:ok, :deleted} | {:ok, map()} | {:error, :timeout | Error.t()}
   def run(%Conn{} = conn, %Operation{method: :get} = op, opts) do
     conditions =
       Wait
@@ -52,8 +53,36 @@ defmodule K8s.Client.Runner.Wait do
     end
   end
 
+  def run(%Conn{} = conn, %Operation{method: :delete} = op, opts) do
+    case Base.run(conn, op) do
+      {:ok, _} ->
+        run(
+          conn,
+          struct(op, method: :get),
+          Keyword.merge(opts,
+            processor: &get_deleted_processor/2,
+            find: &Function.identity/1,
+            eval: :deleted
+          )
+        )
+
+      error ->
+        error
+    end
+  end
+
   def run(op, _, _),
-    do: {:error, %Error{message: "Only HTTP GET operations are supported. #{inspect(op)}"}}
+    do:
+      {:error,
+       %Error{message: "Only HTTP GET and DELETE operations are supported. #{inspect(op)}"}}
+
+  @spec get_deleted_processor(Conn.t(), Operation.t()) :: {:ok, :deleted} | {:error, :exists}
+  defp get_deleted_processor(conn, op) do
+    case Base.run(conn, op) do
+      {:error, %K8s.Client.APIError{reason: "NotFound"}} -> {:ok, :deleted}
+      {:ok, _} -> {:error, :exists}
+    end
+  end
 
   @spec process_opts(Wait.t() | map) :: {:error, Error.t()} | {:ok, map}
   defp process_opts(%Wait{eval: nil}), do: {:error, %Error{message: ":eval is required"}}
@@ -105,12 +134,12 @@ defmodule K8s.Client.Runner.Wait do
   end
 
   @spec satisfied?(map, function | list, any) :: boolean
-  defp satisfied?(resp = %{}, find, eval) when is_list(find) do
+  defp satisfied?(resp, find, eval) when is_list(find) do
     value = get_in(resp, find)
     compare(value, eval)
   end
 
-  defp satisfied?(resp = %{}, find, eval) when is_function(find) do
+  defp satisfied?(resp, find, eval) when is_function(find) do
     value = find.(resp)
     compare(value, eval)
   end

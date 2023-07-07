@@ -112,4 +112,25 @@ defmodule K8s.Client.Runner.WaitIntegrationTest do
     assert {:ok, result} = K8s.Client.Runner.Wait.run(conn, op, opts)
     assert result["status"]["succeeded"] == 1
   end
+
+  @tag :integration
+  @tag :wait
+  @tag :wip
+  test "wait for deletion", %{
+    conn: conn,
+    test_id: test_id,
+    labels: labels,
+    timeout: timeout
+  } do
+    create_job =
+      "wait-job-#{test_id}"
+      |> job(labels: labels)
+      |> K8s.Client.create()
+
+    {:ok, created_job} = K8s.Client.run(conn, create_job)
+
+    op = K8s.Client.delete(created_job)
+
+    assert {:ok, :deleted} = K8s.Client.Runner.Wait.run(conn, op, timeout: timeout)
+  end
 end
