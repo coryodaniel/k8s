@@ -344,7 +344,7 @@ defmodule K8s.Client.Mint.HTTPAdapter do
         library: :k8s
       )
 
-      {:stop, :closed, state}
+      {:stop, {:shutdown, :closed}, state}
     end
   end
 
