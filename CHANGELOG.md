@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- ### Added | Changed | Deprecated | Removed | Fixed | Security -->
 
+### Fixed
+
+- `K8s.Client.Mint.HTTPAdapter` - Don't raise exception when terminating an adapter. - [#268](https://github.com/coryodaniel/k8s/issues/268), [#269](https://github.com/coryodaniel/k8s/pull/269)
+
 <!--------------------- Don't add new entries after this line --------------------->
 
 ## [2.4.0] - 2023-07-07

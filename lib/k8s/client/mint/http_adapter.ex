@@ -239,7 +239,7 @@ defmodule K8s.Client.Mint.HTTPAdapter do
         &Request.recv(&1, from)
       )
 
-    {:noreply, state}
+    shutdown_if_closed(state)
   end
 
   @impl true
@@ -265,9 +265,7 @@ defmodule K8s.Client.Mint.HTTPAdapter do
       {:error, conn, %Mint.TransportError{reason: :closed}, []} ->
         Logger.debug("The connection was closed.", library: :k8s)
 
-        # We could terminate the process here. But there might still be chunks
-        # in the buffer, so we let the healthcheck take care of that.
-        {:noreply, struct!(state, conn: conn)}
+        shutdown_if_closed(struct!(state, conn: conn))
 
       {:error, conn, error} ->
         Logger.warning(
@@ -332,11 +330,8 @@ defmodule K8s.Client.Mint.HTTPAdapter do
   # it's not open, and all buffers are emptied, this process is considered
   # garbage and is stopped.
   def handle_info(:healthcheck, state) do
-    any_non_empty_buffers? =
-      Enum.any?(state.requests, fn {_, request} -> request.buffer != [] end)
-
-    if Mint.HTTP.open?(state.conn) or any_non_empty_buffers? do
-      Process.send_after(self(), :healthcheck, @healthcheck_freq * 1_000)
+    if Mint.HTTP.open?(state.conn) or any_non_empty_buffers?(state) do
+      Process.send_after(self(), :healthcheck, @healthcheck_freq * 1000)
       {:noreply, state}
     else
       Logger.warning(
@@ -344,7 +339,7 @@ defmodule K8s.Client.Mint.HTTPAdapter do
         library: :k8s
       )
 
-      {:stop, :closed, state}
+      {:stop, {:shutdown, :closed}, state}
     end
   end
 
@@ -454,5 +449,24 @@ defmodule K8s.Client.Mint.HTTPAdapter do
       end)
 
     {:noreply, state}
+  end
+
+  @spec shutdown_if_closed(t()) :: {:noreply, t()} | {:stop, {:shutdown, :closed}, t()}
+  defp shutdown_if_closed(state) do
+    if Mint.HTTP.open?(state.conn) or any_non_empty_buffers?(state) do
+      {:noreply, state}
+    else
+      Logger.warning(
+        log_prefix("Connection closed for reading and writing - stopping this process."),
+        library: :k8s
+      )
+
+      {:stop, {:shutdown, :closed}, state}
+    end
+  end
+
+  @spec any_non_empty_buffers?(t()) :: boolean()
+  defp any_non_empty_buffers?(state) do
+    Enum.any?(state.requests, fn {_, request} -> request.buffer != [] end)
   end
 end
