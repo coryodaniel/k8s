@@ -80,7 +80,8 @@ defmodule K8s.MixProject do
         "guides/migrations.md",
         "guides/observability.md",
         "guides/operations.md",
-        "guides/testing.md"
+        "guides/testing.md",
+        "guides/usage.md"
       ],
       groups_for_extras: [
         Guides: Path.wildcard("guides/*.md")
