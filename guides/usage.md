@@ -8,6 +8,7 @@
 - [Observability](./observability.md)
 - [Testing](./testing.md)
 - [Advanced Topics](./advanced.md) - CRDs, Multiple Clusters, and Subresource Requests
+- [Migrations](./migrations.md) - Migrating from earlier versions
 
 ## tl;dr Examples
 
