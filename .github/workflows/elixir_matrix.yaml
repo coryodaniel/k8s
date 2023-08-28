@@ -20,7 +20,7 @@ jobs:
             otp: "23.x"
 
     steps:
-      - uses: actions/checkout@v3.5.3
+      - uses: actions/checkout@v3.6.0
       - uses: erlef/setup-beam@v1
         with:
           otp-version: ${{matrix.otp}}
