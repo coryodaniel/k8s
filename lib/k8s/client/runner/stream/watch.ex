@@ -102,7 +102,7 @@ defmodule K8s.Client.Runner.Stream.Watch do
 
   defp reduce(:done, state) do
     Logger.debug(
-      log_prefix("Watcher termineated the request. Starting a new watch request."),
+      log_prefix("Watcher terminated the request. Starting a new watch request."),
       library: :k8s
     )
 
