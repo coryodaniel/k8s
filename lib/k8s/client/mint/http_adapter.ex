@@ -330,7 +330,7 @@ defmodule K8s.Client.Mint.HTTPAdapter do
   # it's not open, and all buffers are emptied, this process is considered
   # garbage and is stopped.
   def handle_info(:healthcheck, state) do
-    if Mint.HTTP.open?(state.conn) or any_non_empty_buffers?(state) do
+    if Mint.HTTP.open?(state.conn, :read) or any_non_empty_buffers?(state) do
       Process.send_after(self(), :healthcheck, @healthcheck_freq * 1000)
       {:noreply, state}
     else
@@ -453,7 +453,7 @@ defmodule K8s.Client.Mint.HTTPAdapter do
 
   @spec shutdown_if_closed(t()) :: {:noreply, t()} | {:stop, {:shutdown, :closed}, t()}
   defp shutdown_if_closed(state) do
-    if Mint.HTTP.open?(state.conn) or any_non_empty_buffers?(state) do
+    if Mint.HTTP.open?(state.conn, :read) or any_non_empty_buffers?(state) do
       {:noreply, state}
     else
       Logger.warning(

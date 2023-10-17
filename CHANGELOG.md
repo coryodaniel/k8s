@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- ### Added | Changed | Deprecated | Removed | Fixed | Security -->
 
+### Fixed
+
+- `K8s.Client.Mint.HTTPAdapter` - Only stop the process if the connection is closed for reading (and writing). - [#280](https://github.com/coryodaniel/k8s/issues/280), [#285](https://github.com/coryodaniel/k8s/pull/285)
+
 <!--------------------- Don't add new entries after this line --------------------->
 
 ## [2.4.1] - 2023-08-15
