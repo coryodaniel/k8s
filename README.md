@@ -48,7 +48,9 @@ end
 
 ## Usage
 
-Check out the [Usage Guide](https://hexdocs.pm/k8s/usage.html) for in-depth examples.
+Check out the [Usage Guide](https://hexdocs.pm/k8s/usage.html) for in-depth examples. If you like
+learning with Livebook, check out [kino_k8s](https://github.com/mruoss/kino_k8s). It comes with
+nice smart cells to help you generate your first working code.
 
 Most functions are also written using doctests.
 
