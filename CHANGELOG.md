@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- ### Added | Changed | Deprecated | Removed | Fixed | Security -->
 
+### Added
+
+- `K8s.Conn` - Add namespace info in case of service account connection. 
+
 <!--------------------- Don't add new entries after this line --------------------->
 
 ## [2.4.2] - 2023-10-18

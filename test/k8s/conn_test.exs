@@ -147,7 +147,8 @@ defmodule K8s.ConnTest do
       assert conn.cluster_name == nil
       assert conn.url == "https://kewlhost:1337"
       assert conn.ca_cert
-      assert conn.auth.token
+      assert conn.auth.token == "imatoken"
+      assert conn.namespace == "imanamespace"
     end
   end
 
