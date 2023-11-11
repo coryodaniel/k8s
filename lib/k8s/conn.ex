@@ -61,11 +61,13 @@ defmodule K8s.Conn do
             discovery_driver: K8s.default_discovery_driver(),
             discovery_opts: K8s.default_discovery_opts(),
             http_provider: K8s.default_http_provider(),
-            cacertfile: K8s.default_cacertfile()
+            cacertfile: K8s.default_cacertfile(),
+            namespace: nil
 
   @typedoc ~S"""
   * `cluster_name` - The cluster name if read from a kubeconfig file
   * `user_name` - The user name if read from a kubeconfig file
+  * `namespace` - The namespace if read from a service account token
   * `url` - The Kubernetes API URL
   """
   @type t :: %__MODULE__{
@@ -79,7 +81,8 @@ defmodule K8s.Conn do
           discovery_driver: module(),
           discovery_opts: Keyword.t(),
           http_provider: module(),
-          cacertfile: String.t()
+          cacertfile: String.t(),
+          namespace: String.t() | nil
         }
 
   @doc ~S"""
@@ -202,15 +205,23 @@ defmodule K8s.Conn do
   def from_service_account(service_account_path, opts) do
     cert_path = Path.join(service_account_path, "ca.crt")
     token_path = Path.join(service_account_path, "token")
+    namespace_path = Path.join(service_account_path, "namespace")
     insecure_skip_tls_verify = Keyword.get(opts, :insecure_skip_tls_verify, false)
 
     with {:ok, token} <- File.read(token_path),
          {:ok, ca_cert} <- PKI.cert_from_pem(cert_path) do
+      namespace =
+        case File.read(namespace_path) do
+          {:ok, namespace} -> namespace
+          _ -> nil
+        end
+
       conn = %Conn{
         url: kubernetes_service_url(),
         ca_cert: ca_cert,
         auth: %K8s.Conn.Auth.Token{token: token},
-        insecure_skip_tls_verify: insecure_skip_tls_verify
+        insecure_skip_tls_verify: insecure_skip_tls_verify,
+        namespace: namespace
       }
 
       {:ok, conn}
@@ -307,7 +318,7 @@ defmodule K8s.Conn do
     end
   end
 
-  @spec maybe_update_defaults(Conn.t(), keyword()) :: Conn.t()
+  @spec maybe_update_defaults(t(), keyword()) :: t()
   defp maybe_update_defaults(conn, opts) do
     struct!(conn, Keyword.take(opts, [:discovery_driver, :discovery_opts, :http_provider]))
   end
