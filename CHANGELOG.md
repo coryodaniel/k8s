@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `K8s.Conn` - Add namespace info in case of service account connection. 
+- `K8s.Conn` - Add namespace info in case of service account connection. [#291](https://github.com/coryodaniel/k8s/pull/291)
 
 ## [2.4.2] - 2023-10-18
 
