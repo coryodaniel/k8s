@@ -1,6 +1,6 @@
 import Config
 
-config :logger, :console,
+config :logger, :default_formatter,
   format: "$time [$level] $message $metadata\n",
   metadata: [:file, :library, :error, :object, :body, :measurements, :metadata]
 
