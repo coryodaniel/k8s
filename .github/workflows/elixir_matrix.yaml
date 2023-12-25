@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-20.04
     name: Test - OTP ${{matrix.otp}} / Elixir ${{matrix.elixir}}
     strategy:
+      fail-fast: false
       matrix:
         # See https://hexdocs.pm/elixir/1.13/compatibility-and-deprecations.html#compatibility-between-elixir-and-erlang-otp
         otp: ["23.x", "24.x", "25.x", "26.x"]
