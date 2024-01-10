@@ -205,40 +205,49 @@ operation to `K8s.Client.run/N`.
 ### Opening long-lasting connections (e.g. a shell) and sending messages to pods
 
 If you send a command that does not terminate (e.g. `/bin/sh`) or one that takes
-long to terminate, you can open the connection in a separate process and stream
-the response. Further, you can `send/2` messages to that process (e.g. further
-commands). See the example below.
+long to terminate, you can use `K8s.Client.stream_to/3` which opens a connection
+in a separate process and sends messages to your pid. The function returns a
+callback that you can use to send messages to the pod.
+
+The following is a very simple example. In your code you'd rather use a
+`GenServer` or so to track the state.
 
 ```elixir
-  {:ok, conn} = K8s.Conn.from_file("~/.kube/config")
+{:ok, conn} = K8s.Conn.from_file("~/.kube/config")
 
-  op = K8s.Client.connect(
-    "v1",
-    "pods/exec",
-    [namespace: "default", name: "nginx-8f458dc5b-zwmkb"],
-    command: ["/bin/sh"]
-  )
+op = K8s.Client.connect(
+  "v1",
+  "pods/exec",
+  [namespace: "default", name: "nginx-8f458dc5b-zwmkb"],
+  command: ["/bin/sh"],
+  tty: true
+)
 
-  parent_process = self()
 
-  task = Task.async(fn ->
-    {:ok, stream} = K8s.Client.stream(conn, op)
+parent_process = self()
 
-    stream
-    |> Stream.map(&send(parent_process, &1))
-    |> Stream.run()
-  end)
+{:ok, send_to_pod} = K8s.Client.stream_to(conn, op, parent_process)
 
-  # wait for connection to be established
-  receive(do: (:open -> :ok)
+# wait for connection to be established
+receive do: ({:open, true} -> :ok)
+Logger.debug("Connection stablished")
 
-  send(task.pid, {:stdin, ~s(echo "hello world"\n)})
+# Pod returns a shell prompt
+receive do
+  ({:stdout, prompt} ->
+    Logger.info(~s(Received Shell Prompt on stdout: "#{inspect(prompt)}")))
+end
 
-  # you receive "hello world" on stdout
-  receive(do: ({:stdout, message} -> IO.puts(message))
+send_to_pod.({:stdin, ~s(echo "hello world"\n)})
 
-  # close the connection, the task will terminate.
-  send(task.pid, :close)
+# you should receive "hello world" on stdout
+receive do: ({:stdout, echo} -> Logger.info(~s(Received msg on Stdout: "#{inspect(echo)}")))
+
+# close the connection, the task will terminate.
+send_to_pod.(:close)
+
+receive do: ({:close, reason} -> Logger.debug("Connection closed with reason #{inspect(reason)}"))
+# There might still be left-over messages in the process mailbox at this point.
 ```
 
 ### Options
