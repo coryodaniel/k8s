@@ -213,41 +213,74 @@ The following is a very simple example. In your code you'd rather use a
 `GenServer` or so to track the state.
 
 ```elixir
-{:ok, conn} = K8s.Conn.from_file("~/.kube/config")
+defmodule TestPodExec do
+  require Logger
 
-op = K8s.Client.connect(
-  "v1",
-  "pods/exec",
-  [namespace: "default", name: "nginx-8f458dc5b-zwmkb"],
-  command: ["/bin/sh"],
-  tty: true
-)
+  def recv_loop() do
+    receive do
+      {:open, true} ->
+        Logger.debug("Connection established.")
+        recv_loop()
 
+      {:stdout, msg} ->
+        Logger.info(~s(Message received on stdout: "#{msg}"))
+        recv_loop()
 
-parent_process = self()
+      {:close, reason} ->
+        Logger.debug("Connection closed. Reason: #{inspect(reason)}")
+    end
+  end
 
-{:ok, send_to_pod} = K8s.Client.stream_to(conn, op, parent_process)
+  def run() do
+    {:ok, pid} =
+      Task.start_link(fn ->
+        recv_loop()
+      end)
 
-# wait for connection to be established
-receive do: ({:open, true} -> :ok)
-Logger.debug("Connection stablished")
+    {:ok, conn} = K8s.Conn.from_file("~/.kube/config")
 
-# Pod returns a shell prompt
-receive do
-  ({:stdout, prompt} ->
-    Logger.info(~s(Received Shell Prompt on stdout: "#{inspect(prompt)}")))
+    op = K8s.Client.connect(
+      "v1",
+      "pods/exec",
+      [namespace: "default", name: "nginx-8f458dc5b-zwmkb"],
+      command: ["/bin/sh"],
+      tty: true
+    )
+
+    {:ok, send_to_pod} = K8s.Client.stream_to(conn, op, pid)
+
+    Process.sleep(1000)
+    send_to_pod.({:stdin, ~s(echo "hello world"\n)})
+
+    Process.sleep(1000)
+    send_to_pod.(:close)
+
+    Process.sleep(1000)
+  end
 end
 
-send_to_pod.({:stdin, ~s(echo "hello world"\n)})
+TestPodExec.run()
+```
 
-# you should receive "hello world" on stdout
-receive do: ({:stdout, echo} -> Logger.info(~s(Received msg on Stdout: "#{inspect(echo)}")))
+What you should see:
 
-# close the connection, the task will terminate.
-send_to_pod.(:close)
+- A DEBUG log stmt saying `Connection established.`
+- A couple of stdout messages. It is not deterministic whether the pod sends
+  them in one chunk or in multiple:
+  - Shell prompt (e.g. `# ` or `$ `)
+  - Unless we opt out of it (`stty -echo`), the pod sends back what we "type":
+    `echo "hello world"\n`
+  - The actual echo: `hello world`
+  - The next shell prompt
+- A DEBUG log stmt saying `Connection closed.`
 
-receive do: ({:close, reason} -> Logger.debug("Connection closed with reason #{inspect(reason)}"))
-# There might still be left-over messages in the process mailbox at this point.
+If we concatenate all the stdout messages you see it reads what you would
+see on a shell:
+
+```
+$ echo "hello world"
+hello world
+$
 ```
 
 ### Options
