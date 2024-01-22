@@ -31,42 +31,37 @@ defmodule K8s.Conn.Auth.Exec do
   """
 
   @behaviour K8s.Conn.Auth
+
   alias __MODULE__
+  alias K8s.Conn.Auth.ExecWorker
   alias K8s.Conn.Error
 
-  defstruct [:command, :env, args: []]
+  defstruct [:pid]
 
-  @type t :: %__MODULE__{
-          command: String.t(),
-          env: %{name: String.t(), value: String.t()},
-          args: list(String.t())
-        }
+  @type t :: %__MODULE__{pid: GenServer.server()}
 
   @impl true
   @spec create(map() | any, String.t() | any) :: {:ok, t} | {:error, Error.t()} | :skip
-  def create(%{"exec" => %{"command" => command} = config}, _) do
-    # Optional:
-    args = config["args"] |> List.wrap()
-    env = config["env"] |> List.wrap() |> format_env()
+  def create(%{"exec" => %{}} = ctx, _) do
+    {:ok, pid} =
+      DynamicSupervisor.start_child(
+        K8s.Conn.Auth.ProviderSupervisor,
+        {ExecWorker, ExecWorker.parse_opts(ctx)}
+      )
 
-    {:ok,
-     %__MODULE__{
-       command: command,
-       env: env,
-       args: args
-     }}
+    {:ok, %__MODULE__{pid: pid}}
   end
 
   def create(_, _), do: :skip
 
-  @spec format_env(list()) :: map()
-  defp format_env(env), do: Map.new(env, &{&1["name"], &1["value"]})
-
   defimpl K8s.Conn.RequestOptions, for: K8s.Conn.Auth.Exec do
-    @doc "Generates HTTP Authorization options for auth-provider authentication"
+    @doc """
+    Generates HTTP Authorization options for
+    auth-provider authentication by asking the running ExecWorker for a token.
+    """
     @spec generate(Exec.t()) :: K8s.Conn.RequestOptions.generate_t()
-    def generate(%Exec{} = provider) do
-      with {:ok, token} <- Exec.generate_token(provider) do
+    def generate(%Exec{pid: pid} = _provider) do
+      with {:ok, token} <- ExecWorker.get_token(pid) do
         {
           :ok,
           %K8s.Conn.RequestOptions{
@@ -76,34 +71,5 @@ defmodule K8s.Conn.Auth.Exec do
         }
       end
     end
-  end
-
-  @doc """
-  "Generate" a token using the `exec` config in kube config.
-  """
-  @spec generate_token(t) ::
-          {:ok, binary} | {:error, Jason.DecodeError.t() | Error.t()}
-  def generate_token(config) do
-    with {cmd_response, 0} <- System.cmd(config.command, config.args, env: config.env),
-         {:ok, data} <- Jason.decode(cmd_response),
-         {:ok, token} when not is_nil(token) <- parse_cmd_response(data) do
-      {:ok, token}
-    else
-      {cmd_response, err_code} when is_binary(cmd_response) and is_integer(err_code) ->
-        msg = "#{__MODULE__} failed: #{cmd_response}"
-        {:error, %Error{message: msg}}
-
-      error ->
-        error
-    end
-  end
-
-  @spec parse_cmd_response(map) :: {:ok, binary} | {:error, Error.t()}
-  defp parse_cmd_response(%{"kind" => "ExecCredential", "status" => %{"token" => token}}),
-    do: {:ok, token}
-
-  defp parse_cmd_response(_) do
-    msg = "#{__MODULE__} failed: Unsupported ExecCredential"
-    {:error, %Error{message: msg}}
   end
 end

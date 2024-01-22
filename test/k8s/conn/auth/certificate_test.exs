@@ -12,7 +12,18 @@ defmodule K8s.Conn.Auth.CertificateTest do
         "client-key" => "test/support/tls/key.pem"
       }
 
-      assert {:ok, %Certificate{certificate: cert, key: key}} = Certificate.create(auth, ".")
+      # test that certificate and key are read from the file system via genserver
+      assert {:ok, %Certificate{pid: pid} = cert_auth} = Certificate.create(auth, ".")
+      assert pid
+
+      # Test that the values are used to generate request options
+      {:ok, %Conn.RequestOptions{headers: headers, ssl_options: ssl_options}} =
+        Conn.RequestOptions.generate(cert_auth)
+
+      # assert that the certificate and key are used to generate the ssl options
+      assert [cert: cert, key: key] = ssl_options
+      assert headers == []
+
       assert cert
       assert key
     end
