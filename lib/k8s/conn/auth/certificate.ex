@@ -10,24 +10,38 @@ defmodule K8s.Conn.Auth.Certificate do
   alias K8s.Conn.Error
   alias K8s.Conn.PKI
 
-  defstruct [:certificate, :key, pid: nil]
-  @type t :: %__MODULE__{certificate: binary, key: binary, pid: pid() | nil}
+  defstruct [:certificate, :key, target: nil]
+  @type t :: %__MODULE__{certificate: binary, key: binary, target: GenServer.server() | nil}
 
   @impl true
   @spec create(map(), String.t()) :: {:ok, t()} | {:error, Error.t()} | :skip
   def create(%{"client-certificate" => cert_file, "client-key" => key_file}, base_path) do
-    cert_path = Conn.resolve_file_path(cert_file, base_path)
-    key_path = Conn.resolve_file_path(key_file, base_path)
-
     # If we have a path periodically refresh the certificate and key
     # since cloud providers often rotate these on the order of
     # minutes to hours.
-    with {:ok, pid} <-
+    cert_path = Conn.resolve_file_path(cert_file, base_path)
+    key_path = Conn.resolve_file_path(key_file, base_path)
+
+    name = CertificateWorker.via_tuple(cert_path, key_path)
+    opts = [cert_path: cert_path, key_path: key_path, name: name]
+
+    # Check to make sure the files exist and are readable
+    with {:ok, _stat} <- File.stat(cert_path),
+         {:ok, _stat} <- File.stat(key_path),
+         {:ok, _pid} <-
            DynamicSupervisor.start_child(
              K8s.Conn.Auth.ProviderSupervisor,
-             {CertificateWorker, cert_path: cert_path, key_path: key_path}
+             {CertificateWorker, opts}
            ) do
-      {:ok, %K8s.Conn.Auth.Certificate{pid: pid}}
+      {:ok, %__MODULE__{target: name}}
+    else
+      # More than one connection can be started with the same certificate and key
+      # we don't need to read multiple copies of the same file
+      {:error, {:already_started, _}} ->
+        {:ok, %__MODULE__{target: name}}
+
+      {:error, _reason} = error ->
+        error
     end
   end
 
@@ -43,9 +57,9 @@ defmodule K8s.Conn.Auth.Certificate do
   defimpl K8s.Conn.RequestOptions, for: K8s.Conn.Auth.Certificate do
     @doc "Generates HTTP Authorization options for certificate authentication"
     @spec generate(K8s.Conn.Auth.Certificate.t()) :: K8s.Conn.RequestOptions.generate_t()
-    def generate(%K8s.Conn.Auth.Certificate{pid: pid}) when not is_nil(pid) do
+    def generate(%K8s.Conn.Auth.Certificate{target: name}) when not is_nil(name) do
       # When we have a pid we can ask the worker for the current cert and key as it's the most up to date
-      with {:ok, %{cert: cert, key: key}} <- CertificateWorker.get_cert_and_key(pid) do
+      with {:ok, %{cert: cert, key: key}} <- CertificateWorker.get_cert_and_key(name) do
         {:ok,
          %K8s.Conn.RequestOptions{
            headers: [],

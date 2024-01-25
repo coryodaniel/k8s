@@ -33,9 +33,19 @@ defmodule K8s.Conn.Auth.ExecWorker do
           }
   end
 
+  @state_opts ~w(command env args token expiration_timestamp refresh_interval)a
+
   @spec start_link(any()) :: :ignore | {:error, any()} | {:ok, pid()}
   def start_link(opts) do
-    GenServer.start_link(__MODULE__, opts)
+    {worker_opts, server_opts} = Keyword.split(opts, @state_opts)
+
+    GenServer.start_link(__MODULE__, worker_opts, server_opts)
+  end
+
+  @spec via_tuple(any()) ::
+          {:via, Registry, {K8s.Conn.Auth.Registry, {K8s.Conn.Auth.ExecWorker, any()}}}
+  def via_tuple(id) do
+    {:via, Registry, {K8s.Conn.Auth.Registry, {__MODULE__, id}}}
   end
 
   @doc """

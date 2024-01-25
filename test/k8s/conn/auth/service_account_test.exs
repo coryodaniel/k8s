@@ -13,7 +13,7 @@ defmodule K8s.Conn.Auth.ServiceAccountTest do
     end
 
     test "create starts a worker if the path exists" do
-      assert {:ok, %ServiceAccount{pid: _}} =
+      assert {:ok, %ServiceAccount{target: _}} =
                ServiceAccount.create("test/support/tls/token", "anything")
     end
   end

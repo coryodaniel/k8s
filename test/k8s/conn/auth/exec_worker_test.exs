@@ -67,7 +67,6 @@ defmodule K8s.Conn.Auth.ExecWorkerTest do
   end
 
   describe "get_token/1" do
-
     @spec start_echo_worker(map()) :: pid() | GenServer.server()
     defp start_echo_worker(%{} = cred) do
       # A helper to start an echo worker with a given ExecCredential

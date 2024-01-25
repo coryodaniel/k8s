@@ -49,9 +49,13 @@ defmodule K8s.Conn.Auth.ServiceAccountWorker do
           }
   end
 
+  @state_opts ~w(path refresh_interval error_refresh_interval)a
+
   @spec start_link(any()) :: :ignore | {:error, any()} | {:ok, pid()}
   def start_link(opts) do
-    GenServer.start_link(__MODULE__, opts)
+    {worker_opts, server_opts} = Keyword.split(opts, @state_opts)
+
+    GenServer.start_link(__MODULE__, worker_opts, server_opts)
   end
 
   @spec init(Keyword.t()) :: {:ok, State.t()}
@@ -63,6 +67,12 @@ defmodule K8s.Conn.Auth.ServiceAccountWorker do
     # Start a refresh timer for just about now.
     {:ok,
      %State{starting_state | timer: start_refresh_timer(starting_state.error_refresh_interval)}}
+  end
+
+  @spec via_tuple(any()) ::
+          {:via, Registry, {K8s.Conn.Auth.Registry, {K8s.Conn.Auth.ServiceAccountWorker, any()}}}
+  def via_tuple(path) do
+    {:via, Registry, {K8s.Conn.Auth.Registry, {__MODULE__, path}}}
   end
 
   @spec get_token(GenServer.server()) :: {:ok, binary()} | {:error, any()}

@@ -13,8 +13,7 @@ defmodule K8s.Conn.Auth.CertificateTest do
       }
 
       # test that certificate and key are read from the file system via genserver
-      assert {:ok, %Certificate{pid: pid} = cert_auth} = Certificate.create(auth, ".")
-      assert pid
+      assert {:ok, %Certificate{target: _via_name} = cert_auth} = Certificate.create(auth, ".")
 
       # Test that the values are used to generate request options
       {:ok, %Conn.RequestOptions{headers: headers, ssl_options: ssl_options}} =

@@ -50,9 +50,13 @@ defmodule K8s.Conn.Auth.CertificateWorker do
           }
   end
 
+  @state_opts ~w(cert_path key_path refresh_interval)a
+
   @spec start_link(any()) :: :ignore | {:error, any()} | {:ok, pid()}
   def start_link(opts) do
-    GenServer.start_link(__MODULE__, opts)
+    {worker_opts, server_opts} = Keyword.split(opts, @state_opts)
+
+    GenServer.start_link(__MODULE__, worker_opts, server_opts)
   end
 
   @impl true
@@ -61,6 +65,14 @@ defmodule K8s.Conn.Auth.CertificateWorker do
     state = struct!(State, opts)
     # Start a refresh timer
     {:ok, start_refresh_timer(state)}
+  end
+
+  @spec via_tuple(String.t(), String.t()) ::
+          {:via, Registry,
+           {K8s.Conn.Auth.Registry, {K8s.Conn.Auth.CertificateWorker, String.t(), String.t()}}}
+  def via_tuple(cert_path, key_path) do
+    # assume that the combination of cert and key is unique
+    {:via, Registry, {K8s.Conn.Auth.Registry, {__MODULE__, cert_path, key_path}}}
   end
 
   @impl true

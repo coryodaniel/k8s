@@ -36,20 +36,28 @@ defmodule K8s.Conn.Auth.Exec do
   alias K8s.Conn.Auth.ExecWorker
   alias K8s.Conn.Error
 
-  defstruct [:pid]
+  defstruct [:target]
 
-  @type t :: %__MODULE__{pid: GenServer.server()}
+  @type t :: %__MODULE__{target: GenServer.server()}
 
   @impl true
   @spec create(map() | any, String.t() | any) :: {:ok, t} | {:error, Error.t()} | :skip
   def create(%{"exec" => %{}} = ctx, _) do
-    {:ok, pid} =
+    # We don't want to be in the habit of parsing command names for unique identifiers
+    # so every auth worker gets it's own unique name. Then we use that name to
+    # register the worker with the registry.
+    id = :crypto.strong_rand_bytes(16) |> Base.url_encode64(padding: false)
+
+    name = ExecWorker.via_tuple(id)
+    opts = ExecWorker.parse_opts(ctx) |> Keyword.put(:name, name)
+
+    {:ok, _pid} =
       DynamicSupervisor.start_child(
         K8s.Conn.Auth.ProviderSupervisor,
-        {ExecWorker, ExecWorker.parse_opts(ctx)}
+        {ExecWorker, opts}
       )
 
-    {:ok, %__MODULE__{pid: pid}}
+    {:ok, %__MODULE__{target: name}}
   end
 
   def create(_, _), do: :skip
@@ -60,8 +68,8 @@ defmodule K8s.Conn.Auth.Exec do
     auth-provider authentication by asking the running ExecWorker for a token.
     """
     @spec generate(Exec.t()) :: K8s.Conn.RequestOptions.generate_t()
-    def generate(%Exec{pid: pid} = _provider) do
-      with {:ok, token} <- ExecWorker.get_token(pid) do
+    def generate(%Exec{target: target} = _provider) do
+      with {:ok, token} <- ExecWorker.get_token(target) do
         {
           :ok,
           %K8s.Conn.RequestOptions{

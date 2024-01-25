@@ -6,6 +6,7 @@ defmodule K8s.Application do
   def start(_type, _args) do
     children = [
       K8s.Client.Mint.ConnectionRegistry,
+      {Registry, keys: :unique, name: K8s.Conn.Auth.Registry},
       {DynamicSupervisor, name: K8s.Client.Mint.ConnectionSupervisor, strategy: :one_for_one},
       {DynamicSupervisor, name: K8s.Conn.Auth.ProviderSupervisor, strategy: :one_for_one}
     ]
