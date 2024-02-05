@@ -14,7 +14,7 @@ defmodule K8s.Conn.Auth.ServiceAccount do
   @type t :: %__MODULE__{target: GenServer.server()}
 
   @impl true
-  @spec create(map() | any, String.t() | any) :: {:ok, t} | {:error, Error.t() | any()} | :skip
+  @spec create(map() | String.t(), any) :: {:ok, t} | {:error, Error.t() | any()} | :skip
   def create(token_path, _) when is_binary(token_path) do
     # keep the name for later so we can send GenServer.call/2 to it
     # allow the worker to be restarted if it crashes
