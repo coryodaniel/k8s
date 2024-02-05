@@ -208,8 +208,9 @@ defmodule K8s.Conn do
     namespace_path = Path.join(service_account_path, "namespace")
     insecure_skip_tls_verify = Keyword.get(opts, :insecure_skip_tls_verify, false)
 
-    with {:ok, token} <- File.read(token_path),
-         {:ok, ca_cert} <- PKI.cert_from_pem(cert_path) do
+    with {:ok, ca_cert} <- PKI.cert_from_pem(cert_path),
+         {:ok, provider} <- K8s.Conn.Auth.ServiceAccount.create(token_path, nil) do
+      # There might not be a namespace to read
       namespace =
         case File.read(namespace_path) do
           {:ok, namespace} -> namespace
@@ -219,7 +220,7 @@ defmodule K8s.Conn do
       conn = %Conn{
         url: kubernetes_service_url(),
         ca_cert: ca_cert,
-        auth: %K8s.Conn.Auth.Token{token: token},
+        auth: provider,
         insecure_skip_tls_verify: insecure_skip_tls_verify,
         namespace: namespace
       }

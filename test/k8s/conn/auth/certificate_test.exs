@@ -12,9 +12,25 @@ defmodule K8s.Conn.Auth.CertificateTest do
         "client-key" => "test/support/tls/key.pem"
       }
 
-      assert {:ok, %Certificate{certificate: cert, key: key}} = Certificate.create(auth, ".")
-      assert cert
-      assert key
+      base = "."
+
+      # test that certificate and key are read from the file system via genserver
+      assert {:ok, %Certificate{cert_path: cert_path, key_path: key_path} = cert_auth} =
+               Certificate.create(auth, base)
+
+      assert cert_path != nil
+      assert key_path != nil
+
+      # Test that the values are used to generate request options
+      {:ok, %Conn.RequestOptions{headers: headers, ssl_options: ssl_options}} =
+        Conn.RequestOptions.generate(cert_auth)
+
+      expected_cert_path = Path.join(base, "test/support/tls/certificate.pem")
+      expected_key_path = Path.join(base, "test/support/tls/key.pem")
+
+      # assert that the certificate and key are used to generate the ssl options
+      assert [certfile: ^expected_cert_path, keyfile: ^expected_key_path] = ssl_options
+      assert headers == []
     end
 
     test "creates a Certificate struct from base64 data" do

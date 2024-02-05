@@ -2,6 +2,7 @@ defmodule K8s.ConnTest do
   @moduledoc false
   use ExUnit.Case, async: true
   doctest K8s.Conn
+  alias K8s.Conn.Auth.ServiceAccount
   alias K8s.Conn.Auth.{AuthProvider, Certificate, Exec, Token}
   alias K8s.Conn.RequestOptions
 
@@ -143,11 +144,10 @@ defmodule K8s.ConnTest do
 
       {:ok, conn} = K8s.Conn.from_service_account("test/support/tls")
 
-      assert %Token{} = conn.auth
+      assert %ServiceAccount{} = conn.auth
       assert conn.cluster_name == nil
       assert conn.url == "https://kewlhost:1337"
       assert conn.ca_cert
-      assert conn.auth.token == "imatoken"
       assert conn.namespace == "imanamespace"
     end
   end
@@ -180,7 +180,7 @@ defmodule K8s.ConnTest do
 
       assert headers == []
 
-      assert [cert: _, key: _, verify: :verify_none, cacertfile: ~c"/etc/ssl/cert.pem"] =
+      assert [verify: :verify_none, cacertfile: ~c"/etc/ssl/cert.pem"] =
                ssl_options
     end
 
@@ -192,7 +192,7 @@ defmodule K8s.ConnTest do
                RequestOptions.generate(conn)
 
       assert headers == []
-      assert [cert: _, key: _, verify: :verify_peer, cacerts: [_cert]] = ssl_options
+      assert [verify: :verify_peer, cacerts: [_cert]] = ssl_options
     end
 
     test "when skipping TLS verification" do
@@ -204,7 +204,7 @@ defmodule K8s.ConnTest do
 
       assert headers == []
 
-      assert [cert: _, key: _, verify: :verify_none, cacertfile: ~c"/etc/ssl/cert.pem"] =
+      assert [verify: :verify_none, cacertfile: ~c"/etc/ssl/cert.pem"] =
                ssl_options
     end
   end
