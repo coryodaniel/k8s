@@ -180,7 +180,7 @@ defmodule K8s.ConnTest do
 
       assert headers == []
 
-      assert [cert: _, key: _, verify: :verify_none, cacertfile: ~c"/etc/ssl/cert.pem"] =
+      assert [verify: :verify_none, cacertfile: ~c"/etc/ssl/cert.pem"] =
                ssl_options
     end
 
@@ -192,7 +192,7 @@ defmodule K8s.ConnTest do
                RequestOptions.generate(conn)
 
       assert headers == []
-      assert [cert: _, key: _, verify: :verify_peer, cacerts: [_cert]] = ssl_options
+      assert [verify: :verify_peer, cacerts: [_cert]] = ssl_options
     end
 
     test "when skipping TLS verification" do
@@ -204,7 +204,7 @@ defmodule K8s.ConnTest do
 
       assert headers == []
 
-      assert [cert: _, key: _, verify: :verify_none, cacertfile: ~c"/etc/ssl/cert.pem"] =
+      assert [verify: :verify_none, cacertfile: ~c"/etc/ssl/cert.pem"] =
                ssl_options
     end
   end

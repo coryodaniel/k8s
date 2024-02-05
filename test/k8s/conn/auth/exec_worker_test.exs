@@ -5,7 +5,7 @@ defmodule K8s.Conn.Auth.ExecWorkerTest do
   alias K8s.Conn.Auth.ExecWorker
 
   describe "parse_opts/1" do
-    test "parse a comman with nothing else" do
+    test "parse a command with nothing else" do
       config = %{
         "exec" => %{
           "apiVersion" => "client.authentication.k8s.io/v1alpha1",
