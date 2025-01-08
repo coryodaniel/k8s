@@ -1,4 +1,4 @@
-erlang 26.0.2
-elixir 1.15.2
+erlang 27.1.2
+elixir 1.18.1-otp-27
 k3d 5.4.6
-kind 0.19.0
+kind 0.25.0

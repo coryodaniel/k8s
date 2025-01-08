@@ -40,9 +40,6 @@ defmodule K8s.Client.Runner.Stream.ListRequest do
          {:ok, items} <- Map.fetch(response, "items") do
       {items, struct!(state, continue: cont)}
     else
-      :halt ->
-        {:halt, nil}
-
       :error ->
         {:halt, nil}
 

@@ -13,14 +13,24 @@ jobs:
       fail-fast: false
       matrix:
         # See https://hexdocs.pm/elixir/1.13/compatibility-and-deprecations.html#compatibility-between-elixir-and-erlang-otp
-        otp: ["23.x", "24.x", "25.x", "26.x"]
-        elixir: ["1.14.x", "1.15.x", "1.16.x"]
+        otp: ["23.x", "26.x", "27.x"]
+        elixir: ["1.14.x", "1.17.x", "1.18.x"]
         exclude:
           # OTP 23
           - elixir: "1.15.x"
             otp: "23.x"
-          - elixir: "1.16.x"
+          - elixir: "1.17.x"
             otp: "23.x"
+          - elixir: "1.18.x"
+            otp: "23.x"
+          # OTP 26 
+          # - Users on recent elixir likely updated OTP versions
+          - elixir: "1.18.x"
+            otp: "26.x"
+          # OTP 27 - Elixir 1.14.x is not compatible with OTP 27
+          - elixir: "1.14.x"
+            otp: "27.x"
+          
 
     steps:
       - uses: actions/checkout@v4.1.7
