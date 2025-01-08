@@ -3,6 +3,9 @@ defmodule K8s.Client.Runner.Base do
   Base HTTP processor for `K8s.Client`.
   """
 
+  @typedoc "Acceptable HTTP body types"
+  @type body_t :: list(map()) | map() | binary() | nil
+
   @type error_t ::
           {:error, K8s.Middleware.Error.t()}
           | {:error, K8s.Operation.Error.t()}
@@ -10,10 +13,7 @@ defmodule K8s.Client.Runner.Base do
           | {:error, K8s.Discovery.Error.t()}
           | {:error, atom()}
           | {:error, binary()}
-  @type result_t :: {:ok, map() | reference()} | error_t
-
-  @typedoc "Acceptable HTTP body types"
-  @type body_t :: list(map()) | map() | binary() | nil
+  @type result_t :: {:ok, map() | reference() | body_t} | error_t
 
   alias K8s.Conn
   alias K8s.Middleware.Request
