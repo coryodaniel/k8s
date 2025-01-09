@@ -3,7 +3,7 @@ defmodule K8s.MixProject do
 
   @app :k8s
   @source_url "https://github.com/coryodaniel/#{@app}"
-  @version "2.6.1"
+  @version "2.6.2"
 
   def project do
     [

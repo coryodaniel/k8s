@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!--------------------- Don't add new entries after this line --------------------->
 
+## [2.6.2] - 2025-01-09
+
+### Fixed
+
+- allow http body types in the Base runner return [#354](https://gitlab.com/cradlebio/crapy/-/merge_requests/3173)
+
 ## [2.6.1] - 2024-04-29
 
 ### Fixed
