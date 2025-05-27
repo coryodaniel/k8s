@@ -32,6 +32,7 @@ defmodule K8s.Conn do
     `K8s.Conn.from_service_account/2`
   * If an environment variable points to a config file, use
     `K8s.Conn.from_env/2`
+  * If you have a kubeconfig YAML string, use `K8s.Conn.from_string/2`
   """
 
   alias __MODULE__
@@ -151,6 +152,88 @@ defmodule K8s.Conn do
   end
 
   @doc ~S"""
+  Reads configuration details from a kubernetes config YAML string.
+
+  This function parses a kubeconfig YAML string directly, which is useful when
+  the configuration is stored in environment variables, retrieved from APIs,
+  or generated dynamically. Only base64-encoded certificate data is supported
+  (certificate-authority-data, client-certificate-data, client-key-data).
+  File path references (certificate-authority, client-certificate, client-key)
+  are not supported and will result in an error.
+
+  ### Example
+
+  Using the currently selected context:
+
+  ```
+  config_yaml = \"\"\"
+  apiVersion: v1
+  clusters:
+  - cluster:
+      certificate-authority-data: LS0tLS1CRUdJTi...
+      server: https://kubernetes.example.com
+    name: my-cluster
+  users:
+  - name: my-user
+    user:
+      token: my-secret-token
+  contexts:
+  - context:
+      cluster: my-cluster
+      user: my-user
+    name: my-context
+  current-context: my-context
+  \"\"\"
+
+  {:ok, conn} = K8s.Conn.from_string(config_yaml)
+  ```
+
+  Pass the context:
+
+  ```
+  {:ok, conn} =
+    K8s.Conn.from_string(config_yaml, context: "my-other-context")
+  ```
+
+  ### Options
+
+  * `:context` - sets an alternate context - defaults to `current-context`.
+  * `:cluster` - set or override the cluster read from the context
+  * `:user`-  set or override the user read from the context
+  * `:discovery_driver` - module name to use for discovery
+  * `:discovery_opts` - options for discovery module
+  * `:insecure_skip_tls_verify` - Skip TLS verification
+  """
+  @spec from_string(binary, keyword) ::
+          {:ok, __MODULE__.t()} | {:error, :enoent | K8s.Conn.Error.t()}
+  def from_string(config_string, opts \\ []) do
+    with {:ok, config} <- YamlElixir.read_from_string(config_string),
+         context_name <- opts[:context] || config["current-context"],
+         {:ok, context} <- find_configuration(config["contexts"], context_name, "context"),
+         user_name <- opts[:user] || context["user"],
+         {:ok, user} <- find_configuration(config["users"], user_name, "user"),
+         cluster_name <- opts[:cluster] || context["cluster"],
+         {:ok, cluster} <- find_configuration(config["clusters"], cluster_name, "cluster"),
+         {:ok, cert} <- cert_from_map_string_only(cluster) do
+      insecure_skip_tls_verify =
+        Keyword.get(opts, :insecure_skip_tls_verify, cluster["insecure-skip-tls-verify"])
+
+      conn = %Conn{
+        cluster_name: cluster_name,
+        user_name: user_name,
+        url: cluster["server"],
+        ca_cert: cert,
+        auth: get_auth_string_only(user),
+        insecure_skip_tls_verify: insecure_skip_tls_verify
+      }
+
+      {:ok, maybe_update_defaults(conn, opts)}
+    else
+      error -> error
+    end
+  end
+
+  @doc ~S"""
   Generates the configuration from a Kubernetes service account.
 
   This is used when running in a Pod inside the cluster you're accessing. Make
@@ -232,11 +315,11 @@ defmodule K8s.Conn do
   Generates the configuration from a file whose location is defined by the
   given `env_var`. Defaults to `KUBECONFIG`.
 
-  ### Options
+  ### Options
 
   See `from_file/2`.
 
-  ### Examples
+  ### Examples
 
   if `KUBECONFIG` is set:
 
@@ -311,10 +394,46 @@ defmodule K8s.Conn do
     end
   end
 
+  @spec cert_from_map_string_only(map) ::
+          {:error, :enoent | K8s.Conn.Error.t()} | {:ok, binary() | nil}
+  defp cert_from_map_string_only(%{"certificate-authority-data" => data}) when not is_nil(data),
+    do: PKI.cert_from_base64(data)
+
+  defp cert_from_map_string_only(%{"certificate-authority" => _file_name}) do
+    {:error,
+     %K8s.Conn.Error{
+       message:
+         "File path references (certificate-authority) are not supported in from_string/2. Use certificate-authority-data with base64 encoded data instead."
+     }}
+  end
+
+  defp cert_from_map_string_only(_), do: {:ok, nil}
+
   @spec get_auth(map, binary) :: auth_t
   defp get_auth(%{} = auth_map, base_path) do
     Enum.find_value(auth_providers(), fn provider ->
       case provider.create(auth_map, base_path) do
+        {:ok, auth} ->
+          auth
+
+        {:error, error} ->
+          Logger.debug(
+            "Provider (#{provider}) failed to generate auth, skipping. #{error}",
+            library: :k8s
+          )
+
+          nil
+
+        :skip ->
+          nil
+      end
+    end)
+  end
+
+  @spec get_auth_string_only(map) :: auth_t
+  defp get_auth_string_only(%{} = auth_map) do
+    Enum.find_value(auth_providers(), fn provider ->
+      case provider.create(auth_map, nil) do
         {:ok, auth} ->
           auth
 
