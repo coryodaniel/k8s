@@ -1,84 +1,17 @@
-name: CI
+name: Code Quality
 on:
   push:
     branches: [develop]
   pull_request:
     branches: [develop]
-
-env:
-  MIX_ENV: test
-  KUBECONFIG: /home/runner/.kube/config
-
 jobs:
   test:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        k8s_version: [v1.29.0]
-    steps:
-      - uses: actions/checkout@v4.2.2
-
-      - uses: engineerd/setup-kind@v0.6.2
-        id: kind
-        with:
-          version: v0.18.0
-          image: kindest/node:${{ matrix.k8s_version }}
-
-      - name: Setup elixir
-        uses: erlef/setup-beam@v1
-        id: beam
-        with:
-          version-file: .tool-versions
-          version-type: strict
-          install-rebar: true
-          install-hex: true
-
-      - name: Retrieve Build Cache
-        uses: actions/cache@v4
-        id: build-folder-cache
-        with:
-          path: _build
-          key: ${{ runner.os }}-${{ steps.beam.outputs.otp-version }}-${{ steps.beam.outputs.elixir-version }}-build-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
-
-      - name: Retrieve Mix Dependencies Cache
-        uses: actions/cache@v4
-        id: mix-cache
-        with:
-          path: deps
-          key: ${{ runner.os }}-${{ steps.beam.outputs.otp-version }}-${{ steps.beam.outputs.elixir-version }}-mix-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
-
-      - name: Restore PLT Cache
-        uses: actions/cache@v4
-        id: plt-cache
-        with:
-          key: |
-            ${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-plt
-          path: |
-            priv/plts
-
-      - name: Install Mix Dependencies
-        if: steps.mix-cache.outputs.cache-hit != 'true'
-        run: |
-          mix local.rebar --force
-          mix local.hex --force
-          mix deps.get
-
-      - name: Check Formatting
-        run: mix format --check-formatted
-
-      - name: Run Credo
-        run: mix credo --strict
-
-      - name: Run Coverage
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: TEST_WAIT_TIMEOUT=110 mix coveralls.github --timeout 120000 --include integration --max-failures 1
-
-      # Create PLTs if no cache was found
-      - name: Create PLTs
-        if: steps.plt-cache.outputs.cache-hit != 'true'
-        run: |
-          mkdir -p priv/plts
-          mix dialyzer
-      - name: Run dialyzer
-        run: mix dialyzer --format github
+    uses: mruoss/action_elixir_run_tests/.github/workflows/elixir-code-quality.yml@mise-setup
+    with:
+      checkout: true
+      with-kubernetes: true
+      check-formatting: true
+      run-credo: strict
+      run-dialyzer: true
+    secrets:
+      token: ${{ secrets.GITHUB_TOKEN }}
