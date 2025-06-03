@@ -125,29 +125,8 @@ defmodule K8s.Conn do
     abs_config_file = Path.expand(config_file)
     base_path = Path.dirname(abs_config_file)
 
-    with {:ok, config} <- YamlElixir.read_from_file(abs_config_file),
-         context_name <- opts[:context] || config["current-context"],
-         {:ok, context} <- find_configuration(config["contexts"], context_name, "context"),
-         user_name <- opts[:user] || context["user"],
-         {:ok, user} <- find_configuration(config["users"], user_name, "user"),
-         cluster_name <- opts[:cluster] || context["cluster"],
-         {:ok, cluster} <- find_configuration(config["clusters"], cluster_name, "cluster"),
-         {:ok, cert} <- PKI.cert_from_map(cluster, base_path) do
-      insecure_skip_tls_verify =
-        Keyword.get(opts, :insecure_skip_tls_verify, cluster["insecure-skip-tls-verify"])
-
-      conn = %Conn{
-        cluster_name: cluster_name,
-        user_name: user_name,
-        url: cluster["server"],
-        ca_cert: cert,
-        auth: get_auth(user, base_path),
-        insecure_skip_tls_verify: insecure_skip_tls_verify
-      }
-
-      {:ok, maybe_update_defaults(conn, opts)}
-    else
-      error -> error
+    with {:ok, config} <- YamlElixir.read_from_file(abs_config_file) do
+      from_config(config, base_path, opts)
     end
   end
 
@@ -207,29 +186,8 @@ defmodule K8s.Conn do
   @spec from_string(binary, keyword) ::
           {:ok, __MODULE__.t()} | {:error, :enoent | K8s.Conn.Error.t()}
   def from_string(config_string, opts \\ []) do
-    with {:ok, config} <- YamlElixir.read_from_string(config_string),
-         context_name <- opts[:context] || config["current-context"],
-         {:ok, context} <- find_configuration(config["contexts"], context_name, "context"),
-         user_name <- opts[:user] || context["user"],
-         {:ok, user} <- find_configuration(config["users"], user_name, "user"),
-         cluster_name <- opts[:cluster] || context["cluster"],
-         {:ok, cluster} <- find_configuration(config["clusters"], cluster_name, "cluster"),
-         {:ok, cert} <- cert_from_map_string_only(cluster) do
-      insecure_skip_tls_verify =
-        Keyword.get(opts, :insecure_skip_tls_verify, cluster["insecure-skip-tls-verify"])
-
-      conn = %Conn{
-        cluster_name: cluster_name,
-        user_name: user_name,
-        url: cluster["server"],
-        ca_cert: cert,
-        auth: get_auth_string_only(user),
-        insecure_skip_tls_verify: insecure_skip_tls_verify
-      }
-
-      {:ok, maybe_update_defaults(conn, opts)}
-    else
-      error -> error
+    with {:ok, config} <- YamlElixir.read_from_string(config_string) do
+      from_config(config, nil, opts)
     end
   end
 
@@ -364,6 +322,34 @@ defmodule K8s.Conn do
   @spec from_env() :: {:ok, t()} | {:error, :enoent | K8s.Conn.Error.t()}
   def from_env, do: from_env(@default_env_variable, [])
 
+  @spec from_config(map, binary | nil, keyword) ::
+          {:ok, __MODULE__.t()} | {:error, K8s.Conn.Error.t()}
+  defp from_config(config, base_path, opts) do
+    with context_name <- opts[:context] || config["current-context"],
+         {:ok, context} <- find_configuration(config["contexts"], context_name, "context"),
+         user_name <- opts[:user] || context["user"],
+         {:ok, user} <- find_configuration(config["users"], user_name, "user"),
+         cluster_name <- opts[:cluster] || context["cluster"],
+         {:ok, cluster} <- find_configuration(config["clusters"], cluster_name, "cluster"),
+         {:ok, cert} <- cert_from_map(cluster, base_path) do
+      insecure_skip_tls_verify =
+        Keyword.get(opts, :insecure_skip_tls_verify, cluster["insecure-skip-tls-verify"])
+
+      conn = %Conn{
+        cluster_name: cluster_name,
+        user_name: user_name,
+        url: cluster["server"],
+        ca_cert: cert,
+        auth: get_auth(user, base_path),
+        insecure_skip_tls_verify: insecure_skip_tls_verify
+      }
+
+      {:ok, maybe_update_defaults(conn, opts)}
+    else
+      error -> error
+    end
+  end
+
   @spec find_configuration([map()], String.t(), String.t()) ::
           {:ok, map()} | {:error, K8s.Conn.Error.t()}
   defp find_configuration(items, name, type) do
@@ -394,22 +380,32 @@ defmodule K8s.Conn do
     end
   end
 
-  @spec cert_from_map_string_only(map) ::
+  @spec cert_from_map(map, binary | nil) ::
           {:error, :enoent | K8s.Conn.Error.t()} | {:ok, binary() | nil}
-  defp cert_from_map_string_only(%{"certificate-authority-data" => data}) when not is_nil(data),
-    do: PKI.cert_from_base64(data)
+  defp cert_from_map(cluster, nil) do
+    # String mode - only allow base64 data, reject file paths
+    case cluster do
+      %{"certificate-authority-data" => data} when not is_nil(data) ->
+        PKI.cert_from_base64(data)
 
-  defp cert_from_map_string_only(%{"certificate-authority" => _file_name}) do
-    {:error,
-     %K8s.Conn.Error{
-       message:
-         "File path references (certificate-authority) are not supported in from_string/2. Use certificate-authority-data with base64 encoded data instead."
-     }}
+      %{"certificate-authority" => _file_name} ->
+        {:error,
+         %K8s.Conn.Error{
+           message:
+             "File path references (certificate-authority) are not supported in from_string/2. Use certificate-authority-data with base64 encoded data instead."
+         }}
+
+      _ ->
+        {:ok, nil}
+    end
   end
 
-  defp cert_from_map_string_only(_), do: {:ok, nil}
+  defp cert_from_map(cluster, base_path) when is_binary(base_path) do
+    # File mode - use PKI.cert_from_map which supports both data and file paths
+    PKI.cert_from_map(cluster, base_path)
+  end
 
-  @spec get_auth(map, binary) :: auth_t
+  @spec get_auth(map, binary | nil) :: auth_t
   defp get_auth(%{} = auth_map, base_path) do
     Enum.find_value(auth_providers(), fn provider ->
       case provider.create(auth_map, base_path) do
@@ -430,26 +426,6 @@ defmodule K8s.Conn do
     end)
   end
 
-  @spec get_auth_string_only(map) :: auth_t
-  defp get_auth_string_only(%{} = auth_map) do
-    Enum.find_value(auth_providers(), fn provider ->
-      case provider.create(auth_map, nil) do
-        {:ok, auth} ->
-          auth
-
-        {:error, error} ->
-          Logger.debug(
-            "Provider (#{provider}) failed to generate auth, skipping. #{error}",
-            library: :k8s
-          )
-
-          nil
-
-        :skip ->
-          nil
-      end
-    end)
-  end
 
   @spec auth_providers() :: list(atom)
   defp auth_providers do
