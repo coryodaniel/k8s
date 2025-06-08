@@ -6,7 +6,7 @@ on:
     branches: [develop]
 jobs:
   test:
-    uses: mruoss/action_elixir_run_tests/.github/workflows/elixir-code-quality.yml@mise-setup
+    uses: mruoss/action_elixir_run_tests/.github/workflows/elixir-code-quality.yml@v1.1.0
     with:
       checkout: true
       with-kubernetes: true
