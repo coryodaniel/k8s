@@ -12,3 +12,5 @@ jobs:
       warnings-as-errors: true
       with-kubernetes: true
       include-integration-tests: true
+    secrets:
+      token: ${{ secrets.GITHUB_TOKEN }}
