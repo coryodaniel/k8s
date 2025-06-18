@@ -13,14 +13,27 @@ jobs:
       fail-fast: false
       matrix:
         # https://hub.docker.com/r/kindest/node/tags
-        k8s_version: [v1.26.6, v1.27.3, v1.28.0, v1.29.0]
+        k8s_version:
+          - v1.33.1
+          - v1.32.5
+          - v1.31.9
+          - v1.30.13
     steps:
-      - uses: engineerd/setup-kind@v0.6.2
-        id: kind
-        with:
-          version: v0.18.0
-          image: kindest/node:${{ matrix.k8s_version }}
       - uses: actions/checkout@v4.2.2
+
+      - name: Setup Mise JDX
+        run: |
+          curl https://mise.run | sh
+          echo "$HOME/.local/share/mise/bin" >> $GITHUB_PATH
+          echo "$HOME/.local/share/mise/shims" >> $GITHUB_PATH
+          echo "eval \"\$(mise activate bash)\"" >> ~/.bash_profile
+
+      - name: Setup Kubernetes (Kind)
+        id: kind
+        run: |
+          mise install kind
+          kind create cluster --image kindest/node:${{ matrix.k8s_version }}
+
       - uses: erlef/setup-beam@v1
         with:
           version-file: .tool-versions
