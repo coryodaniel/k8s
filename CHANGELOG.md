@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- ### Added | Changed | Deprecated | Removed | Fixed | Security -->
 
+### Added
+
+- Add support for passing kubeconfig as a YAML string with K8s.Conn.from_string/2 [#364](https://github.com/coryodaniel/k8s/pull/364)
+
 <!--------------------- Don't add new entries after this line --------------------->
 
 ## [2.6.2] - 2025-01-09

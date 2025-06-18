@@ -162,7 +162,8 @@ defmodule K8s.Conn do
       user: my-user
     name: my-context
   current-context: my-context
-  \"\"\"
+  # False positive in Credo 1.7.12 - see https://github.com/rrrene/credo/issues/1203
+  \"\"\" # credo:disable-for-this-line Credo.Check.Readability.TrailingWhiteSpace
 
   {:ok, conn} = K8s.Conn.from_string(config_yaml)
   ```
@@ -425,7 +426,6 @@ defmodule K8s.Conn do
       end
     end)
   end
-
 
   @spec auth_providers() :: list(atom)
   defp auth_providers do
