@@ -20,7 +20,9 @@ defmodule K8s.Operation do
     connect: :post,
     update: :put,
     patch: :patch,
-    apply: :patch
+    apply: :patch,
+    metrics_all_namespaces: :get,
+    metrics: :get
   }
 
   @patch_type_content_types %{

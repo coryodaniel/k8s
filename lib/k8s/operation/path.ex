@@ -217,6 +217,8 @@ defmodule K8s.Operation.Path do
   defp name_param(resource_name, :list), do: resource_name
   defp name_param(resource_name, :deletecollection), do: resource_name
   defp name_param(resource_name, :watch_all_namespaces), do: resource_name
+  defp name_param(resource_name, :metrics_all_namespaces), do: resource_name
+  defp name_param(resource_name, :metrics), do: resource_name
   defp name_param(resource_name, _), do: "#{resource_name}/{name}"
 
   @spec name_with_subresource_param(binary, binary, atom) :: binary
@@ -225,6 +227,7 @@ defmodule K8s.Operation.Path do
 
   @spec build_path(binary, binary, boolean, atom) :: binary
   defp build_path(prefix, suffix, true, :watch_all_namespaces), do: "#{prefix}/#{suffix}"
+  defp build_path(prefix, suffix, true, :metrics_all_namespaces), do: "#{prefix}/#{suffix}"
   defp build_path(prefix, suffix, true, :list_all_namespaces), do: "#{prefix}/#{suffix}"
   defp build_path(prefix, suffix, true, _), do: "#{prefix}/namespaces/{namespace}/#{suffix}"
   defp build_path(prefix, suffix, false, _), do: "#{prefix}/#{suffix}"

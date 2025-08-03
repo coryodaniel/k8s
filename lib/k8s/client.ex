@@ -41,8 +41,8 @@ defmodule K8s.Client do
 
   @doc "alias of `K8s.Client.Runner.Base.run/3`"
   defdelegate run(conn, operation, http_opts), to: Base
-  @doc "alias of `K8s.Client.Runner.Async.run/3`"
 
+  @doc "alias of `K8s.Client.Runner.Async.run/3`"
   defdelegate async(conn, operations), to: Async, as: :run
 
   @doc "alias of `K8s.Client.Runner.Async.run/3`"
@@ -268,30 +268,29 @@ defmodule K8s.Client do
     do: Operation.build(:list, api_version, kind, path_params)
 
   @doc """
-  Returns a `GET` operation to list all resources by version, kind, and namespace.
+  Returns a `GET` operation to watch a resource by version, kind, and namespace.
 
-  Given the namespace `:all` as an atom, will perform a list across all namespaces.
+  Given the namespace `:all` as an atom, will perform a watch across all namespaces.
 
-  [K8s Docs](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.13/):
+  [K8s Docs](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/):
 
-  > List will retrieve all resource objects of a specific type within a namespace, and the results can be restricted to resources matching a selector query.
-  > List All Namespaces: Like List but retrieves resources across all namespaces.
+  > Watch will stream results for an object(s) as it is updated. Similar to a callback, watch is used to respond to resource changes.
 
   ## Examples
 
-      iex> K8s.Client.list("v1", "Pod", namespace: "default")
+      iex> K8s.Client.watch("v1", "Pod", namespace: "default")
       %K8s.Operation{
         method: :get,
-        verb: :list,
+        verb: :watch,
         api_version: "v1",
         name: "Pod",
         path_params: [namespace: "default"]
       }
 
-      iex> K8s.Client.list("apps/v1", "Deployment", namespace: :all)
+      iex> K8s.Client.watch("apps/v1", "Deployment", namespace: :all)
       %K8s.Operation{
         method: :get,
-        verb: :list_all_namespaces,
+        verb: :watch_all_namespaces,
         api_version: "apps/v1",
         name: "Deployment",
         path_params: []
@@ -306,6 +305,66 @@ defmodule K8s.Client do
 
   def watch(api_version, kind, path_params),
     do: Operation.build(:watch, api_version, kind, path_params)
+
+  @doc """
+  Returns a `GET` operation to display metrics information about Nodes or Pods.
+
+  Given the namespace `:all` as an atom, will perform a watch across all namespaces for a Pod.  Nodes are Namespace agnostic.
+
+  [K8s Metrics Docs](https://kubernetes.io/docs/tasks/debug/debug-cluster/resource-metrics-pipeline):
+
+  > ...the Metrics API offers a basic set of metrics to support automatic scaling and similar use cases.
+
+  ## Examples
+
+      iex> K8s.Client.metrics("v1", "Pod", namespace: "default")
+      %K8s.Operation{
+        method: :get,
+        verb: :metrics,
+        api_version: "v1",
+        name: "Pod",
+        data: nil,
+        conn: nil,
+        path_params: [namespace: "default"],
+        query_params: [],
+        header_params: ["Content-Type": "application/json"]
+      }
+
+      iex> K8s.Client.metrics("v1", "Pod", namespace: :all)
+      %K8s.Operation{
+        method: :get,
+        verb: :metrics_all_namespaces,
+        api_version: "v1",
+        name: "Pod",
+        data: nil,
+        conn: nil,
+        path_params: [],
+        query_params: [],
+        header_params: ["Content-Type": "application/json"]
+      }
+
+      iex> K8s.Client.metrics("v1", "Node")
+      %K8s.Operation{
+        method: :get,
+        verb: :metrics,
+        api_version: "v1",
+        name: "Node",
+        data: nil,
+        conn: nil,
+        path_params: [],
+        query_params: [],
+        header_params: ["Content-Type": "application/json"]
+      }
+
+  """
+  @spec metrics(binary, Operation.name_t(), path_params | nil) :: Operation.t()
+  def metrics(api_version, kind, path_params \\ [])
+
+  def metrics(api_version, kind, namespace: :all),
+    do: Operation.build(:metrics_all_namespaces, api_version, kind, [])
+
+  def metrics(api_version, kind, path_params),
+    do: Operation.build(:metrics, api_version, kind, path_params)
 
   @doc """
   Returns a `POST` `K8s.Operation` to create the given resource.
