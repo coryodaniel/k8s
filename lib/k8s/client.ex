@@ -317,12 +317,12 @@ defmodule K8s.Client do
 
   ## Examples
 
-      iex> K8s.Client.metrics("v1", "Pod", namespace: "default")
+      iex> K8s.Client.metrics("metrics.k8s.io/v1beta1", "pods", namespace: "default")
       %K8s.Operation{
         method: :get,
         verb: :metrics,
-        api_version: "v1",
-        name: "Pod",
+        api_version: "metrics.k8s.io/v1beta1",
+        name: "pods",
         data: nil,
         conn: nil,
         path_params: [namespace: "default"],
@@ -330,25 +330,25 @@ defmodule K8s.Client do
         header_params: ["Content-Type": "application/json"]
       }
 
-      iex> K8s.Client.metrics("v1", "Pod", namespace: :all)
+      iex> K8s.Client.metrics("metrics.k8s.io/v1beta1", "pods", namespace: :all)
       %K8s.Operation{
         method: :get,
         verb: :metrics_all_namespaces,
-        api_version: "v1",
-        name: "Pod",
+        api_version: "metrics.k8s.io/v1beta1",
+        name: "pods",
         data: nil,
         conn: nil,
-        path_params: [],
+        path_params: [{:namespace, :all}],
         query_params: [],
         header_params: ["Content-Type": "application/json"]
       }
 
-      iex> K8s.Client.metrics("v1", "Node")
+      iex> K8s.Client.metrics("metrics.k8s.io/v1beta1", "nodes")
       %K8s.Operation{
         method: :get,
         verb: :metrics,
-        api_version: "v1",
-        name: "Node",
+        api_version: "metrics.k8s.io/v1beta1",
+        name: "nodes",
         data: nil,
         conn: nil,
         path_params: [],
@@ -361,10 +361,13 @@ defmodule K8s.Client do
   def metrics(api_version, kind, path_params \\ [])
 
   def metrics(api_version, kind, namespace: :all),
-    do: Operation.build(:metrics_all_namespaces, api_version, kind, [])
+    do: Operation.build(:metrics_all_namespaces, api_version, kind, [namespace: :all])
 
   def metrics(api_version, kind, path_params),
     do: Operation.build(:metrics, api_version, kind, path_params)
+
+  # def metrics(api_version, kind, path_params),
+  #   do: Operation.build(:metrics, api_version, kind, path_params)
 
   @doc """
   Returns a `POST` `K8s.Operation` to create the given resource.

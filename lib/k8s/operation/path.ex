@@ -225,6 +225,10 @@ defmodule K8s.Operation.Path do
   defp name_with_subresource_param(resource_name, subresource, _),
     do: "#{resource_name}/{name}/#{subresource}"
 
+  # defp name_param("Pods", :metrics), do: "apis/metrics.k8s.io/v1beta1/namespaces/{namespace}/pods"
+  # defp name_param("Pods", :metrics_all_namespaces), do: "apis/metrics.k8s.io/v1beta1/pods"
+  # defp name_param("Nodes", :metrics_all_namespaces), do: "apis/metrics.k8s.io/v1beta1/nodes"
+
   @spec build_path(binary, binary, boolean, atom) :: binary
   defp build_path(prefix, suffix, true, :watch_all_namespaces), do: "#{prefix}/#{suffix}"
   defp build_path(prefix, suffix, true, :metrics_all_namespaces), do: "#{prefix}/#{suffix}"

@@ -61,27 +61,27 @@ defmodule K8s.ClientTest do
     assert %K8s.Operation{
         method: :get,
         verb: :metrics,
-        api_version: "v1",
+        api_version: "metrics.k8s.io/v1beta1",
         name: "Node",
         data: nil,
         conn: nil,
         path_params: [],
         query_params: [],
         header_params: ["Content-Type": "application/json"]
-      } = K8s.Client.metrics("v1", "Node")
+      } = K8s.Client.metrics("metrics.k8s.io/v1beta1", "Node")
   end
 
   test "generate metrics for Pod" do
     assert %K8s.Operation{
         method: :get,
         verb: :metrics,
-        api_version: "v1",
+        api_version: "metrics.k8s.io/v1beta1",
         name: "Pod",
         data: nil,
         conn: nil,
         path_params: [{:namespace, "production"}],
         query_params: [],
         header_params: ["Content-Type": "application/json"]
-      } = K8s.Client.metrics("v1", "Pod", namespace: "production")
+      } = K8s.Client.metrics("metrics.k8s.io/v1beta1", "Pod", namespace: "production")
   end
 end
