@@ -56,4 +56,32 @@ defmodule K8s.ClientTest do
              verb: :create
            } = K8s.Client.create(ns)
   end
+
+  test "generate metrics for Node" do
+    assert %K8s.Operation{
+        method: :get,
+        verb: :metrics,
+        api_version: "v1",
+        name: "Node",
+        data: nil,
+        conn: nil,
+        path_params: [],
+        query_params: [],
+        header_params: ["Content-Type": "application/json"]
+      } = K8s.Client.metrics("v1", "Node")
+  end
+
+  test "generate metrics for Pod" do
+    assert %K8s.Operation{
+        method: :get,
+        verb: :metrics,
+        api_version: "v1",
+        name: "Pod",
+        data: nil,
+        conn: nil,
+        path_params: [{:namespace, "production"}],
+        query_params: [],
+        header_params: ["Content-Type": "application/json"]
+      } = K8s.Client.metrics("v1", "Pod", namespace: "production")
+  end
 end
