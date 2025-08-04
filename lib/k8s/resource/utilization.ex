@@ -34,6 +34,10 @@ defmodule K8s.Resource.Utilization do
       iex> K8s.Resource.Utilization.cpu("500m")
       0.5
 
+    Parses nanocpu values
+      iex> K8s.Resource.Utilization.cpu("900000n")
+      0.0009
+
     Parses decimal values
       iex> K8s.Resource.Utilization.cpu("1.5")
       1.5
@@ -57,6 +61,7 @@ defmodule K8s.Resource.Utilization do
 
     case maybe_millicpu do
       "m" -> value / 1000
+      "n" -> value / 1_000_000_000
       _ -> value
     end
   end
