@@ -133,6 +133,35 @@ operation = K8s.Client.watch("apps/v1", :deployment, namespace: :all)
 {:ok, event_stream} = K8s.Client.stream(conn, operation)
 ```
 
+## Metrics for Pods and Nodes
+
+Metrics operations provide current usage statistics (e.g. `cpu` and `memory`).
+
+To see Metrics for Pods in the cluster in the `default` Namespace:
+```elixir
+operation = K8s.Client.metrics("metrics.k8s.io/v1beta1", :pods, namespace: "default")
+{:ok, conn} = K8s.Conn.from_file("path/to/kubeconfig.yaml")
+{:ok, metrics} = K8s.Client.metrics(conn, operation)
+
+Enum.all?(metrics["items"], fn item ->
+  Enum.all?(item["containers"], fn container ->
+    IO.puts(container["usage"]["cpu"])    # Current cpu usage of this container in this Pod
+    IO.puts(container["usage"]["memory"])   # Current memory usage of this container in this Pod
+  end)
+```
+
+To see Metrics for Nodes in the cluster:
+```elixir
+operation = K8s.Client.metrics("metrics.k8s.io/v1beta1", :nodes)
+{:ok, conn} = K8s.Conn.from_file("path/to/kubeconfig.yaml")
+{:ok, metrics} = K8s.Client.metrics(conn, operation)
+
+Enum.all?(metrics["items"], fn item ->
+  IO.puts(item["usage"]["cpu"])   # Current usage of this Node in the cluster
+  IO.puts(item["usage"]["memory"]) # Current memory usage of this Node in the cluster
+end)
+```
+
 ## Wait on a Resource (`K8s.Client.Runner.Wait`)
 
 The wait runner permits read operations to be made and block until a certain state is met in Kubernetes.

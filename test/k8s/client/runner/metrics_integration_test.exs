@@ -3,33 +3,10 @@ defmodule K8s.Client.Runner.MetricsIntegrationTest do
   import K8s.Test.IntegrationHelper
 
   setup_all do
-    conn = conn()
-
-    on_exit(fn ->
-      K8s.Client.delete_all("v1", "Pod", namespace: "default")
-      |> K8s.Selector.label({"k8s-ex-test", "metrics"})
-      |> K8s.Client.put_conn(conn)
-      |> K8s.Client.run()
-    end)
-
-    [conn: conn]
-  end
-
-  setup do
-    test_id = :rand.uniform(10_000)
-    labels = %{"k8s-ex-metrics-test" => "#{test_id}", "k8s-ex-test" => "metrics"}
-
-    {:ok, %{test_id: test_id, labels: labels}}
+    [conn: conn()]
   end
 
   describe "metrics for pods and nodes" do
-    setup %{test_id: test_id} do
-
-      [
-        resource_name: "metrics-#{test_id}"
-      ]
-    end
-
     test "fetch metrics for nodes", %{conn: conn} do
       operation = K8s.Client.metrics("metrics.k8s.io/v1beta1", "nodes")
 
@@ -42,7 +19,7 @@ defmodule K8s.Client.Runner.MetricsIntegrationTest do
     end
 
     test "fetch metrics for pods", %{conn: conn} do
-      operation = K8s.Client.metrics("metrics.k8s.io/v1beta1", "pods", namespace: "kube-system")
+      operation = K8s.Client.metrics("metrics.k8s.io/v1beta1", :pods, namespace: "kube-system")
       {:ok, metrics_result} = K8s.Client.run(conn, operation)
 
       assert Enum.count(metrics_result["items"]) > 0, "Expected to find metrics for pods in kube-system namespace"
