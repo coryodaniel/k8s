@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- ### Added | Changed | Deprecated | Removed | Fixed | Security -->
 
+### Added
+
+- Add support for nanocpu (`n`) units in `K8s.Resource.Utilization.cpu`.  [Issue #373](https://github.com/coryodaniel/k8s/issues/373)
+
 <!--------------------- Don't add new entries after this line --------------------->
 
 ## [2.7.0] - 2025-01-09
