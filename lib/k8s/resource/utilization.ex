@@ -57,6 +57,7 @@ defmodule K8s.Resource.Utilization do
 
     case maybe_millicpu do
       "m" -> value / 1000
+      "n" -> value / 1_000_000_000
       _ -> value
     end
   end
