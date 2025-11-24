@@ -6,7 +6,7 @@ on:
     branches: [develop]
 jobs:
   test:
-    uses: mruoss/action_elixir_run_tests/.github/workflows/elixir-code-quality.yml@v1.3.0
+    uses: mruoss/action_elixir_run_tests/.github/workflows/elixir-code-quality.yml@v2.0.0
     with:
       checkout: true
       with-kubernetes: true
