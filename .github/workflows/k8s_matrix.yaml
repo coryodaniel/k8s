@@ -19,7 +19,7 @@ jobs:
           - v1.31.9
           - v1.30.13
     steps:
-      - uses: actions/checkout@v5.0.0
+      - uses: actions/checkout@v6.0.2
 
       - name: Setup Mise JDX
         run: |
