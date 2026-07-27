@@ -27,9 +27,12 @@ defmodule K8s.Client do
     force: true
   }
 
+  alias K8s.Client.Runner.Async
+  alias K8s.Client.Runner.Base
+  alias K8s.Client.Runner.Stream
   alias K8s.Client.Runner.StreamTo
+  alias K8s.Client.Runner.Wait
   alias K8s.Operation
-  alias K8s.Client.Runner.{Async, Base, Stream, Wait}
 
   defdelegate put_conn(operation, conn), to: Operation
 

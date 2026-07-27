@@ -5,8 +5,10 @@ defmodule K8s.Client.Runner.Wait do
   Note: This is built using repeated GET operations rather than using a [watch](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.13/#watch-list-deployment-v1-apps) operation w/ `fieldSelector`.
   """
 
-  alias K8s.{Conn, Operation}
-  alias K8s.Client.Runner.{Base, Wait}
+  alias K8s.Client.Runner.Base
+  alias K8s.Client.Runner.Wait
+  alias K8s.Conn
+  alias K8s.Operation
   alias K8s.Operation.Error
 
   @typedoc "A wait configuration"
