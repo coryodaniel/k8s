@@ -62,7 +62,7 @@ defmodule K8s.Conn.Auth.ServiceAccountWorker do
   @impl true
   def init(args) do
     # Parse the args
-    starting_state = struct!(State, args)
+    %State{} = starting_state = struct!(State, args)
 
     # Start a refresh timer for just about now.
     {:ok,
@@ -94,7 +94,7 @@ defmodule K8s.Conn.Auth.ServiceAccountWorker do
       {:ok, token_data} ->
         # We had to read the token from the file, so we
         # should schedule a refresh.
-        without_timer = reset_timer(%State{} = state)
+        without_timer = reset_timer(state)
 
         {:reply, {:ok, token_data},
          %State{

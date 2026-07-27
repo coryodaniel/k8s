@@ -5,7 +5,7 @@ defmodule K8s.MiddlewareTest do
     @behaviour K8s.Middleware.Request
 
     @impl true
-    def call(%{body: body} = req) do
+    def call(%K8s.Middleware.Request{body: body} = req) do
       updated_body = put_in(body, ["metadata", "labels"], %{"env" => "prod"})
       updated_req = %K8s.Middleware.Request{req | body: updated_body}
       {:ok, updated_req}

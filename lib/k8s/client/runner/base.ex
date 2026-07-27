@@ -19,8 +19,6 @@ defmodule K8s.Client.Runner.Base do
   alias K8s.Middleware.Request
   alias K8s.Operation
 
-  require Logger
-
   @doc """
   Runs a `K8s.Operation`.
 
