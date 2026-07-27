@@ -94,7 +94,7 @@ defmodule K8s.Conn.Auth.ServiceAccountWorker do
       {:ok, token_data} ->
         # We had to read the token from the file, so we
         # should schedule a refresh.
-        without_timer = reset_timer(state)
+        without_timer = reset_timer(%State{} = state)
 
         {:reply, {:ok, token_data},
          %State{
@@ -152,7 +152,7 @@ defmodule K8s.Conn.Auth.ServiceAccountWorker do
   end
 
   @spec reset_timer(State.t()) :: State.t()
-  defp reset_timer(state) do
+  defp reset_timer(%State{} = state) do
     if state.timer != nil do
       Process.cancel_timer(state.timer)
     end
