@@ -439,7 +439,7 @@ defmodule K8s.Conn do
     "https://#{host}:#{port}"
   end
 
-  defimpl K8s.Conn.RequestOptions, for: K8s.Conn do
+  defimpl K8s.Conn.RequestOptions.Generator, for: K8s.Conn do
     @doc "Generates HTTP Authorization options for certificate authentication"
     @spec generate(K8s.Conn.t()) :: K8s.Conn.RequestOptions.generate_t()
     def generate(%K8s.Conn{} = conn) do

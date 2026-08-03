@@ -78,7 +78,7 @@ defmodule K8s.Conn.Auth.Azure do
     Map.get(res, "access_token")
   end
 
-  defimpl RequestOptions, for: __MODULE__ do
+  defimpl RequestOptions.Generator, for: __MODULE__ do
     @spec generate(K8s.Conn.Auth.Azure.t()) :: RequestOptions.generate_t()
     def generate(%K8s.Conn.Auth.Azure{token: token}) do
       {:ok,

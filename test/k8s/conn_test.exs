@@ -2,8 +2,11 @@ defmodule K8s.ConnTest do
   @moduledoc false
   use ExUnit.Case, async: true
   doctest K8s.Conn
+  alias K8s.Conn.Auth.AuthProvider
+  alias K8s.Conn.Auth.Certificate
+  alias K8s.Conn.Auth.Exec
   alias K8s.Conn.Auth.ServiceAccount
-  alias K8s.Conn.Auth.{AuthProvider, Certificate, Exec, Token}
+  alias K8s.Conn.Auth.Token
   alias K8s.Conn.RequestOptions
 
   describe "from_file/2" do

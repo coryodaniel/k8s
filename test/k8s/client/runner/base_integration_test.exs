@@ -90,7 +90,7 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
     end
 
     @tag :integration
-    test "when the request is unauthorized", %{conn: conn} do
+    test "when the request is unauthorized", %{conn: %K8s.Conn{} = conn} do
       operation = K8s.Client.get("v1", "ServiceAccount", name: "default", namespace: "default")
       unauthorized = %K8s.Conn.Auth.Token{token: "nope"}
       unauthorized_conn = %K8s.Conn{conn | auth: unauthorized}
@@ -253,7 +253,7 @@ defmodule K8s.Client.Runner.BaseIntegrationTest do
                 "kind" => "ServiceAccountList"
               }} = K8s.Client.run(conn, operation)
 
-      assert length(service_accounts) > 0
+      assert service_accounts != []
     end
 
     @tag :integration

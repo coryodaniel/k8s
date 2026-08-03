@@ -22,11 +22,15 @@ jobs:
       - uses: actions/checkout@v7.0.1
 
       - name: Setup Mise JDX
+        id: mise
         run: |
           curl https://mise.run | sh
           echo "$HOME/.local/share/mise/bin" >> $GITHUB_PATH
           echo "$HOME/.local/share/mise/shims" >> $GITHUB_PATH
           echo "eval \"\$(mise activate bash)\"" >> ~/.bash_profile
+          mise install erlang elixir
+          echo "otp-version=$(mise current erlang | tr -d '\n')" >> "$GITHUB_OUTPUT"
+          echo "elixir-version=$(mise current elixir | tr -d '\n')" >> "$GITHUB_OUTPUT"
 
       - name: Setup Kubernetes (Kind)
         id: kind
@@ -34,29 +38,22 @@ jobs:
           mise install kind
           kind create cluster --image kindest/node:${{ matrix.k8s_version }}
 
-      - uses: erlef/setup-beam@v1
-        with:
-          version-file: .tool-versions
-          version-type: strict
-          install-rebar: true
-          install-hex: true
-
       - name: Retrieve Build Cache
         uses: actions/cache@v6
         id: build-folder-cache
         with:
           path: _build
-          key: ${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-build-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
+          key: ${{ runner.os }}-${{ steps.mise.outputs.elixir-version }}-${{ steps.mise.outputs.otp-version }}-build-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
 
       - name: Retrieve Mix Dependencies Cache
         uses: actions/cache@v6
         id: mix-cache
         with:
           path: deps
-          key: ${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-mix-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
+          key: ${{ runner.os }}-${{ steps.mise.outputs.elixir-version }}-${{ steps.mise.outputs.otp-version }}-mix-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
 
-      - run: mix local.rebar --force
-      - run: mix local.hex --force
-      - run: mix deps.get
-      - run: mix compile --warnings-as-errors
-      - run: TEST_WAIT_TIMEOUT=110 mix test --timeout 120000 --only integration --max-failures 1
+      - run: mise exec elixir erlang -- mix local.rebar --force
+      - run: mise exec elixir erlang -- mix local.hex --force
+      - run: mise exec elixir erlang -- mix deps.get
+      - run: mise exec elixir erlang -- mix compile --warnings-as-errors
+      - run: TEST_WAIT_TIMEOUT=110 mise exec elixir erlang -- mix test --timeout 120000 --only integration --max-failures 1

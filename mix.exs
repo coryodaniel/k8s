@@ -10,17 +10,20 @@ defmodule K8s.MixProject do
       app: @app,
       description: "Kubernetes API Client for Elixir",
       version: @version,
-      elixir: "~> 1.14",
+      elixir: "~> 1.15",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       test_coverage: [tool: ExCoveralls],
-      preferred_cli_env: cli_env(),
       docs: docs(),
       package: package(),
       elixirc_paths: elixirc_paths(Mix.env()),
-      dialyzer: dialyzer(),
-      xref: [exclude: [:cover]]
+      elixirc_options: [no_warn_undefined: [:cover]],
+      dialyzer: dialyzer()
     ]
+  end
+
+  def cli do
+    [preferred_envs: cli_env()]
   end
 
   # Run "mix help compile.app" to learn about applications.

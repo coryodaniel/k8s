@@ -183,7 +183,7 @@ defmodule K8s.Client.Mint.Request do
 
     %__MODULE__{
       request_ref: request_ref,
-      pending_request_body: <<chunk::binary-size(chunk_size), remaining_request_body::binary>>
+      pending_request_body: <<chunk::binary-size(^chunk_size), remaining_request_body::binary>>
     } = request
 
     with {:ok, conn} <- Mint.HTTP.stream_request_body(conn, request_ref, chunk),

@@ -43,7 +43,7 @@ defmodule K8s.Conn.Auth.ServiceAccount do
 
   def create(_, _), do: :skip
 
-  defimpl K8s.Conn.RequestOptions, for: K8s.Conn.Auth.ServiceAccount do
+  defimpl K8s.Conn.RequestOptions.Generator, for: K8s.Conn.Auth.ServiceAccount do
     @doc """
     Generates HTTP Authorization options for
     auth-provider authentication by asking the running ExecWorker for a token.

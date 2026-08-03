@@ -39,7 +39,7 @@ defmodule K8s.Conn.Auth.Certificate do
 
   def create(_, _), do: :skip
 
-  defimpl K8s.Conn.RequestOptions, for: K8s.Conn.Auth.Certificate do
+  defimpl K8s.Conn.RequestOptions.Generator, for: K8s.Conn.Auth.Certificate do
     @doc "Generates HTTP Authorization options for certificate authentication"
     @spec generate(K8s.Conn.Auth.Certificate.t()) :: K8s.Conn.RequestOptions.generate_t()
     def generate(%K8s.Conn.Auth.Certificate{cert_path: cert_path, key_path: key_path})

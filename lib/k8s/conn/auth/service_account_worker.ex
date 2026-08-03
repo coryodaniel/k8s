@@ -62,7 +62,7 @@ defmodule K8s.Conn.Auth.ServiceAccountWorker do
   @impl true
   def init(args) do
     # Parse the args
-    starting_state = struct!(State, args)
+    %State{} = starting_state = struct!(State, args)
 
     # Start a refresh timer for just about now.
     {:ok,
@@ -152,7 +152,7 @@ defmodule K8s.Conn.Auth.ServiceAccountWorker do
   end
 
   @spec reset_timer(State.t()) :: State.t()
-  defp reset_timer(state) do
+  defp reset_timer(%State{} = state) do
     if state.timer != nil do
       Process.cancel_timer(state.timer)
     end
