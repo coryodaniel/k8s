@@ -7,10 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-<!-- Add your changelog entry to the relevant subsection -->
+### Fixed
 
-<!-- ### Added | Changed | Deprecated | Removed | Fixed | Security -->
-
+- Fix compiler warnings on Elixir 1.19+ (struct type annotations, unused `require Logger`).
 <!--------------------- Don't add new entries after this line --------------------->
 
 ## [2.8.0] - 2025-10-11
