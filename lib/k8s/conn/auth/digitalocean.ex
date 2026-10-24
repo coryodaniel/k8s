@@ -10,7 +10,7 @@ defmodule K8s.Conn.Auth.DigitalOcean do
           {:ok, K8s.Conn.Auth.Token.t()} | {:error, any} | :skip
   def create(%{"exec" => %{"command" => "doctl", "args" => args}}, _) do
     with {json, 0} <- System.cmd("doctl", args),
-         {:ok, response_map} <- Jason.decode(json),
+          {:ok, response_map} <- K8s.decode(json),
          token when not is_nil(token) <- get_in(response_map, ["status", "token"]) do
       {:ok, %K8s.Conn.Auth.Token{token: token}}
     end

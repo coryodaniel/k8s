@@ -46,7 +46,7 @@ defmodule K8s.Client.HTTPStream do
     |> transform_to_lines()
     |> Stream.flat_map(fn
       {:line, line} ->
-        case Jason.decode(line) do
+        case K8s.decode(line) do
           {:error, error} ->
             Logger.error(
               "Could not decode JSON - chunk seems to be malformed",

@@ -93,7 +93,7 @@ defmodule K8s.Conn.Auth.ExecWorker do
   end
 
   @spec get_token(GenServer.server()) ::
-          {:ok, binary()} | {:error, Jason.DecodeError.t() | Error.t()}
+      {:ok, binary()} | {:error, any() | Error.t()}
   def get_token(target) do
     GenServer.call(target, :get_token)
   end
@@ -132,12 +132,12 @@ defmodule K8s.Conn.Auth.ExecWorker do
 
   @spec response_from_command(State.t()) ::
           {:ok, %{token: String.t() | nil, expiration_timestamp: DateTime.t() | nil}}
-          | {:error, Jason.DecodeError.t() | Error.t()}
+      | {:error, any() | Error.t()}
   defp response_from_command(%{command: command, args: args, env: env} = _config) do
     # Execute the command by exec'ing the command with the args and env
     with {cmd_response, 0} <- System.cmd(command, args, env: env),
          # parse the binary response from the command
-         {:ok, data} <- Jason.decode(cmd_response),
+         {:ok, data} <- K8s.decode(cmd_response),
          # If there's a token in the response, return it
          {:ok, %{token: token} = response} when not is_nil(token) <- parse_cmd_response(data) do
       {:ok, response}
@@ -156,7 +156,7 @@ defmodule K8s.Conn.Auth.ExecWorker do
 
   @spec parse_cmd_response(map) ::
           {:ok, %{token: String.t() | nil, expiration_timestamp: DateTime.t() | nil}}
-          | {:error, Jason.DecodeError.t() | Error.t()}
+      | {:error, any() | Error.t()}
           | {:error, Error.t()}
           | {:error, atom()}
   defp parse_cmd_response(%{

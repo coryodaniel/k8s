@@ -125,7 +125,7 @@ defmodule K8s.Conn do
     abs_config_file = Path.expand(config_file)
     base_path = Path.dirname(abs_config_file)
 
-    with {:ok, config} <- YamlElixir.read_from_file(abs_config_file) do
+    with {:ok, config} <- K8s.yaml_read_from_file(abs_config_file) do
       from_config(config, base_path, opts)
     end
   end
@@ -187,7 +187,7 @@ defmodule K8s.Conn do
   @spec from_string(binary, keyword) ::
           {:ok, __MODULE__.t()} | {:error, :enoent | K8s.Conn.Error.t()}
   def from_string(config_string, opts \\ []) do
-    with {:ok, config} <- YamlElixir.read_from_string(config_string) do
+    with {:ok, config} <- K8s.yaml_read_from_string(config_string) do
       from_config(config, nil, opts)
     end
   end

@@ -41,8 +41,9 @@ defmodule K8s.MixProject do
   defp deps do
     [
       {:castore, "~> 1.0"},
-      {:yaml_elixir, "~> 2.8"},
-      {:jason, "~> 1.0"},
+      {:yaml_elixir, "~> 2.8", optional: true},
+      {:jason, "~> 1.0", optional: true},
+      {:glazer, "~> 1.0", optional: true, manager: :mix},
       {:mint, "~> 1.0"},
       {:mint_web_socket, "~> 1.0"},
       {:poolboy, "~> 1.5"},

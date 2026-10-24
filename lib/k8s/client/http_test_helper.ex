@@ -2,7 +2,7 @@
 defmodule K8s.Client.HTTPTestHelper do
   @moduledoc "HTTP Helpers for test suite."
 
-  def stream_object(object), do: {:data, Jason.encode!(object) <> "\n"}
+  def stream_object(object), do: {:data, K8s.encode!(object) <> "\n"}
 
   def render(data), do: {:ok, data}
 

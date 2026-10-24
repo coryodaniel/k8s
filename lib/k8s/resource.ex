@@ -1,7 +1,7 @@
 defmodule K8s.Resource do
   @moduledoc "Kubernetes manifest attribute helpers"
 
-  @type yaml_elixir_error_t :: YamlElixir.FileNotFoundError.t() | YamlElixir.ParsingError.t()
+  @type yaml_library_error_t :: term()
 
   defdelegate kind(resource), to: K8s.Resource.FieldAccessors
   defdelegate api_version(resource), to: K8s.Resource.FieldAccessors
@@ -94,10 +94,10 @@ defmodule K8s.Resource do
         }
       }}
   """
-  @spec from_file(binary, keyword | nil) :: {:ok, map} | {:error, :enoent | yaml_elixir_error_t}
+  @spec from_file(binary, keyword | nil) :: {:ok, map} | {:error, :enoent | yaml_library_error_t}
   def from_file(filepath, assigns \\ []) do
     with {:ok, interpolated_template} <- render(filepath, assigns),
-         {:ok, resource} <- YamlElixir.read_from_string(interpolated_template) do
+         {:ok, resource} <- K8s.yaml_read_from_string(interpolated_template) do
       {:ok, resource}
     else
       error -> error
@@ -188,10 +188,10 @@ defmodule K8s.Resource do
       ]}
   """
   @spec all_from_file(binary, keyword) ::
-          {:ok, list(map)} | {:error, :enoent | yaml_elixir_error_t}
+          {:ok, list(map)} | {:error, :enoent | yaml_library_error_t}
   def all_from_file(filepath, assigns \\ []) do
     with {:ok, interpolated_template} <- render(filepath, assigns),
-         {:ok, resources} <- YamlElixir.read_all_from_string(interpolated_template),
+         {:ok, resources} <- K8s.yaml_read_all_from_string(interpolated_template),
          no_empty_maps <- Enum.filter(resources, &(&1 != %{})) do
       {:ok, no_empty_maps}
     end

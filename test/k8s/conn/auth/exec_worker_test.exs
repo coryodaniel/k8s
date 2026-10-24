@@ -70,7 +70,7 @@ defmodule K8s.Conn.Auth.ExecWorkerTest do
     @spec start_echo_worker(map()) :: pid() | GenServer.server()
     defp start_echo_worker(%{} = cred) do
       # A helper to start an echo worker with a given ExecCredential
-      output = Jason.encode!(cred)
+      output = K8s.encode!(cred)
 
       {:ok, pid} =
         ExecWorker.start_link(
@@ -90,7 +90,7 @@ defmodule K8s.Conn.Auth.ExecWorkerTest do
           args: []
         )
 
-      assert {:error, %Jason.DecodeError{}} = ExecWorker.get_token(pid)
+      assert {:error, _} = ExecWorker.get_token(pid)
     end
 
     test "returns an error when given an echo with no token" do

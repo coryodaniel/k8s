@@ -1,6 +1,11 @@
 defmodule K8s do
   @moduledoc "Kubernetes API Client for Elixir"
 
+  @json_library_default Jason
+  @yaml_library_default YamlElixir
+  @json_library Application.compile_env(:k8s, :json_library, @json_library_default)
+  @yaml_library Application.compile_env(:k8s, :yaml_library, @yaml_library_default)
+
   @doc false
   @spec http_provider() :: module()
   @deprecated "Call K8s.default_http_provider/0 instead"
@@ -11,6 +16,66 @@ defmodule K8s do
   def default_http_provider do
     Application.get_env(:k8s, :http_provider, K8s.Client.MintHTTPProvider)
   end
+
+  @doc "Returns the configured JSON library module"
+  @spec json_library() :: module()
+  def json_library, do: @json_library
+
+  @doc "Returns the configured YAML library module"
+  @spec yaml_library() :: module()
+  def yaml_library, do: @yaml_library
+
+  @doc false
+  @spec json_decode(binary()) :: {:ok, any()} | {:error, any()}
+  def json_decode(payload) do
+    {:ok, decode!(payload)}
+  rescue
+    error -> {:error, error}
+  end
+
+  @doc false
+  @spec json_encode(any()) :: {:ok, iodata()} | {:error, any()}
+  def json_encode(payload) do
+    {:ok, encode!(payload)}
+  rescue
+    error -> {:error, error}
+  end
+
+  @doc false
+  @spec json_encode!(any()) :: iodata()
+  def json_encode!(payload), do: encode!(payload)
+
+  @doc false
+  @spec json_decode!(binary()) :: any()
+  def json_decode!(payload), do: decode!(payload)
+
+  @doc false
+  @spec encode(any()) :: {:ok, iodata()} | {:error, any()}
+  def encode(payload), do: json_encode(payload)
+
+  @doc false
+  @spec encode!(any()) :: iodata()
+  def encode!(payload), do: @json_library.encode!(payload)
+
+  @doc false
+  @spec decode(binary()) :: {:ok, any()} | {:error, any()}
+  def decode(payload), do: json_decode(payload)
+
+  @doc false
+  @spec decode!(binary()) :: any()
+  def decode!(payload), do: @json_library.decode!(payload)
+
+  @doc false
+  @spec yaml_read_from_file(binary()) :: {:ok, any()} | {:error, any()}
+  def yaml_read_from_file(path), do: @yaml_library.read_from_file(path)
+
+  @doc false
+  @spec yaml_read_from_string(binary()) :: {:ok, any()} | {:error, any()}
+  def yaml_read_from_string(contents), do: @yaml_library.read_from_string(contents)
+
+  @doc false
+  @spec yaml_read_all_from_string(binary()) :: {:ok, any()} | {:error, any()}
+  def yaml_read_all_from_string(contents), do: @yaml_library.read_all_from_string(contents)
 
   @doc """
   Returns the _default_ driver for discovery.

@@ -22,12 +22,7 @@ defmodule K8s.Middleware.Request.EncodeBodyTest do
     request = %K8s.Middleware.Request{body: data, method: :post}
     result = K8s.Middleware.Request.EncodeBody.call(request)
 
-    assert result ==
-             {:error,
-              %Protocol.UndefinedError{
-                description: "Jason.Encoder protocol must always be explicitly implemented",
-                protocol: Jason.Encoder,
-                value: {:should, :fail}
-              }}
+    assert {:error, error} = result
+    assert match?(%Protocol.UndefinedError{}, error) or match?(%ArgumentError{}, error)
   end
 end

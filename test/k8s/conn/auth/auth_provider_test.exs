@@ -39,7 +39,7 @@ defmodule K8s.Conn.Auth.AuthProviderTest do
     }
 
     provider = %AuthProvider{
-      cmd_args: [Jason.encode!(response)],
+      cmd_args: [K8s.encode!(response)],
       cmd_path: "echo",
       expiry_key: ["credential", "token_expiry"],
       token_key: ["credential", "access_token"]

@@ -3,7 +3,10 @@ defmodule K8s.Operation do
 
   alias K8s.{Operation, Selector}
   alias K8s.Operation.Error
-  @derive {Jason.Encoder, except: [:path_params, :header_params]}
+
+  if Code.ensure_loaded?(Jason.Encoder) do
+    @derive {Jason.Encoder, except: [:path_params, :header_params]}
+  end
 
   @typedoc "Acceptable patch types"
   @type patch_type :: :strategic_merge | :merge | :json_merge | :apply

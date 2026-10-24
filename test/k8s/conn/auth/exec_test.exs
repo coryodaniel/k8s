@@ -10,7 +10,7 @@ defmodule K8s.Conn.Auth.ExecTest do
     # auth provider and using that provider that's running a
     # genserver. The genserver will shell out to echo
     output =
-      Jason.encode!(%{
+      K8s.encode!(%{
         "kind" => "ExecCredential",
         "apiVersion" => "client.authentication.k8s.io/v1alpha1",
         "status" => %{

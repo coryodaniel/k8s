@@ -20,6 +20,8 @@ defmodule K8s.Middleware.Request.EncodeBody do
   end
 
   @spec encode(any(), atom()) :: {:ok, binary} | {:error, any}
-  defp encode(body, http_method) when http_method in [:put, :patch, :post], do: Jason.encode(body)
+  defp encode(body, http_method) when http_method in [:put, :patch, :post],
+    do: K8s.encode(body)
+
   defp encode(_, _), do: {:ok, nil}
 end

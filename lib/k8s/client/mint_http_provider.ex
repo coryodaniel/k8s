@@ -199,11 +199,11 @@ defmodule K8s.Client.MintHTTPProvider do
     end
   end
 
-  @spec decode(binary, binary) :: map | list | nil
+  @spec decode(binary, binary) :: map | list | binary | nil
   defp decode(body, "text/plain"), do: body
 
   defp decode(body, "application/json") do
-    case Jason.decode(body) do
+    case K8s.decode(body) do
       {:ok, data} ->
         data
 

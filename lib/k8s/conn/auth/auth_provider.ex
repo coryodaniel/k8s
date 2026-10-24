@@ -79,7 +79,7 @@ defmodule K8s.Conn.Auth.AuthProvider do
           {:ok, binary} | {:error, :enoent | K8s.Conn.Error.t()}
   def generate_token(config) do
     with {cmd_response, 0} <- System.cmd(config.cmd_path, config.cmd_args),
-         {:ok, data} <- Jason.decode(cmd_response),
+        {:ok, data} <- K8s.decode(cmd_response),
          token when not is_nil(token) <- get_in(data, config.token_key) do
       {:ok, token}
     else

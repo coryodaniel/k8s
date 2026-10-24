@@ -61,6 +61,33 @@ Most functions are also written using doctests.
 
 If you are interested in building Kubernetes Operators or Schedulers, check out [Bonny](https://github.com/coryodaniel/bonny).
 
+## Runtime JSON/YAML libraries
+
+`k8s` supports configurable JSON and YAML libraries via application config.
+
+```elixir
+config :k8s,
+  json_library: Jason,
+  yaml_library: YamlElixir
+```
+
+These options are resolved at compile time. Recompile the project after changing either option.
+
+For `:glazer` library use `Glazer.JSON` and the built-in adapter module `K8s.Yaml.Glazer`:
+
+```elixir
+config :k8s,
+  json_library: Glazer.JSON,
+  yaml_library: K8s.Yaml.Glazer
+```
+
+Expected callback functions:
+
+- `json_library`: `encode!/1`, `decode!/1`
+- `yaml_library`: `read_from_file/1`, `read_from_string/1`, `read_all_from_string/1`
+
+Defaults are `Jason` and `YamlElixir`.
+
 ## tl;dr Examples
 
 ### Configure a cluster connection
